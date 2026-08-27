@@ -431,11 +431,34 @@
       margin-bottom: 6px;
     }
     .delta-box.newcomer .delta-label { color: #5aa9e6; }
-    .delta-box.comeback .delta-label { color: var(--green); }
+    .delta-subbox.comeback .delta-label { color: var(--green); }
     .delta-names {
       font-size: 13.5px;
       color: var(--text);
       line-height: 1.5;
+    }
+
+    .delta-group {
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+    }
+    .delta-group-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .delta-group-row {
+      display: flex;
+      gap: 14px;
+    }
+    .delta-subbox {
+      flex: 1;
+      min-width: 0;
     }
 
     .export-btn {
@@ -790,13 +813,18 @@
             '<div class="delta-label">🌱 New Comers (' + newcomers.length + ')</div>' +
             '<div class="delta-names">' + listOrNone(newcomers) + '</div>' +
           '</div>' +
-          '<div class="delta-box comeback">' +
-            '<div class="delta-label">🆕 Members/Regulars Comeback (' + comeback.length + ')</div>' +
-            '<div class="delta-names">' + listOrNone(comeback) + '</div>' +
-          '</div>' +
-          '<div class="delta-box departed">' +
-            '<div class="delta-label">👋 Members/Regulars Departed (' + departed.length + ')</div>' +
-            '<div class="delta-names">' + listOrNone(departed) + '</div>' +
+          '<div class="delta-group">' +
+            '<div class="delta-group-title">Members/Regulars</div>' +
+            '<div class="delta-group-row">' +
+              '<div class="delta-subbox comeback">' +
+                '<div class="delta-label">🆕 New (' + comeback.length + ')</div>' +
+                '<div class="delta-names">' + listOrNone(comeback) + '</div>' +
+              '</div>' +
+              '<div class="delta-subbox departed">' +
+                '<div class="delta-label">👋 Departed (' + departed.length + ')</div>' +
+                '<div class="delta-names">' + listOrNone(departed) + '</div>' +
+              '</div>' +
+            '</div>' +
           '</div>' +
         '</div>';
     }
