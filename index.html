@@ -611,11 +611,13 @@
             '<button class="tab active" data-panel="members">Members <span class="count" id="cnt-members"></span></button>' +
             '<button class="tab" data-panel="regular">Regular <span class="count" id="cnt-regular"></span></button>' +
             '<button class="tab" data-panel="semi">Semi-Regular <span class="count" id="cnt-semi"></span></button>' +
+            '<button class="tab" data-panel="perks">Perks Eligible <span class="count" id="cnt-perks"></span></button>' +
             '<button class="tab" data-panel="all">All Players <span class="count" id="cnt-all"></span></button>' +
           '</div>' +
           '<div class="panel active" id="panel-members"></div>' +
           '<div class="panel" id="panel-regular"></div>' +
           '<div class="panel" id="panel-semi"></div>' +
+          '<div class="panel" id="panel-perks"></div>' +
           '<div class="panel" id="panel-all"></div>' +
         '</div>' +
         '<div class="page" id="page-outstanding"></div>' +
@@ -646,16 +648,55 @@
       document.getElementById('periodLabel').textContent =
         'Period ' + DATA.period.start + ' → ' + DATA.period.end;
 
+      function computePerksEligible() {
+        const outstandingNames = new Set(
+          (DATA.outstanding || []).map(function (o) { return o.name.trim().toLowerCase(); })
+        );
+        const fromMembers = (DATA.members || []).map(function (m) {
+          return { name: m.name, tier: 'Member', points: m.points, reason: m.reason };
+        });
+        const fromRegulars = (DATA.regular || []).map(function (r) {
+          return { name: r.name, tier: 'Regular', points: r.points, reason: r.reason };
+        });
+        return fromMembers.concat(fromRegulars).filter(function (p) {
+          return !outstandingNames.has(p.name.trim().toLowerCase());
+        });
+      }
+
+      function renderPerks(filter) {
+        const list = computePerksEligible().sort(function (a, b) { return b.points - a.points; });
+        const rows = list.filter(function (item) {
+          return !filter || item.name.toLowerCase().includes(filter);
+        });
+        if (rows.length === 0) return '<div class="empty">No one is eligible yet.</div>';
+        return rows.map(function (item, i) {
+          const badge = item.tier === 'Member'
+            ? '<span class="badge loyal">Member</span>'
+            : '<span class="badge hybrid">Regular</span>';
+          return '' +
+            '<div class="card">' +
+              '<div class="' + rankClass(i) + '">' + (i + 1) + '</div>' +
+              '<div class="card-main">' +
+                '<div class="card-name">' + esc(item.name) + badge + '</div>' +
+                '<div class="card-reason">' + esc(item.reason) + '</div>' +
+              '</div>' +
+              '<div class="card-points"><div class="num">' + item.points + '</div><div class="label">points</div></div>' +
+            '</div>';
+        }).join('');
+      }
+
       function renderAllPanels(filter) {
         document.getElementById('panel-members').innerHTML = renderMembers(DATA.members, filter);
         document.getElementById('panel-regular').innerHTML = renderRegulars(DATA.regular, filter);
         document.getElementById('panel-semi').innerHTML = renderRegulars(DATA.semiRegular, filter);
+        document.getElementById('panel-perks').innerHTML = renderPerks(filter);
         document.getElementById('panel-all').innerHTML = renderAll(DATA.allPlayers, filter);
       }
 
       document.getElementById('cnt-members').textContent = DATA.members.length;
       document.getElementById('cnt-regular').textContent = DATA.regular.length;
       document.getElementById('cnt-semi').textContent = DATA.semiRegular.length;
+      document.getElementById('cnt-perks').textContent = computePerksEligible().length;
       document.getElementById('cnt-all').textContent = DATA.allPlayers.length;
 
       renderAllPanels('');
