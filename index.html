@@ -291,6 +291,11 @@
       cursor: pointer;
     }
     .side-menu-item.active { background: var(--accent); color: var(--accent-ink); }
+    .side-menu-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 8px 4px;
+    }
 
     .about-card {
       background: var(--panel-solid);
@@ -455,10 +460,6 @@
       <div class="meta">
         <span id="updatedLabel"></span>
       </div>
-      <div class="controls-row">
-        <label class="asat-label">As At <input type="month" id="asAtDate" class="asat-input"></label>
-        <button id="themeToggle" class="theme-toggle" type="button">🌙 Dark</button>
-      </div>
     </header>
 
     <div id="warningsBox"></div>
@@ -597,8 +598,13 @@
           '<button class="side-menu-item" data-page="outstanding">Outstanding Payments</button>' +
           '<button class="side-menu-item" data-page="credits">Player Credits</button>' +
           '<button class="side-menu-item" data-page="about">About Us</button>' +
+          '<div class="side-menu-divider"></div>' +
+          '<button id="themeToggle" class="side-menu-item" type="button">🌙 Dark Mode</button>' +
         '</nav>' +
         '<div class="page active" id="page-dashboard">' +
+          '<div class="controls-row">' +
+            '<label class="asat-label">As At <input type="month" id="asAtDate" class="asat-input"></label>' +
+          '</div>' +
           '<div class="dashboard-period" id="periodLabel">Period —</div>' +
           '<input class="search" id="searchBox" type="text" placeholder="Search a name…">' +
           '<div class="tabs" id="tierTabs">' +
@@ -692,15 +698,36 @@
         about: 'About Us',
       };
 
-      document.querySelectorAll('.side-menu-item').forEach(function (btn) {
+      document.querySelectorAll('.side-menu-item[data-page]').forEach(function (btn) {
         btn.addEventListener('click', function () {
-          document.querySelectorAll('.side-menu-item').forEach(function (t) { t.classList.remove('active'); });
+          document.querySelectorAll('.side-menu-item[data-page]').forEach(function (t) { t.classList.remove('active'); });
           document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
           btn.classList.add('active');
           document.getElementById('page-' + btn.dataset.page).classList.add('active');
           document.getElementById('pageTitle').textContent = PAGE_TITLES[btn.dataset.page] || 'Loyalty Board';
           closeSideMenu();
         });
+      });
+
+      // "As At" month picker — lives inside the Dashboard page only.
+      // Changing it re-fetches with a new ?month= (no full page reload),
+      // preserved across auto-refreshes via currentMonthParam.
+      document.getElementById('asAtDate').value = DATA.period.end;
+      document.getElementById('asAtDate').addEventListener('change', function (e) {
+        const ym = e.target.value; // 'YYYY-MM'
+        if (!ym) return;
+        loadData(ym);
+      });
+
+      // Dark/light toggle — now lives in the side menu as a settings-style
+      // item; doesn't close the menu or navigate. Resets to dark on
+      // reload (no persistence), consistent with the rest of the rebuild.
+      document.getElementById('themeToggle').addEventListener('click', function () {
+        const isLight = document.body.classList.toggle('light-mode');
+        document.getElementById('themeToggle').textContent = isLight ? '🌙 Dark Mode' : '☀️ Light Mode';
+        document.getElementById('logoImg').src = isLight
+          ? document.getElementById('logoImg').dataset.light
+          : document.getElementById('logoImg').dataset.dark;
       });
 
       document.getElementById('searchBox').addEventListener('input', function (e) {
@@ -740,8 +767,6 @@
           document.getElementById('updatedLabel').textContent =
             'Updated ' + new Date(DATA.generatedAt).toLocaleString();
 
-          document.getElementById('asAtDate').value = DATA.period.end;
-
           if (DATA.warnings && DATA.warnings.length) {
             document.getElementById('warningsBox').innerHTML =
               '<div class="warnings"><strong>' + DATA.warnings.length + ' warning(s)</strong>' +
@@ -772,20 +797,6 @@
     }
 
     loadData();
-
-    document.getElementById('asAtDate').addEventListener('change', function (e) {
-      const ym = e.target.value; // 'YYYY-MM'
-      if (!ym) return;
-      loadData(ym);
-    });
-
-    const themeToggle = document.getElementById('themeToggle');
-    const logoImg = document.getElementById('logoImg');
-    themeToggle.addEventListener('click', function () {
-      const isLight = document.body.classList.toggle('light-mode');
-      themeToggle.textContent = isLight ? '🌙 Dark' : '☀️ Light';
-      logoImg.src = isLight ? logoImg.dataset.light : logoImg.dataset.dark;
-    });
 
     // Live refresh: re-fetch (not a full page reload) every 5 minutes,
     // preserving whatever "As At" month is currently selected.
