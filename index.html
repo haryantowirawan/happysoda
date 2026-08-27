@@ -337,6 +337,20 @@
     .about-info-row a { color: var(--accent); text-decoration: none; font-weight: 600; }
     .about-info-row a:hover { text-decoration: underline; }
 
+    .export-btn {
+      display: block;
+      margin: 0 0 12px 0;
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .export-btn:hover { border-color: var(--accent); }
+
     .balance-total {
       background: var(--panel-2);
       font-weight: 700;
@@ -584,6 +598,45 @@
       return cards + totalCard;
     }
 
+    function computePerksEligible() {
+      const outstandingNames = new Set(
+        (DATA.outstanding || []).map(function (o) { return o.name.trim().toLowerCase(); })
+      );
+      const fromMembers = (DATA.members || []).map(function (m) {
+        return { name: m.name, tier: 'Member', points: m.points, reason: m.reason };
+      });
+      const fromRegulars = (DATA.regular || []).map(function (r) {
+        return { name: r.name, tier: 'Regular', points: r.points, reason: r.reason };
+      });
+      return fromMembers.concat(fromRegulars).filter(function (p) {
+        return !outstandingNames.has(p.name.trim().toLowerCase());
+      });
+    }
+
+    function renderPerks(filter) {
+      const list = computePerksEligible().sort(function (a, b) { return b.points - a.points; });
+      const rows = list.filter(function (item) {
+        return !filter || item.name.toLowerCase().includes(filter);
+      });
+      const exportBtn = '<button id="exportPerksBtn" class="export-btn" type="button">📋 Copy List</button>';
+      if (rows.length === 0) return exportBtn + '<div class="empty">No one is eligible yet.</div>';
+      const cards = rows.map(function (item, i) {
+        const badge = item.tier === 'Member'
+          ? '<span class="badge loyal">Member</span>'
+          : '<span class="badge hybrid">Regular</span>';
+        return '' +
+          '<div class="card">' +
+            '<div class="' + rankClass(i) + '">' + (i + 1) + '</div>' +
+            '<div class="card-main">' +
+              '<div class="card-name">' + esc(item.name) + badge + '</div>' +
+              '<div class="card-reason">' + esc(item.reason) + '</div>' +
+            '</div>' +
+            '<div class="card-points"><div class="num">' + item.points + '</div><div class="label">points</div></div>' +
+          '</div>';
+      }).join('');
+      return exportBtn + cards;
+    }
+
     function buildDashboard() {
       document.getElementById('pageTitle').textContent = 'Loyalty Board';
       const content = document.getElementById('content');
@@ -646,43 +699,6 @@
 
       document.getElementById('periodLabel').textContent =
         'Period ' + DATA.period.start + ' → ' + DATA.period.end;
-
-      function computePerksEligible() {
-        const outstandingNames = new Set(
-          (DATA.outstanding || []).map(function (o) { return o.name.trim().toLowerCase(); })
-        );
-        const fromMembers = (DATA.members || []).map(function (m) {
-          return { name: m.name, tier: 'Member', points: m.points, reason: m.reason };
-        });
-        const fromRegulars = (DATA.regular || []).map(function (r) {
-          return { name: r.name, tier: 'Regular', points: r.points, reason: r.reason };
-        });
-        return fromMembers.concat(fromRegulars).filter(function (p) {
-          return !outstandingNames.has(p.name.trim().toLowerCase());
-        });
-      }
-
-      function renderPerks(filter) {
-        const list = computePerksEligible().sort(function (a, b) { return b.points - a.points; });
-        const rows = list.filter(function (item) {
-          return !filter || item.name.toLowerCase().includes(filter);
-        });
-        if (rows.length === 0) return '<div class="empty">No one is eligible yet.</div>';
-        return rows.map(function (item, i) {
-          const badge = item.tier === 'Member'
-            ? '<span class="badge loyal">Member</span>'
-            : '<span class="badge hybrid">Regular</span>';
-          return '' +
-            '<div class="card">' +
-              '<div class="' + rankClass(i) + '">' + (i + 1) + '</div>' +
-              '<div class="card-main">' +
-                '<div class="card-name">' + esc(item.name) + badge + '</div>' +
-                '<div class="card-reason">' + esc(item.reason) + '</div>' +
-              '</div>' +
-              '<div class="card-points"><div class="num">' + item.points + '</div><div class="label">points</div></div>' +
-            '</div>';
-        }).join('');
-      }
 
       function renderAllPanels(filter) {
         document.getElementById('panel-members').innerHTML = renderMembers(DATA.members, filter);
@@ -837,6 +853,60 @@
     }
 
     loadData();
+
+    function fallbackCopy(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(textarea);
+      return ok;
+    }
+
+    function copyPerksList(btn) {
+      const filterValue = document.getElementById('searchBox')
+        ? document.getElementById('searchBox').value.trim().toLowerCase() : '';
+      const list = computePerksEligible()
+        .filter(function (item) { return !filterValue || item.name.toLowerCase().includes(filterValue); })
+        .sort(function (a, b) { return b.points - a.points; });
+
+      if (list.length === 0) {
+        alert('No one is currently eligible to export.');
+        return;
+      }
+
+      const lines = ['Perks Eligible members/regulars:', ''];
+      list.forEach(function (item, i) { lines.push((i + 1) + '. ' + item.name); });
+      const text = lines.join('\n');
+
+      const showCopied = function () {
+        const original = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(function () { btn.textContent = original; }, 1500);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showCopied).catch(function () {
+          if (fallbackCopy(text)) showCopied();
+          else alert('Could not copy automatically. Here is the list:\n\n' + text);
+        });
+      } else {
+        if (fallbackCopy(text)) showCopied();
+        else alert('Could not copy automatically. Here is the list:\n\n' + text);
+      }
+    }
+
+    // Event delegation: works regardless of how many times #exportPerksBtn
+    // gets recreated by buildDashboard()/renderPerks() on every refresh.
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest('#exportPerksBtn');
+      if (btn) copyPerksList(btn);
+    });
 
     // Live refresh: re-fetch (not a full page reload) every 5 minutes,
     // preserving whatever "As At" month is currently selected.
