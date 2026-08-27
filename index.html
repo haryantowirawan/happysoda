@@ -714,8 +714,8 @@
       document.getElementById('content').innerHTML = '';
       document.getElementById('warningsBox').innerHTML =
         '<div class="warnings fatal"><strong>Something went wrong</strong>' + esc(message) + '</div>';
-      document.getElementById('copyrightLabel').textContent =
-        'Copyright © ' + new Date().getFullYear() + ' Happy Soda. Authored by: Haryanto Wirawan';
+      document.getElementById('copyrightLabel').innerHTML =
+        'Copyright © ' + new Date().getFullYear() + ' Happy Soda<br>Authored by: Haryanto Wirawan';
     }
 
     let currentMonthParam = null;
@@ -752,13 +752,13 @@
 
           if (DATA.sourcesUsed && DATA.sourcesUsed.length) {
             document.getElementById('footerLabel').textContent =
-              'Auto-refreshes every 5 minutes · combining: ' + DATA.sourcesUsed.join(', ');
+              'Auto-refreshes every 5 minutes · ' + DATA.sourcesUsed.join(', ');
           } else {
             document.getElementById('footerLabel').textContent = 'Auto-refreshes every 5 minutes';
           }
 
-          document.getElementById('copyrightLabel').textContent =
-            'Copyright © ' + (DATA.currentYear || new Date().getFullYear()) + ' Happy Soda. Authored by: Haryanto Wirawan';
+          document.getElementById('copyrightLabel').innerHTML =
+            'Copyright © ' + (DATA.currentYear || new Date().getFullYear()) + ' Happy Soda<br>Authored by: Haryanto Wirawan';
 
           buildDashboard();
         })
