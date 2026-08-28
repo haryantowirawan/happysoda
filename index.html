@@ -1227,6 +1227,31 @@
 
     function isBigPosition(pos) { return pos === 'C' || pos === 'PF'; }
 
+    // The 3 non-scoring roles a functional team needs at least one of —
+    // Scorer/Shooter/Hustle are already well-reflected by the composite
+    // rating above, so they don't need a separate coverage check here.
+    const KEY_ROLES = ['Playmaker', 'Rebounder', 'Defender'];
+
+    function playerRoles(p) {
+      const roles = [];
+      if (p.primaryRole) roles.push(p.primaryRole);
+      if (p.secondaryRole) roles.push(p.secondaryRole);
+      return roles;
+    }
+
+    // Penalizes a split where one team has NO ONE (primary or secondary
+    // role) covering a key role while the other team has at least one —
+    // e.g. a team with zero playmakers, when the other team has two.
+    function roleCoveragePenalty(teamA, teamB) {
+      let penalty = 0;
+      KEY_ROLES.forEach(function (role) {
+        const aHas = teamA.some(function (p) { return playerRoles(p).indexOf(role) !== -1; });
+        const bHas = teamB.some(function (p) { return playerRoles(p).indexOf(role) !== -1; });
+        if (aHas !== bHas) penalty += 1.5;
+      });
+      return penalty;
+    }
+
     function choose5(players) {
       const results = [];
       const n = players.length;
@@ -1241,10 +1266,14 @@
       return results;
     }
 
-    function assembleTeams(players) {
+    // Evaluates all 126 distinct splits and returns them sorted by score
+    // (lowest/fairest first) — kept separate from assembleTeams() so the
+    // "pick one" strategy (see below) can change independently of the
+    // scoring itself.
+    function evaluateAllSplits(players) {
       const allCombos = choose5(players);
       const seenKeys = new Set();
-      let best = null;
+      const results = [];
 
       allCombos.forEach(function (idxA) {
         const key = idxA.join(',');
@@ -1270,14 +1299,26 @@
         const heightB = teamB.reduce(function (s, p) { return s + (p.heightCm || 175); }, 0) / 5;
         const heightPenalty = Math.abs(heightA - heightB) / 5;
 
-        const score = ratingDiff + positionPenalty + heightPenalty;
+        const rolePenalty = roleCoveragePenalty(teamA, teamB);
 
-        if (!best || score < best.score) {
-          best = { teamA: teamA, teamB: teamB, ratingA: ratingA, ratingB: ratingB, score: score };
-        }
+        const score = ratingDiff + positionPenalty + heightPenalty + rolePenalty;
+
+        results.push({ teamA: teamA, teamB: teamB, ratingA: ratingA, ratingB: ratingB, score: score });
       });
 
-      return best;
+      results.sort(function (a, b) { return a.score - b.score; });
+      return results;
+    }
+
+    // Picking the single mathematically-best split every time means the
+    // same 10 people always get split the same way. Instead, pick
+    // randomly among the 10 fairest splits (out of 126 total — the top
+    // ~8%) — every option is still close to optimal, but re-running this
+    // on the same group gives real variety instead of a fixed result.
+    function assembleTeams(players) {
+      const allResults = evaluateAllSplits(players);
+      const topK = allResults.slice(0, Math.min(10, allResults.length));
+      return topK[Math.floor(Math.random() * topK.length)];
     }
 
     function renderTeamCard(title, team, rating) {
