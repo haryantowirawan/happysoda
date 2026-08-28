@@ -503,6 +503,32 @@
       color: var(--accent);
     }
 
+    /* League Draft's export gets the same "2-column grid + widen during
+       capture" treatment as Monthly Records, for the same reason — with
+       4+ teams stacked vertically, the image gets tall enough to trigger
+       WhatsApp's more aggressive compression. */
+    body.exporting-records #ldExportCapture {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    body.exporting-records #ldExportCapture .records-export-title,
+    body.exporting-records #ldExportCapture .tm-fairness-note {
+      grid-column: 1 / -1;
+    }
+    body.exporting-records #ldExportCapture .tm-team-card { margin-bottom: 0; }
+    body.exporting-records #ldExportCapture .tm-team-player { font-size: 15px; }
+
+    .ld-jersey {
+      display: inline-block;
+      min-width: 26px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-right: 6px;
+    }
+
     /* Fixed column widths so Name/Fee line up identically across every
        tab — without this, each table's columns auto-size to their own
        content, making the Fee column visibly jump left/right when
@@ -1609,18 +1635,85 @@
       }
     }
 
+    // League Draft's own team-card renderer (separate from Team Manager's
+    // shared renderTeamCard) so jersey numbers only show up here, as
+    // requested — not a side effect on Team Manager's results too.
+    function renderLeagueTeamCard(title, team) {
+      const total = team.reduce(function (s, p) { return s + computeCompositeRating(p); }, 0);
+      const avg = (total / team.length).toFixed(1);
+      const players = team.slice().sort(function (a, b) { return computeCompositeRating(b) - computeCompositeRating(a); });
+      const rows = players.map(function (p) {
+        const jersey = p.jerseyNumber ? esc(p.jerseyNumber) : '--';
+        return '' +
+          '<div class="tm-team-player">' +
+            '<span><span class="ld-jersey">' + jersey + '</span>' + esc(p.name) + '</span>' +
+            '<span class="tm-team-player-pos">' + esc(p.position || '—') + '</span>' +
+          '</div>';
+      }).join('');
+      return '' +
+        '<div class="tm-team-card">' +
+          '<div class="tm-team-title">' + esc(title) + '</div>' +
+          '<div class="tm-team-rating">' + team.length + ' players · Total rating ' + total.toFixed(1) + ' · avg ' + avg + '</div>' +
+          rows +
+        '</div>';
+    }
+
     function renderLeagueTeamResults(result) {
       const box = document.getElementById('ldResults');
       if (!box) return;
       if (!result) { box.innerHTML = ''; return; }
       const avgs = result.teams.map(computeTeamAvgRating);
       const spread = (Math.max.apply(null, avgs) - Math.min.apply(null, avgs)).toFixed(1);
-      let html = '<div class="tm-fairness-note">Balanced across ' + result.teams.length + ' teams · avg rating spread ' + spread + '</div>';
-      result.teams.forEach(function (team, i) {
-        const total = team.reduce(function (s, p) { return s + computeCompositeRating(p); }, 0);
-        html += renderTeamCard('🏀 Team ' + (i + 1), team, total);
+      const teamCardsHtml = result.teams.map(function (team, i) {
+        return renderLeagueTeamCard('🏀 Team ' + (i + 1), team);
+      }).join('');
+
+      // Export/Copy buttons only exist once there's actually a result to
+      // act on — they're built fresh here, not part of the static page.
+      box.innerHTML =
+        '<div class="records-actions">' +
+          '<button id="ldExportImageBtn" class="export-btn" type="button">🖼️ Export as Image</button>' +
+          '<button id="ldCopyTeamListBtn" class="export-btn" type="button">📋 Copy Team List</button>' +
+        '</div>' +
+        '<div id="ldExportCapture">' +
+          '<div class="records-export-title" id="ldExportTitle">League Draft — ' + result.teams.length + ' Teams</div>' +
+          '<div class="tm-fairness-note">Balanced across ' + result.teams.length + ' teams · avg rating spread ' + spread + '</div>' +
+          teamCardsHtml +
+        '</div>';
+    }
+
+    function copyTeamList(btn) {
+      if (!ldLastResult) {
+        alert('No assembled teams to copy yet.');
+        return;
+      }
+      const lines = ['🏀 League Draft — ' + ldLastResult.teams.length + ' Teams', ''];
+      ldLastResult.teams.forEach(function (team, i) {
+        lines.push('Team ' + (i + 1));
+        const sorted = team.slice().sort(function (a, b) { return computeCompositeRating(b) - computeCompositeRating(a); });
+        sorted.forEach(function (p, idx) {
+          const jersey = p.jerseyNumber ? '#' + p.jerseyNumber : '#--';
+          lines.push((idx + 1) + '. ' + p.name + ' (' + jersey + ')');
+        });
+        lines.push('');
       });
-      box.innerHTML = html;
+      const text = lines.join('\n').trim();
+
+      const showCopied = function () {
+        const original = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(function () { btn.textContent = original; }, 1500);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showCopied).catch(function () {
+          if (fallbackCopy(text)) showCopied();
+          else alert('Could not copy automatically. Here is the list:\n\n' + text);
+        });
+      } else {
+        if (fallbackCopy(text)) showCopied();
+        else alert('Could not copy automatically. Here is the list:\n\n' + text);
+      }
     }
 
     function renderAttendanceChart() {
@@ -2139,7 +2232,7 @@
       // column. Widen it just for the capture (doesn't affect normal
       // browsing, which isn't in this "exporting-records" state) so the
       // fee amounts don't clip.
-      const needsWiden = elementId === 'recordsExportCapture';
+      const needsWiden = elementId === 'recordsExportCapture' || elementId === 'ldExportCapture';
       if (needsWiden) target.style.width = '700px';
 
       setTimeout(function () {
@@ -2249,6 +2342,12 @@
         ldLastResult = assembleLeagueTeams(ldMatched, numTeams);
         renderLeagueTeamResults(ldLastResult);
       }
+
+      const ldExportImageBtn = e.target.closest('#ldExportImageBtn');
+      if (ldExportImageBtn) exportImageFromElement('ldExportCapture', 'HS-League-Draft', ldExportImageBtn);
+
+      const ldCopyTeamListBtn = e.target.closest('#ldCopyTeamListBtn');
+      if (ldCopyTeamListBtn) copyTeamList(ldCopyTeamListBtn);
     });
 
     // Live refresh: re-fetch (not a full page reload) every 15 minutes,
