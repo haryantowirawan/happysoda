@@ -282,6 +282,26 @@
       padding-bottom: 14px;
       border-bottom: 1px solid var(--border);
     }
+    /* During export only, arrange the 6 sections as a 2-column grid
+       instead of stacking them — this both uses the horizontal white
+       space that was going unused, and roughly halves the image's
+       overall height, which helps a lot with WhatsApp's compression:
+       very tall, extreme-aspect-ratio images get hit hardest by it. */
+    body.exporting-records #recordsExportCapture {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    body.exporting-records #recordsExportTitle {
+      grid-column: 1 / -1;
+    }
+    body.exporting-records #recordsExportCapture .records-panel {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+      min-width: 0;
+    }
     .records-panel[data-export-label]::before {
       content: attr(data-export-label);
       display: block;
@@ -296,14 +316,14 @@
        content, making the Fee column visibly jump left/right when
        switching tabs. */
     .records-data-table { table-layout: fixed; width: 100%; }
-    .records-data-table th:nth-child(1), .records-data-table td:nth-child(1) { width: 12%; }
-    .records-data-table th:nth-child(2), .records-data-table td:nth-child(2) { width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .records-data-table th:nth-child(3), .records-data-table td:nth-child(3) { width: 40%; text-align: right; }
+    .records-data-table th:nth-child(1), .records-data-table td:nth-child(1) { width: 10%; }
+    .records-data-table th:nth-child(2), .records-data-table td:nth-child(2) { width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .records-data-table th:nth-child(3), .records-data-table td:nth-child(3) { width: 48%; text-align: right; white-space: nowrap; }
     /* Bigger, easier-to-scan text specifically in the exported image —
        the on-screen tabs stay compact for normal phone browsing. */
-    body.exporting-records .records-data-table { font-size: 16px; }
+    body.exporting-records .records-data-table { font-size: 15px; }
     body.exporting-records .records-data-table th,
-    body.exporting-records .records-data-table td { padding: 11px 9px; }
+    body.exporting-records .records-data-table td { padding: 9px 8px; }
 
     .finance-table { width: 100%; border-collapse: collapse; font-size: 16px; }
     .finance-table th {
@@ -1372,12 +1392,28 @@
       btn.disabled = true;
       document.body.classList.add('exporting-records');
       const target = document.getElementById(elementId);
-      target.style.display = 'block';
+      // Only the finance container is normally hidden (display:none) and
+      // needs forcing visible via inline style. The records container is
+      // already part of the visible page — forcing an inline display here
+      // would override the CSS grid layout below it (inline styles beat
+      // any class-based stylesheet rule), so leave its display entirely
+      // to CSS, controlled purely by the "exporting-records" body class.
+      const needsForceShow = elementId === 'financeExportCapture';
+      if (needsForceShow) target.style.display = 'block';
+
+      // Records export uses a 2-column grid; the on-screen container is
+      // only phone-width, which isn't enough room for a legible font per
+      // column. Widen it just for the capture (doesn't affect normal
+      // browsing, which isn't in this "exporting-records" state) so the
+      // fee amounts don't clip.
+      const needsWiden = elementId === 'recordsExportCapture';
+      if (needsWiden) target.style.width = '700px';
 
       setTimeout(function () {
         html2canvas(target, { scale: 2 }).then(function (canvas) {
           document.body.classList.remove('exporting-records');
-          if (elementId === 'financeExportCapture') target.style.display = 'none';
+          if (needsForceShow) target.style.display = 'none';
+          if (needsWiden) target.style.width = '';
           btn.textContent = original;
           btn.disabled = false;
           const link = document.createElement('a');
@@ -1386,7 +1422,8 @@
           link.click();
         }).catch(function (err) {
           document.body.classList.remove('exporting-records');
-          if (elementId === 'financeExportCapture') target.style.display = 'none';
+          if (needsForceShow) target.style.display = 'none';
+          if (needsWiden) target.style.width = '';
           btn.textContent = original;
           btn.disabled = false;
           alert('Could not generate image: ' + err.message);
