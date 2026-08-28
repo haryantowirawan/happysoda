@@ -304,10 +304,6 @@
     }
     .tm-pos-btn:hover { border-color: var(--accent); color: var(--accent); }
     .tm-selection-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
       margin-bottom: 12px;
     }
     .tm-selection-header span {
@@ -315,7 +311,12 @@
       font-weight: 700;
       color: var(--muted);
     }
-    .tm-selection-header .export-btn { flex: 0 0 auto; width: auto; }
+    .tm-assemble-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      color: var(--muted);
+    }
+    .tm-assemble-btn:disabled:hover { border-color: var(--border); }
     .tm-tile-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -338,7 +339,7 @@
       overflow: hidden;
     }
     .tm-tile-name {
-      font-size: 12.5px;
+      font-size: 14.5px;
       font-weight: 700;
       color: var(--text);
       overflow: hidden;
@@ -1132,14 +1133,22 @@
     function parseAttendanceNames(text) {
       return text.split('\n')
         .map(function (line) {
+          let cleaned = line;
           // Strip leading numbering ("1.", "12.") — allowing the
           // invisible word-joiner characters our own "Copy Membership
-          // List" export uses — then strip a leading checkmark, in case
-          // this is a forwarded copy of one of our own exported lists.
-          return line
-            .replace(/^\s*\d+\.\s*[\u2060]*\s*/, '')
-            .replace(/^[\u2705\u2060\s]*/, '')
-            .trim();
+          // List" export uses.
+          cleaned = cleaned.replace(/^\s*\d+[.)]\s*[\u2060]*\s*/, '');
+          // "[OFF] Substitute" notation: whoever is named after
+          // [OFF]/(OFF) is the real attendee, replacing whoever was
+          // listed before it. If nothing follows (no substitute given),
+          // the whole line is dropped — that slot simply isn't filled.
+          const offMatch = /[\[(]\s*off\s*[\])]\s*(.*)$/i.exec(cleaned);
+          if (offMatch) cleaned = offMatch[1];
+          // Strip leading status markers — several real-world checkmark
+          // styles (✅ ☑️ ✔️ ✓), a leading "-" or bullet, and any
+          // invisible characters mixed in with them.
+          cleaned = cleaned.replace(/^[\s\u2060\u2705\u2611\u2713\u2714\uFE0F\-•*]+/, '');
+          return cleaned.trim();
         })
         .filter(function (name) { return name.length > 0; });
     }
@@ -1443,9 +1452,9 @@
           '<div id="tmUnmatchedSection"></div>' +
           '<div class="tm-selection-header">' +
             '<span id="tmSelectionCount">0 / 10 selected</span>' +
-            '<button id="assembleBtn" class="export-btn" type="button" disabled>🏀 Assemble Teams</button>' +
           '</div>' +
           '<div class="tm-tile-grid" id="tmTileGrid"></div>' +
+          '<button id="assembleBtn" class="export-btn tm-assemble-btn" type="button" disabled>🏀 Assemble Teams</button>' +
           '<div id="tmResults"></div>' +
         '</div>' +
         '<div class="page" id="page-about">' +
