@@ -902,6 +902,31 @@
       return monthNames[parseInt(parts[1], 10) - 1];
     }
 
+    // Matches the sheets' own writing convention (e.g. "Sept 2026", not
+    // "Sep 2026" or "September 2026") — used for the Period line.
+    function formatMonthSeptStyle(ym) {
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+      const parts = ym.split('-');
+      return monthNames[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+    }
+
+    // Explicit dd/mm/yyyy formatting — Date.prototype.toLocaleString()
+    // depends on the viewer's browser locale, which could silently show
+    // mm/dd/yyyy for some players. This guarantees the same format for
+    // everyone, matching how dates are normally written locally.
+    function formatUpdatedTime(date) {
+      const day = date.getDate();
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      let hours = date.getHours();
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      if (hours === 0) hours = 12;
+      return day + '/' + month + '/' + year + ', ' + hours + ':' + minutes + ':' + seconds + ' ' + ampm;
+    }
+
     function renderRecordsTable(entries) {
       if (!entries || entries.length === 0) return '<div class="empty">No entries for this month.</div>';
       const rows = entries.map(function (entry, i) {
@@ -1093,7 +1118,7 @@
         '</div>';
 
       document.getElementById('periodLabel').textContent =
-        'Period ' + DATA.period.start + ' → ' + DATA.period.end;
+        'Period ' + formatMonthSeptStyle(DATA.period.start) + ' - ' + formatMonthSeptStyle(DATA.period.end);
       document.getElementById('attendanceChartContainer').innerHTML = renderAttendanceChart();
       document.getElementById('deltaRowContainer').innerHTML = renderDeltaRow();
 
@@ -1265,7 +1290,7 @@
           currentMonthParam = effectiveMonth || null;
           currentRecordsMonthParam = effectiveRecordsMonth || null;
           document.getElementById('updatedLabel').textContent =
-            'Updated ' + new Date(DATA.generatedAt).toLocaleString();
+            'Updated ' + formatUpdatedTime(new Date(DATA.generatedAt));
 
           if (DATA.warnings && DATA.warnings.length) {
             document.getElementById('warningsBox').innerHTML =
