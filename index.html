@@ -249,9 +249,15 @@
 
     .records-actions {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       gap: 8px;
       margin-bottom: 14px;
+    }
+    .records-actions .export-btn {
+      flex: 1;
+      padding: 7px 8px;
+      font-size: 11.5px;
+      margin-bottom: 0;
     }
     .records-export-title {
       text-align: center;
@@ -284,6 +290,39 @@
       margin-bottom: 8px;
       color: var(--accent);
     }
+
+    /* Fixed column widths so Name/Fee line up identically across every
+       tab — without this, each table's columns auto-size to their own
+       content, making the Fee column visibly jump left/right when
+       switching tabs. */
+    .records-data-table { table-layout: fixed; width: 100%; }
+    .records-data-table th:nth-child(1), .records-data-table td:nth-child(1) { width: 12%; }
+    .records-data-table th:nth-child(2), .records-data-table td:nth-child(2) { width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .records-data-table th:nth-child(3), .records-data-table td:nth-child(3) { width: 40%; text-align: right; }
+    /* Bigger, easier-to-scan text specifically in the exported image —
+       the on-screen tabs stay compact for normal phone browsing. */
+    body.exporting-records .records-data-table { font-size: 16px; }
+    body.exporting-records .records-data-table th,
+    body.exporting-records .records-data-table td { padding: 11px 9px; }
+
+    .finance-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+    .finance-table th {
+      text-align: left;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 6px;
+      color: var(--muted);
+      border-bottom: 2px solid var(--border);
+    }
+    .finance-table td {
+      padding: 10px 6px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+    }
+    .finance-table td.fin-name { font-weight: 600; color: var(--text); }
+    .finance-table td.outstanding-cell { color: #e0715c; text-align: right; }
+    .finance-table td.credit-cell { color: var(--green); text-align: right; }
+    .finance-table tr.fin-total-row td { border-bottom: none; padding-top: 12px; }
 
     .hamburger-btn {
       position: fixed;
@@ -660,6 +699,10 @@
     // ===========================================================
 
     let DATA = null;
+    // Tracks whichever page is currently visible, so a rebuild triggered
+    // by a month-picker change (via loadData -> buildDashboard) can
+    // restore the same page instead of always landing back on Dashboard.
+    let currentPage = 'dashboard';
 
     function esc(s) {
       return String(s).replace(/[&<>"']/g, function (c) {
@@ -765,6 +808,34 @@
       return cards + totalCard;
     }
 
+    function renderFinanceSideBySide(outstanding, outstandingTotal, credits, creditsTotal) {
+      const maxLen = Math.max(outstanding.length, credits.length);
+      let rows = '';
+      for (let i = 0; i < maxLen; i++) {
+        const o = outstanding[i];
+        const c = credits[i];
+        rows += '' +
+          '<tr>' +
+            '<td class="fin-name">' + (o ? esc(o.name) : '') + '</td>' +
+            '<td class="outstanding-cell">' + (o ? formatIDR(o.amount) : '') + '</td>' +
+            '<td class="fin-name">' + (c ? esc(c.name) : '') + '</td>' +
+            '<td class="credit-cell">' + (c ? formatIDR(c.amount) : '') + '</td>' +
+          '</tr>';
+      }
+      rows += '' +
+        '<tr class="fin-total-row">' +
+          '<td class="fin-name">Total</td>' +
+          '<td class="outstanding-cell">' + formatIDR(outstandingTotal) + '</td>' +
+          '<td class="fin-name">Total</td>' +
+          '<td class="credit-cell">' + formatIDR(creditsTotal) + '</td>' +
+        '</tr>';
+      return '' +
+        '<table class="finance-table">' +
+          '<thead><tr><th colspan="2">Outstanding</th><th colspan="2">Player Credits</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table>';
+    }
+
     function computePerksEligible() {
       const outstandingNames = new Set(
         (DATA.outstanding || []).map(function (o) { return o.name.trim().toLowerCase(); })
@@ -824,7 +895,7 @@
           '</tr>';
       }).join('');
       return '' +
-        '<div class="table-scroll"><table>' +
+        '<div class="table-scroll"><table class="records-data-table">' +
           '<thead><tr><th>#</th><th>Name</th><th>Fee</th></tr></thead>' +
           '<tbody>' + rows + '</tbody>' +
         '</table></div>';
@@ -903,7 +974,6 @@
     }
 
     function buildDashboard() {
-      document.getElementById('pageTitle').textContent = 'Loyalty Board';
       const content = document.getElementById('content');
       content.innerHTML =
         '<button id="menuToggle" class="hamburger-btn" type="button" aria-label="Open menu">' +
@@ -950,15 +1020,14 @@
         '</div>' +
         '<div id="financeExportCapture" style="display:none;">' +
           '<div class="records-export-title" id="financeExportTitle"></div>' +
-          '<div class="records-panel active" data-export-label="Outstanding"><div id="financeExportOutstanding"></div></div>' +
-          '<div class="records-panel active" data-export-label="Player Credits"><div id="financeExportCredits"></div></div>' +
+          '<div id="financeExportTable"></div>' +
         '</div>' +
         '<div class="page" id="page-records">' +
           '<div class="controls-row">' +
             '<label class="asat-label">Month <input type="month" id="recordsMonthPicker" class="asat-input"></label>' +
           '</div>' +
           '<div class="records-actions">' +
-            '<button id="exportRecordsImageBtn" class="export-btn" type="button">🖼️ Export as Image</button>' +
+            '<button id="exportRecordsImageBtn" class="export-btn" type="button">🖼️ Export All as Image</button>' +
             '<button id="copyMembershipListBtn" class="export-btn" type="button">📋 Copy Membership List</button>' +
           '</div>' +
           '<div class="tabs" id="recordsTabs">' +
@@ -1029,10 +1098,10 @@
         renderBalanceList(DATA.credits || [], DATA.creditsTotal || 0, 'Total Player Credits', '');
       document.getElementById('financeExportTitle').textContent =
         (DATA.membershipReminderCommunity || 'HS') + ' Outstanding & Player Credits — ' + (DATA.currentYear || '');
-      document.getElementById('financeExportOutstanding').innerHTML =
-        renderBalanceList(DATA.outstanding || [], DATA.outstandingTotal || 0, 'Total Outstanding', '');
-      document.getElementById('financeExportCredits').innerHTML =
-        renderBalanceList(DATA.credits || [], DATA.creditsTotal || 0, 'Total Player Credits', '');
+      document.getElementById('financeExportTable').innerHTML = renderFinanceSideBySide(
+        DATA.outstanding || [], DATA.outstandingTotal || 0,
+        DATA.credits || [], DATA.creditsTotal || 0
+      );
       renderRecordsPage();
 
       document.querySelectorAll('#tierTabs .tab').forEach(function (tab) {
@@ -1092,6 +1161,7 @@
           btn.classList.add('active');
           document.getElementById('page-' + btn.dataset.page).classList.add('active');
           document.getElementById('pageTitle').textContent = PAGE_TITLES[btn.dataset.page] || 'Loyalty Board';
+          currentPage = btn.dataset.page;
           closeSideMenu();
         });
       });
@@ -1121,6 +1191,18 @@
       document.getElementById('searchBox').addEventListener('input', function (e) {
         renderAllPanels(e.target.value.trim().toLowerCase());
       });
+
+      // Every rebuild's raw HTML defaults to the Dashboard page/menu-item
+      // being active — override that here with whichever page the user
+      // was actually on before this rebuild ran (e.g. after changing a
+      // month picker), so they don't get bounced back to the Dashboard.
+      document.querySelectorAll('.side-menu-item[data-page]').forEach(function (t) {
+        t.classList.toggle('active', t.dataset.page === currentPage);
+      });
+      document.querySelectorAll('.page').forEach(function (p) {
+        p.classList.toggle('active', p.id === 'page-' + currentPage);
+      });
+      document.getElementById('pageTitle').textContent = PAGE_TITLES[currentPage] || 'Loyalty Board';
     }
 
     function showFatalError(message) {
