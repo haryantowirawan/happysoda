@@ -1323,6 +1323,18 @@
       return penalty;
     }
 
+    // Shared by both Team Manager and League Draft: a team's best
+    // available ball-handler — PG by position, or anyone with Playmaker
+    // as a role — used to spread out strong playmaking talent rather
+    // than letting it cluster on one team.
+    function bestPlaymakerSkill(team) {
+      const capable = team.filter(function (p) {
+        return p.position === 'PG' || playerRoles(p).indexOf('Playmaker') !== -1;
+      });
+      if (capable.length === 0) return 0;
+      return Math.max.apply(null, capable.map(function (p) { return p.skillLevel || 5; }));
+    }
+
     function choose5(players) {
       const results = [];
       const n = players.length;
@@ -1372,7 +1384,19 @@
 
         const rolePenalty = roleCoveragePenalty(teamA, teamB);
 
-        const score = ratingDiff + positionPenalty + heightPenalty + rolePenalty;
+        // Same reasoning as League Draft: the aggregate rating alone
+        // doesn't stop two high-impact players (or two strong
+        // playmakers) from landing on the same team as long as other
+        // stats happen to average out.
+        const impactA = teamA.reduce(function (s, p) { return s + (p.impact || 0); }, 0) / 5;
+        const impactB = teamB.reduce(function (s, p) { return s + (p.impact || 0); }, 0) / 5;
+        const impactPenalty = Math.abs(impactA - impactB) * 1.5;
+
+        const playmakerA = bestPlaymakerSkill(teamA);
+        const playmakerB = bestPlaymakerSkill(teamB);
+        const playmakerPenalty = Math.abs(playmakerA - playmakerB) * 1.5;
+
+        const score = ratingDiff + positionPenalty + heightPenalty + rolePenalty + impactPenalty + playmakerPenalty;
 
         results.push({ teamA: teamA, teamB: teamB, ratingA: ratingA, ratingB: ratingB, score: score });
       });
@@ -1527,7 +1551,28 @@
       const overallHeightAvg = heightAvgs.reduce(function (a, b) { return a + b; }, 0) / heightAvgs.length;
       const heightPenalty = heightAvgs.reduce(function (s, h) { return s + Math.abs(h - overallHeightAvg); }, 0) / 5;
 
-      return ratingVariance + positionPenalty * 2 + rolePenalty + heightPenalty;
+      // Impact balance: the overall composite rating already folds in
+      // impact at half-weight, but that alone doesn't stop two very
+      // high-impact players from landing on the same team as long as
+      // their OTHER stats happen to average out across the roster.
+      // Impact tends to swing real games more than the aggregate number
+      // suggests, so it gets its own dedicated balance check.
+      const impactAvgs = teams.map(function (team) {
+        return team.reduce(function (s, p) { return s + (p.impact || 0); }, 0) / team.length;
+      });
+      const overallImpactAvg = impactAvgs.reduce(function (a, b) { return a + b; }, 0) / impactAvgs.length;
+      const impactPenalty = impactAvgs.reduce(function (s, a) { return s + Math.pow(a - overallImpactAvg, 2); }, 0);
+
+      // Playmaking balance: spreads out the strongest ball-handlers (PG
+      // by position, or anyone with Playmaker as a role) instead of
+      // letting one team monopolize the best playmaking talent — a
+      // single strong point guard changes a game more than their raw
+      // rating number alone implies.
+      const bestPlaymakerSkills = teams.map(bestPlaymakerSkill);
+      const overallPlaymakerAvg = bestPlaymakerSkills.reduce(function (a, b) { return a + b; }, 0) / bestPlaymakerSkills.length;
+      const playmakerPenalty = bestPlaymakerSkills.reduce(function (s, v) { return s + Math.pow(v - overallPlaymakerAvg, 2); }, 0);
+
+      return ratingVariance + positionPenalty * 2 + rolePenalty + heightPenalty + impactPenalty * 1.5 + playmakerPenalty * 1.5;
     }
 
     // Randomly swaps players between two teams, keeping the swap only if
