@@ -566,7 +566,30 @@
       grid-column: 1 / -1;
     }
     body.exporting-records #ldExportCapture .tm-team-card { margin-bottom: 0; }
-    body.exporting-records #ldExportCapture .tm-team-player { font-size: 15px; }
+    /* Up to 4 teams the export is a single column, and the capture is
+       narrowed to 420px to match — that narrowing is what actually makes
+       the names bigger on a phone. What matters for legibility isn't the
+       font size in the image, it's font size RELATIVE to image width: a
+       phone shows the whole PNG scaled to fit the screen, so 15px inside a
+       732px-wide image lands at roughly 8px on a 390px screen. One
+       narrower column plus the bumped sizes below lands it around 16px.
+       5 teams stays 2-column: a fifth card would push a single column past
+       a 1:5 aspect ratio, at which point WhatsApp's resize (longest side
+       capped) shrinks it below phone width and the text turns soft. */
+    body.exporting-records #ldExportCapture.ld-cols-1 .export-card {
+      display: block;
+    }
+    body.exporting-records #ldExportCapture.ld-cols-1 .tm-team-card { margin-bottom: 12px; }
+    body.exporting-records #ldExportCapture .tm-team-player {
+      font-size: 17px;
+      padding: 8px 0;
+    }
+    body.exporting-records #ldExportCapture .ld-jersey { font-size: 13px; min-width: 30px; }
+    body.exporting-records #ldExportCapture .tm-team-player-pos { font-size: 14px; }
+    body.exporting-records #ldExportCapture .tm-team-title { font-size: 18px; }
+    body.exporting-records #ldExportCapture .tm-team-rating { font-size: 12.5px; }
+    body.exporting-records #ldExportCapture .tm-fairness-note { font-size: 14px; }
+    body.exporting-records #ldExportCapture .records-export-title { font-size: 18px; }
 
     .ld-jersey {
       display: inline-block;
@@ -2084,7 +2107,7 @@
           '<button id="ldExportImageBtn" class="export-btn" type="button">🖼️ Export as Image</button>' +
           '<button id="ldCopyTeamListBtn" class="export-btn" type="button">📋 Copy Team List</button>' +
         '</div>' +
-        '<div id="ldExportCapture">' +
+        '<div id="ldExportCapture" class="' + (result.teams.length <= 4 ? 'ld-cols-1' : 'ld-cols-2') + '">' +
           '<div class="export-card">' +
             '<div class="records-export-title" id="ldExportTitle">League Draft — ' + result.teams.length + ' Teams</div>' +
             '<div class="tm-fairness-note">Balanced across ' + result.teams.length + ' teams · avg rating spread ' + spread + '</div>' +
@@ -3120,6 +3143,15 @@
       }
     }
 
+    // Capture width for an export image: 700px of card for Monthly
+    // Records (its 3 columns need the room), and for League Draft 420px
+    // (1-column, <=4 teams) or 560px (2-column, 5 teams), plus the 16px
+    // gutter either side in every case.
+    function ldCaptureWidth_(elementId, target) {
+      if (elementId !== 'ldExportCapture') return 732;
+      return (target.classList.contains('ld-cols-1') ? 420 : 560) + 32;
+    }
+
     function exportImageFromElement(elementId, filenamePrefix, btn) {
       if (typeof html2canvas === 'undefined') {
         alert('Image export library failed to load — check your internet connection and try again.');
@@ -3148,9 +3180,11 @@
       // overflows the card on a phone-width container.
       const needsWiden = elementId === 'recordsExportCapture' || elementId === 'ldExportCapture' ||
         elementId === 'financeExportCapture';
-      // 700px of card + the 16px gutter either side the capture root
-      // gets during an export.
-      if (needsWiden) target.style.width = '732px';
+      // Card width + the 16px gutter either side the capture root gets
+      // during an export. League Draft is narrower on purpose — see the
+      // .ld-cols-1 comment in the stylesheet for why narrower means more
+      // readable on a phone.
+      if (needsWiden) target.style.width = ldCaptureWidth_(elementId, target) + 'px';
 
       setTimeout(function () {
         html2canvas(target, { scale: 2 }).then(function (canvas) {

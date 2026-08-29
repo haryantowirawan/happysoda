@@ -128,6 +128,11 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: the League Draft export
+  image is now a single 420px column for up to 4 teams (`ld-cols-1` class + new
+  `ldCaptureWidth_()`, replacing the flat 732px capture width) and 560px/2 columns for 5, with
+  larger export type — so the player names hold up on a phone without zooming. Export-only;
+  the on-screen page is unchanged. See that repo's Changelog for the reasoning.
 - **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: the Monthly Records export
   image now flows its sections into 3 balanced columns (`columns: 3` + `break-inside: avoid`)
   instead of a 2-column grid, drops empty weeks from the image (new `fillRecordsPanel()` +
