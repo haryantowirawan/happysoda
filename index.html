@@ -809,6 +809,7 @@
     }
     .il-table-wrap {
       overflow-x: auto;
+      margin-bottom: 12px;
     }
     .il-table {
       width: 100%;
@@ -1088,7 +1089,7 @@
 <body class="light-mode">
   <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-spinner"></div>
-    <div>Loading…</div>
+    <div id="loadingOverlayText">Loading…</div>
   </div>
   <div class="wrap">
     <header>
@@ -2041,11 +2042,23 @@
       try { localStorage.removeItem('hsAdminToken'); } catch (e) { /* ignore */ }
     }
 
+    function setLoadingOverlay_(show, text) {
+      if (text) document.getElementById('loadingOverlayText').textContent = text;
+      document.getElementById('loadingOverlay').classList.toggle('show', show);
+    }
+
     // Sent as text/plain, not application/json — a cross-origin JSON POST
     // triggers a CORS preflight (OPTIONS) that Apps Script web apps can't
     // answer, so text/plain (a CORS "simple request") is used instead; the
     // server reads the raw body regardless of the declared content type.
+    // Shows the spinner overlay immediately (writes to the Leagues sheet
+    // are slow enough that no feedback reads as "did my click even
+    // register?") and leaves it up on success — the caller always follows
+    // with a loadData() that keeps it visible through to fresh data, so
+    // hiding it here first would just flicker. Only hides it on error,
+    // since then nothing else will.
     function callLeagueApi_(action, payload) {
+      setLoadingOverlay_(true, 'Saving…');
       const body = Object.assign({ action: action, adminToken: getAdminToken() }, payload);
       return fetch(APPS_SCRIPT_URL, {
         method: 'POST',
@@ -2056,6 +2069,10 @@
         .then(function (json) {
           if (!json.ok) throw new Error(json.error || 'Request failed.');
           return json.result;
+        })
+        .catch(function (err) {
+          setLoadingOverlay_(false);
+          throw err;
         });
     }
 
@@ -2132,6 +2149,19 @@
       }).join('');
     }
 
+    // Deliberately a plain text field, not <input type="date"> — a native
+    // date input's displayed format follows the viewer's browser/OS
+    // locale (mm/dd/yyyy, dd/mm/yyyy, etc.) with no way to force one
+    // consistently from the page, so dd/mm/yyyy is enforced here instead.
+    function isValidDMY_(s) {
+      const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
+      if (!m) return false;
+      const day = parseInt(m[1], 10), month = parseInt(m[2], 10), year = parseInt(m[3], 10);
+      if (month < 1 || month > 12) return false;
+      const daysInMonth = new Date(year, month, 0).getDate();
+      return day >= 1 && day <= daysInMonth;
+    }
+
     function renderGameEditForm_(league, game) {
       const teamNames = league.teams.map(function (t) { return t.teamName; });
       const winnerOptions =
@@ -2143,7 +2173,7 @@
           '<td colspan="8">' +
             '<div class="il-form-grid">' +
               '<label>Stage<input type="text" class="il-f-stage" value="' + esc(game.stage || '') + '"></label>' +
-              '<label>Date<input type="date" class="il-f-date" value="' + esc(game.date || '') + '"></label>' +
+              '<label>Date<input type="text" class="il-f-date" placeholder="dd/mm/yyyy" value="' + esc(game.date || '') + '"></label>' +
               '<label>Time<input type="time" class="il-f-time" value="' + esc(game.time || '') + '"></label>' +
               '<label>Home<select class="il-f-home">' + teamOptions_(teamNames, game.homeTeam) + '</select></label>' +
               '<label>Away<select class="il-f-away">' + teamOptions_(teamNames, game.awayTeam) + '</select></label>' +
@@ -2169,13 +2199,21 @@
       const played = game.played === true || game.played === 'TRUE';
       const score = played ? (game.homeScore + ' - ' + game.awayScore) : '—';
       const when = [game.date, game.time].filter(Boolean).join(' ');
+      // Normally already resolved and stored server-side (updateGame_
+      // auto-derives and writes the winner when "Auto (by score)" is
+      // chosen), but this fallback keeps the column correct for any
+      // older row saved before that existed, or a game whose scores are
+      // tied so the server left it blank on purpose.
+      const hs = Number(game.homeScore), as = Number(game.awayScore);
+      const displayWinner = game.winningTeam ||
+        (played && !isNaN(hs) && !isNaN(as) && hs !== as ? (hs > as ? game.homeTeam : game.awayTeam) : '');
       return '' +
         '<tr>' +
           '<td>' + esc(game.stage || '') + '</td>' +
           '<td>' + esc(when || '—') + '</td>' +
           '<td>' + esc(game.homeTeam) + ' <span class="il-vs">vs</span> ' + esc(game.awayTeam) + '</td>' +
           '<td>' + esc(score) + '</td>' +
-          '<td>' + esc(game.winningTeam || '') + '</td>' +
+          '<td>' + esc(displayWinner) + '</td>' +
           '<td>' + esc(game.referee || '') + '</td>' +
           '<td>' + esc(game.gameAdmin || '') + '</td>' +
           (editable ? '<td><button class="export-btn il-edit-game-btn" data-league="' + esc(league.leagueId) + '" data-game="' + esc(game.gameId) + '" type="button">Edit</button></td>' : '') +
@@ -2187,7 +2225,7 @@
       return '' +
         '<div class="il-form-grid" data-league="' + esc(league.leagueId) + '">' +
           '<label>Stage<input type="text" class="il-f-stage" placeholder="e.g. Semifinal"></label>' +
-          '<label>Date<input type="date" class="il-f-date"></label>' +
+          '<label>Date<input type="text" class="il-f-date" placeholder="dd/mm/yyyy"></label>' +
           '<label>Time<input type="time" class="il-f-time"></label>' +
           '<label>Home<select class="il-f-home">' + teamOptions_(teamNames) + '</select></label>' +
           '<label>Away<select class="il-f-away">' + teamOptions_(teamNames) + '</select></label>' +
@@ -2215,9 +2253,18 @@
           : '<button class="export-btn il-open-add-game-btn" data-league="' + esc(league.leagueId) + '" type="button">+ Add Game</button>')
         : '';
 
-      const winnerBanner = league.status === 'closed' && league.winnerTeam
-        ? '<div class="il-winner-banner">🏆 Winner: ' + esc(league.winnerTeam) + '</div>'
-        : '';
+      // Closed leagues show the official, snapshotted winner. An active
+      // league that's played out every one of its games hasn't been
+      // formally closed yet, but the standings already answer "who's
+      // winning" — surface that the same prominent way instead of making
+      // the admin click Close League just to see it.
+      let winnerBanner = '';
+      if (league.status === 'closed' && league.winnerTeam) {
+        winnerBanner = '<div class="il-winner-banner">🏆 Winner: ' + esc(league.winnerTeam) + '</div>';
+      } else if (league.status === 'active' && league.games.length > 0 && league.standings.length &&
+        league.games.every(function (g) { return g.played === true || g.played === 'TRUE'; })) {
+        winnerBanner = '<div class="il-winner-banner">🏆 All games played — current leader: ' + esc(league.standings[0].team) + '</div>';
+      }
 
       const closeBtn = editable
         ? '<button class="export-btn il-close-league-btn" data-league="' + esc(league.leagueId) + '" type="button">Close League</button>'
@@ -2313,6 +2360,11 @@
       const saveGameBtn = e.target.closest('.il-save-game-btn');
       if (saveGameBtn) {
         const row = saveGameBtn.closest('.il-edit-row');
+        const dateVal = row.querySelector('.il-f-date').value.trim();
+        if (dateVal && !isValidDMY_(dateVal)) {
+          alert('Date must be in dd/mm/yyyy format (e.g. 15/09/2026).');
+          return;
+        }
         const leagueId = row.dataset.league;
         const gameId = row.dataset.game;
         const winnerVal = row.querySelector('.il-f-winner').value;
@@ -2320,7 +2372,7 @@
           leagueId: leagueId,
           gameId: gameId,
           stage: row.querySelector('.il-f-stage').value,
-          date: row.querySelector('.il-f-date').value,
+          date: dateVal,
           time: row.querySelector('.il-f-time').value,
           homeTeam: row.querySelector('.il-f-home').value,
           awayTeam: row.querySelector('.il-f-away').value,
@@ -2353,11 +2405,16 @@
       const saveAddGameBtn = e.target.closest('.il-save-add-game-btn');
       if (saveAddGameBtn) {
         const box = saveAddGameBtn.closest('.il-add-game-box');
+        const addDateVal = box.querySelector('.il-f-date').value.trim();
+        if (addDateVal && !isValidDMY_(addDateVal)) {
+          alert('Date must be in dd/mm/yyyy format (e.g. 15/09/2026).');
+          return;
+        }
         const leagueId = saveAddGameBtn.dataset.league;
         callLeagueApi_('addGame', {
           leagueId: leagueId,
           stage: box.querySelector('.il-f-stage').value,
-          date: box.querySelector('.il-f-date').value,
+          date: addDateVal,
           time: box.querySelector('.il-f-time').value,
           homeTeam: box.querySelector('.il-f-home').value,
           awayTeam: box.querySelector('.il-f-away').value,
@@ -2723,7 +2780,7 @@
       document.getElementById('recordsMonthPicker').addEventListener('change', function (e) {
         const ym = e.target.value;
         if (!ym) return;
-        document.getElementById('loadingOverlay').classList.add('show');
+        setLoadingOverlay_(true, 'Loading…');
         loadData(undefined, ym);
       });
 
@@ -2774,7 +2831,7 @@
       document.getElementById('asAtDate').addEventListener('change', function (e) {
         const ym = e.target.value; // 'YYYY-MM'
         if (!ym) return;
-        document.getElementById('loadingOverlay').classList.add('show');
+        setLoadingOverlay_(true, 'Loading…');
         loadData(ym);
       });
 
