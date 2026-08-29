@@ -1310,6 +1310,52 @@
       return roles;
     }
 
+    // A player who can credibly run point: an actual PG, or anyone
+    // carrying Playmaker as a primary/secondary role.
+    function isPlaymakingCapable(p) {
+      return p.position === 'PG' || playerRoles(p).indexOf('Playmaker') !== -1;
+    }
+
+    // A player who can credibly anchor the paint: an actual Center, or —
+    // the fallback the coach philosophy calls for when there aren't
+    // enough Centers to go around — a PF who is either tagged Rebounder
+    // (primary/secondary role) or taller than the average of all
+    // C/PF players in the pool (`tallThreshold`, computed by the caller
+    // from the whole player set so "good height" is relative to this
+    // group, not a hardcoded number).
+    function hasRimPresence(p, tallThreshold) {
+      if (p.position === 'C') return true;
+      if (p.position === 'PF') {
+        if (playerRoles(p).indexOf('Rebounder') !== -1) return true;
+        if (tallThreshold != null && (p.heightCm || 0) >= tallThreshold) return true;
+      }
+      return false;
+    }
+
+    function averageBigHeight(players) {
+      const bigs = players.filter(function (p) { return isBigPosition(p.position); });
+      if (bigs.length === 0) return null;
+      return bigs.reduce(function (s, p) { return s + (p.heightCm || 175); }, 0) / bigs.length;
+    }
+
+    // Penalizes any team with ZERO players matching `pred`, but only when
+    // there are enough matching players across the whole draft pool to
+    // give every team at least one — e.g. don't penalize a team for
+    // having no Center if there are only 2 Centers total across 4 teams,
+    // since that's simply not achievable. This is what turns "a team
+    // should have at least 1 Center if possible" into an actual scoring
+    // term: it's a strong, not absolute, preference — the fairest split
+    // among 126 (or the local-search result) will very rarely leave a
+    // gap when one wasn't necessary.
+    function coverageGapPenalty(teams, pred, penaltyEach) {
+      const counts = teams.map(function (team) { return team.filter(pred).length; });
+      const total = counts.reduce(function (a, b) { return a + b; }, 0);
+      if (total < teams.length) return 0;
+      let penalty = 0;
+      counts.forEach(function (c) { if (c === 0) penalty += penaltyEach; });
+      return penalty;
+    }
+
     // Penalizes a split where one team has NO ONE (primary or secondary
     // role) covering a key role while the other team has at least one —
     // e.g. a team with zero playmakers, when the other team has two.
@@ -1324,15 +1370,14 @@
     }
 
     // Shared by both Team Manager and League Draft: a team's best
-    // available ball-handler — PG by position, or anyone with Playmaker
-    // as a role — used to spread out strong playmaking talent rather
-    // than letting it cluster on one team.
+    // available ball-handler (see isPlaymakingCapable) — used to spread
+    // out strong playmaking talent rather than letting it cluster on one
+    // team. Folds in impact, not just raw skill, so this reflects "a
+    // decent PG with good impact" rather than just "someone tagged PG."
     function bestPlaymakerSkill(team) {
-      const capable = team.filter(function (p) {
-        return p.position === 'PG' || playerRoles(p).indexOf('Playmaker') !== -1;
-      });
+      const capable = team.filter(isPlaymakingCapable);
       if (capable.length === 0) return 0;
-      return Math.max.apply(null, capable.map(function (p) { return p.skillLevel || 5; }));
+      return Math.max.apply(null, capable.map(function (p) { return (p.skillLevel || 5) + (p.impact || 0) / 2; }));
     }
 
     function choose5(players) {
@@ -1396,7 +1441,16 @@
         const playmakerB = bestPlaymakerSkill(teamB);
         const playmakerPenalty = Math.abs(playmakerA - playmakerB) * 1.5;
 
-        const score = ratingDiff + positionPenalty + heightPenalty + rolePenalty + impactPenalty + playmakerPenalty;
+        // Coverage gaps: a team left with zero Centers (or zero
+        // rim-presence fallback) or zero playmaking-capable players when
+        // there were enough to go around — see coverageGapPenalty above.
+        const tallThreshold = averageBigHeight(players);
+        const centerGapPenalty = coverageGapPenalty([teamA, teamB], function (p) { return p.position === 'C'; }, 6);
+        const rimGapPenalty = coverageGapPenalty([teamA, teamB], function (p) { return hasRimPresence(p, tallThreshold); }, 4);
+        const playmakerGapPenalty = coverageGapPenalty([teamA, teamB], isPlaymakingCapable, 6);
+
+        const score = ratingDiff + positionPenalty + heightPenalty + rolePenalty + impactPenalty + playmakerPenalty +
+          centerGapPenalty + rimGapPenalty + playmakerGapPenalty;
 
         results.push({ teamA: teamA, teamB: teamB, ratingA: ratingA, ratingB: ratingB, score: score });
       });
@@ -1521,9 +1575,11 @@
 
     // Extends the same position/role-coverage philosophy from Team
     // Manager's 2-team scoring to N teams: penalize uneven rating
-    // averages, uneven "big man" distribution, uneven height, and any
+    // averages, uneven "big man" distribution, uneven height, any
     // key role (Playmaker/Rebounder/Defender) that some teams have
-    // covered and others don't.
+    // covered and others don't, and — see below — a team left with zero
+    // Centers or zero playmaking-capable players when the pool had
+    // enough to cover every team.
     function computeMultiTeamScore(teams) {
       const avgs = teams.map(computeTeamAvgRating);
       const overallAvg = avgs.reduce(function (a, b) { return a + b; }, 0) / avgs.length;
@@ -1572,7 +1628,20 @@
       const overallPlaymakerAvg = bestPlaymakerSkills.reduce(function (a, b) { return a + b; }, 0) / bestPlaymakerSkills.length;
       const playmakerPenalty = bestPlaymakerSkills.reduce(function (s, v) { return s + Math.pow(v - overallPlaymakerAvg, 2); }, 0);
 
-      return ratingVariance + positionPenalty * 2 + rolePenalty + heightPenalty + impactPenalty * 1.5 + playmakerPenalty * 1.5;
+      // Coverage gaps: every team should have at least 1 Center if
+      // there are enough Centers in the whole draft pool to give each
+      // team one — falling back to a tall/Rebounder-tagged PF when there
+      // aren't — and at least 1 playmaking-capable player (PG, or a
+      // Playmaker-role player) so no team is left without anyone who can
+      // run the offense. See coverageGapPenalty.
+      const allPlayers = [].concat.apply([], teams);
+      const tallThreshold = averageBigHeight(allPlayers);
+      const centerGapPenalty = coverageGapPenalty(teams, function (p) { return p.position === 'C'; }, 6);
+      const rimGapPenalty = coverageGapPenalty(teams, function (p) { return hasRimPresence(p, tallThreshold); }, 4);
+      const playmakerGapPenalty = coverageGapPenalty(teams, isPlaymakingCapable, 6);
+
+      return ratingVariance + positionPenalty * 2 + rolePenalty + heightPenalty + impactPenalty * 1.5 + playmakerPenalty * 1.5 +
+        centerGapPenalty + rimGapPenalty + playmakerGapPenalty;
     }
 
     // Randomly swaps players between two teams, keeping the swap only if
