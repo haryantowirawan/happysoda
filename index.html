@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Happy Soda - Home</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMxNzEzMGYiLz48dGV4dCB4PSIzMiIgeT0iNDMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmZjYzRkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5IUzwvdGV4dD48L3N2Zz4=">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     :root {
@@ -2037,8 +2038,11 @@
 
     function createLeagueFromDraft_() {
       if (!ldLastResult) return;
-      const name = prompt('League name (e.g. "Spring League 2026"):');
-      if (!name) return;
+      const name = document.getElementById('ldLeagueNameInput').value.trim();
+      if (!name) {
+        alert('Enter a league name first (e.g. "Spring League 2026").');
+        return;
+      }
       const teams = ldLastResult.teams.map(function (team, i) {
         return {
           teamName: 'Team ' + (i + 1),
@@ -2545,6 +2549,10 @@
             '<input type="number" id="ldNumTeams" class="tm-textarea" min="1" value="4" style="width:100px;">' +
           '</div>' +
           '<div id="ldValidationMessage"></div>' +
+          '<div class="tm-section">' +
+            '<label class="tm-label">League name (for Create League)</label>' +
+            '<input type="text" id="ldLeagueNameInput" class="tm-textarea" placeholder="e.g. Spring League 2026">' +
+          '</div>' +
           '<div class="records-actions">' +
             '<button id="ldAssembleBtn" class="export-btn tm-assemble-btn" type="button" disabled>🏀 Assemble Teams</button>' +
             '<div id="ldCreateLeagueSection"></div>' +
