@@ -762,6 +762,15 @@
       color: var(--muted);
       margin: 14px 0 6px;
     }
+    /* Page-level headings ("Active League", "Archive") — bigger and in
+       the main text color, distinct from the small muted subsection
+       labels (Teams/Standings/Games) that .il-section-title is for. */
+    .il-page-title {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--text);
+      margin: 4px 0 12px;
+    }
     .il-league-block {
       background: var(--panel-solid);
       border: 1px solid var(--border);
@@ -2254,16 +2263,21 @@
         : '';
 
       // Closed leagues show the official, snapshotted winner. An active
-      // league that's played out every one of its games hasn't been
-      // formally closed yet, but the standings already answer "who's
-      // winning" — surface that the same prominent way instead of making
-      // the admin click Close League just to see it.
+      // league shows a live version of the same banner once at least one
+      // game has been played (before that, standings are just an
+      // arbitrary alphabetical tie, not worth surfacing) — "Current
+      // Leader" while some games remain, switching to "Winner" once every
+      // game is played, even though it hasn't been formally closed yet.
       let winnerBanner = '';
       if (league.status === 'closed' && league.winnerTeam) {
         winnerBanner = '<div class="il-winner-banner">🏆 Winner: ' + esc(league.winnerTeam) + '</div>';
-      } else if (league.status === 'active' && league.games.length > 0 && league.standings.length &&
-        league.games.every(function (g) { return g.played === true || g.played === 'TRUE'; })) {
-        winnerBanner = '<div class="il-winner-banner">🏆 All games played — current leader: ' + esc(league.standings[0].team) + '</div>';
+      } else if (league.status === 'active' && league.standings.length) {
+        const anyPlayed = league.games.some(function (g) { return g.played === true || g.played === 'TRUE'; });
+        if (anyPlayed) {
+          const allPlayed = league.games.every(function (g) { return g.played === true || g.played === 'TRUE'; });
+          const label = allPlayed ? 'Winner' : 'Current Leader';
+          winnerBanner = '<div class="il-winner-banner">🏆 ' + label + ': ' + esc(league.standings[0].team) + '</div>';
+        }
       }
 
       const closeBtn = editable
@@ -2336,9 +2350,9 @@
       }).join('');
 
       return '' +
-        '<div class="il-section-title">Active League</div>' +
+        '<div class="il-page-title">Active League</div>' +
         activeHtml +
-        (years.length ? '<div class="il-section-title" style="margin-top:20px;">Archive</div>' + archiveHtml : '');
+        (years.length ? '<div class="il-page-title" style="margin-top:24px;">Archive</div>' + archiveHtml : '');
     }
 
     document.addEventListener('click', function (e) {
