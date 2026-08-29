@@ -575,10 +575,18 @@
     body.exporting-records .records-data-table th,
     body.exporting-records .records-data-table td { padding: 9px 8px; }
 
-    /* Same card treatment the Monthly Records / League Draft export
-       captures already use, so the finance image comes out as a rounded
-       panel instead of bare text on the page background. */
+    /* The finance export image is a rounded card sitting on an opaque
+       gutter. html2canvas crops to the captured element's exact border
+       box, so styling the capture root itself put the border in the
+       image's outermost pixel column/row — the side edges were all but
+       invisible, and the rounded corners came out transparent. The outer
+       #financeExportCapture is now just an opaque background + padding,
+       and the visible card is the inner .finance-export-card. */
     #financeExportCapture {
+      background: var(--bg);
+      padding: 16px;
+    }
+    .finance-export-card {
       background: var(--panel-solid);
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -2668,8 +2676,10 @@
           '<div id="page-credits-content"></div>' +
         '</div>' +
         '<div id="financeExportCapture" style="display:none;">' +
-          '<div class="records-export-title" id="financeExportTitle"></div>' +
-          '<div id="financeExportTable"></div>' +
+          '<div class="finance-export-card">' +
+            '<div class="records-export-title" id="financeExportTitle"></div>' +
+            '<div id="financeExportTable"></div>' +
+          '</div>' +
         '</div>' +
         '<div class="page" id="page-records">' +
           '<div class="controls-row">' +
