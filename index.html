@@ -513,25 +513,34 @@
       padding-bottom: 14px;
       border-bottom: 1px solid var(--border);
     }
-    /* During export only, arrange the 6 sections as a 2-column grid
-       instead of stacking them — this both uses the horizontal white
-       space that was going unused, and roughly halves the image's
-       overall height, which helps a lot with WhatsApp's compression:
-       very tall, extreme-aspect-ratio images get hit hardest by it. */
+    /* During export only, flow the sections into 3 balanced columns
+       instead of stacking them — this uses the horizontal space that was
+       going unused and cuts the image's height a long way, which helps a
+       lot with WhatsApp's compression: very tall, extreme-aspect-ratio
+       images get hit hardest by it.
+       This is a multi-column flow, not a grid, on purpose. A 2-column
+       grid pairs the sections off row by row, so every row was as tall as
+       its taller section — a 21-name membership list beside a 6-name Week
+       1 left ~15 rows of dead space, and an unused Week 5 wasted half a
+       row. Columns instead pack the sections continuously and the browser
+       balances the column heights itself, so the gaps disappear whatever
+       shape the month happens to be. */
     body.exporting-records #recordsExportCapture .export-card {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      align-items: start;
+      columns: 3;
+      column-gap: 14px;
     }
     body.exporting-records #recordsExportTitle {
-      grid-column: 1 / -1;
+      column-span: all;
     }
     body.exporting-records #recordsExportCapture .records-panel {
-      margin-bottom: 0;
+      break-inside: avoid;
+      margin-bottom: 14px;
       padding-bottom: 0;
       border-bottom: none;
       min-width: 0;
+    }
+    body.exporting-records #recordsExportCapture .records-panel[data-empty] {
+      display: none !important;
     }
     .records-panel[data-export-label]::before {
       content: attr(data-export-label);
@@ -576,11 +585,23 @@
     .records-data-table th:nth-child(1), .records-data-table td:nth-child(1) { width: 10%; }
     .records-data-table th:nth-child(2), .records-data-table td:nth-child(2) { width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .records-data-table th:nth-child(3), .records-data-table td:nth-child(3) { width: 48%; text-align: right; white-space: nowrap; }
-    /* Bigger, easier-to-scan text specifically in the exported image —
-       the on-screen tabs stay compact for normal phone browsing. */
-    body.exporting-records .records-data-table { font-size: 15px; }
+    /* Sizing for the exported image's 3 columns — narrower than the
+       on-screen tab, so the padding tightens and the Name column gives up
+       its ellipsis and wraps instead: a truncated "Teman Na…" in a saved
+       image can't be expanded the way an on-screen one could be. */
+    body.exporting-records .records-data-table { font-size: 13.5px; }
     body.exporting-records .records-data-table th,
-    body.exporting-records .records-data-table td { padding: 9px 8px; }
+    body.exporting-records .records-data-table td { padding: 7px 5px; }
+    body.exporting-records .records-data-table th:nth-child(1),
+    body.exporting-records .records-data-table td:nth-child(1) { width: 9%; }
+    body.exporting-records .records-data-table th:nth-child(2),
+    body.exporting-records .records-data-table td:nth-child(2) {
+      width: 49%;
+      white-space: normal;
+      overflow: visible;
+    }
+    body.exporting-records .records-data-table th:nth-child(3),
+    body.exporting-records .records-data-table td:nth-child(3) { width: 42%; }
 
     .finance-table { width: 100%; border-collapse: collapse; font-size: 16px; }
     .finance-table th {
@@ -1390,17 +1411,28 @@
         '</table></div>';
     }
 
+    // data-empty marks a week with no entries at all. On screen that tab
+    // still shows its "No entries for this month." message; in the export
+    // image the panel is dropped entirely, so an unused Week 5 doesn't
+    // take up a whole column of empty space.
+    function fillRecordsPanel(id, entries) {
+      const el = document.getElementById(id);
+      el.innerHTML = renderRecordsTable(entries);
+      if (entries && entries.length) el.removeAttribute('data-empty');
+      else el.setAttribute('data-empty', '1');
+    }
+
     function renderRecordsPage() {
       const mr = DATA.monthlyRecords || { membership: [], week1: [], week2: [], week3: [], week4: [], week5: [] };
       const community = DATA.membershipReminderCommunity || 'HS';
       const monthLabel = DATA.recordsMonthLabelSeptStyle || DATA.recordsMonth || '';
       document.getElementById('recordsExportTitle').textContent = community + ' Records — ' + monthLabel;
-      document.getElementById('recordspanel-membership').innerHTML = renderRecordsTable(mr.membership);
-      document.getElementById('recordspanel-week1').innerHTML = renderRecordsTable(mr.week1);
-      document.getElementById('recordspanel-week2').innerHTML = renderRecordsTable(mr.week2);
-      document.getElementById('recordspanel-week3').innerHTML = renderRecordsTable(mr.week3);
-      document.getElementById('recordspanel-week4').innerHTML = renderRecordsTable(mr.week4);
-      document.getElementById('recordspanel-week5').innerHTML = renderRecordsTable(mr.week5);
+      fillRecordsPanel('recordspanel-membership', mr.membership);
+      fillRecordsPanel('recordspanel-week1', mr.week1);
+      fillRecordsPanel('recordspanel-week2', mr.week2);
+      fillRecordsPanel('recordspanel-week3', mr.week3);
+      fillRecordsPanel('recordspanel-week4', mr.week4);
+      fillRecordsPanel('recordspanel-week5', mr.week5);
       document.getElementById('recordsMonthPicker').value = DATA.recordsMonth || '';
     }
 

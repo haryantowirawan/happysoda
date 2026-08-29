@@ -128,6 +128,12 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: the Monthly Records export
+  image now flows its sections into 3 balanced columns (`columns: 3` + `break-inside: avoid`)
+  instead of a 2-column grid, drops empty weeks from the image (new `fillRecordsPanel()` +
+  `data-empty`), and tightens the table sizing with wrapping instead of ellipsized names. All
+  export-only; the on-screen page is unchanged. See that repo's Changelog for the rationale
+  and verification.
 - **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: the Monthly Records and
   League Draft exports now get the same gutter + rounded-card frame as the finance one.
   Shared `.export-card` class, gutter applied to all three capture roots only under
