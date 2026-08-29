@@ -128,6 +128,10 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: reverted the single-column
+  League Draft export (tall images suffer most from WhatsApp's resize) — back to the
+  2-column grid at 732px, with the `ld-cols-*` class and `ldCaptureWidth_()` removed. The
+  larger export type is kept and raised: player names 23px, and the rest to match.
 - **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: the League Draft export
   image is now a single 420px column for up to 4 teams (`ld-cols-1` class + new
   `ldCaptureWidth_()`, replacing the flat 732px capture width) and 560px/2 columns for 5, with
