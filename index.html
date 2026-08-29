@@ -318,6 +318,18 @@
       color: var(--muted);
     }
     .tm-assemble-btn:disabled:hover { border-color: var(--border); }
+    /* Primary-action tint — same accent used for the active side-menu
+       item — so Assemble Teams / Create League read as the primary
+       action, distinct from the neutral Export/Copy buttons below them. */
+    .tm-assemble-btn:not(:disabled) {
+      background: var(--accent);
+      color: var(--accent-ink);
+      border-color: var(--accent);
+    }
+    .tm-assemble-btn:not(:disabled):hover {
+      opacity: 0.9;
+      border-color: var(--accent);
+    }
     .tm-tile-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -454,17 +466,6 @@
     }
     #ldCreateLeagueSection {
       display: contents;
-    }
-    .ld-assemble-row {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-    .ld-assemble-row .export-btn {
-      flex: 0 0 auto;
-      margin-bottom: 0;
     }
     .records-export-title {
       text-align: center;
@@ -2627,7 +2628,7 @@
             '<input type="number" id="ldNumTeams" class="tm-textarea" min="1" value="4" style="width:100px;">' +
           '</div>' +
           '<div id="ldValidationMessage"></div>' +
-          '<div class="ld-assemble-row">' +
+          '<div class="records-actions">' +
             '<button id="ldAssembleBtn" class="export-btn tm-assemble-btn" type="button" disabled>🏀 Assemble Teams</button>' +
             '<div id="ldCreateLeagueSection"></div>' +
           '</div>' +
