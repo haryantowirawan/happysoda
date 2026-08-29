@@ -128,6 +128,10 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: `#financeExportCapture`
+  (the Outstanding & Player Credits export image) now gets the same rounded-card treatment
+  `#recordsExportCapture` and `#ldExportCapture` already had — panel background, border,
+  `var(--radius)` corners, 14px padding.
 - **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: Outstanding Payments now
   renders its fees (and total) in red and Player Credits in green, via a new `amountClass`
   argument to `renderBalanceList` plus a `--red` palette var (`#e0715c` dark / `#c0392b`

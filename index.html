@@ -575,6 +575,16 @@
     body.exporting-records .records-data-table th,
     body.exporting-records .records-data-table td { padding: 9px 8px; }
 
+    /* Same card treatment the Monthly Records / League Draft export
+       captures already use, so the finance image comes out as a rounded
+       panel instead of bare text on the page background. */
+    #financeExportCapture {
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+
     .finance-table { width: 100%; border-collapse: collapse; font-size: 16px; }
     .finance-table th {
       text-align: left;
