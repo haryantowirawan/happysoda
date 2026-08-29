@@ -128,6 +128,11 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: the Monthly Records and
+  League Draft exports now get the same gutter + rounded-card frame as the finance one.
+  Shared `.export-card` class, gutter applied to all three capture roots only under
+  `body.exporting-records`, grid rules moved onto the inner card, and the capture-time widen
+  went 700px → 732px to keep the card at its previous width.
 - **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: the Outstanding &
   Player Credits export image had its credits columns overflowing the card, so
   `financeExportCapture` now joins `recordsExportCapture`/`ldExportCapture` in

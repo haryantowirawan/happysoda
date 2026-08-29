@@ -488,11 +488,24 @@
     .records-panel.active { display: block; }
     .paid-fee { color: var(--green); font-weight: 700; }
     .unpaid-fee { color: #e0715c; font-weight: 700; }
-    #recordsExportCapture {
+    /* Every export image is a bordered, rounded card sitting on an opaque
+       gutter. html2canvas crops to the captured element's exact border box,
+       so a border on the capture root itself lands in the image's outermost
+       pixel row/column and reads as no border at all (and the rounded
+       corners come out transparent). So the card is always the inner
+       .export-card, and the capture roots only become the gutter during a
+       capture — nothing about the on-screen pages changes. */
+    .export-card {
       background: var(--panel-solid);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 14px;
+    }
+    body.exporting-records #recordsExportCapture,
+    body.exporting-records #ldExportCapture,
+    body.exporting-records #financeExportCapture {
+      background: var(--bg);
+      padding: 16px;
     }
     body.exporting-records .records-panel {
       display: block !important;
@@ -505,7 +518,7 @@
        space that was going unused, and roughly halves the image's
        overall height, which helps a lot with WhatsApp's compression:
        very tall, extreme-aspect-ratio images get hit hardest by it. */
-    body.exporting-records #recordsExportCapture {
+    body.exporting-records #recordsExportCapture .export-card {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
@@ -533,13 +546,7 @@
        capture" treatment as Monthly Records, for the same reason — with
        4+ teams stacked vertically, the image gets tall enough to trigger
        WhatsApp's more aggressive compression. */
-    #ldExportCapture {
-      background: var(--panel-solid);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
-    }
-    body.exporting-records #ldExportCapture {
+    body.exporting-records #ldExportCapture .export-card {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
@@ -574,24 +581,6 @@
     body.exporting-records .records-data-table { font-size: 15px; }
     body.exporting-records .records-data-table th,
     body.exporting-records .records-data-table td { padding: 9px 8px; }
-
-    /* The finance export image is a rounded card sitting on an opaque
-       gutter. html2canvas crops to the captured element's exact border
-       box, so styling the capture root itself put the border in the
-       image's outermost pixel column/row — the side edges were all but
-       invisible, and the rounded corners came out transparent. The outer
-       #financeExportCapture is now just an opaque background + padding,
-       and the visible card is the inner .finance-export-card. */
-    #financeExportCapture {
-      background: var(--bg);
-      padding: 16px;
-    }
-    .finance-export-card {
-      background: var(--panel-solid);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
-    }
 
     .finance-table { width: 100%; border-collapse: collapse; font-size: 16px; }
     .finance-table th {
@@ -2064,9 +2053,11 @@
           '<button id="ldCopyTeamListBtn" class="export-btn" type="button">📋 Copy Team List</button>' +
         '</div>' +
         '<div id="ldExportCapture">' +
-          '<div class="records-export-title" id="ldExportTitle">League Draft — ' + result.teams.length + ' Teams</div>' +
-          '<div class="tm-fairness-note">Balanced across ' + result.teams.length + ' teams · avg rating spread ' + spread + '</div>' +
-          teamCardsHtml +
+          '<div class="export-card">' +
+            '<div class="records-export-title" id="ldExportTitle">League Draft — ' + result.teams.length + ' Teams</div>' +
+            '<div class="tm-fairness-note">Balanced across ' + result.teams.length + ' teams · avg rating spread ' + spread + '</div>' +
+            teamCardsHtml +
+          '</div>' +
         '</div>';
       renderCreateLeagueSection();
     }
@@ -2676,7 +2667,7 @@
           '<div id="page-credits-content"></div>' +
         '</div>' +
         '<div id="financeExportCapture" style="display:none;">' +
-          '<div class="finance-export-card">' +
+          '<div class="export-card">' +
             '<div class="records-export-title" id="financeExportTitle"></div>' +
             '<div id="financeExportTable"></div>' +
           '</div>' +
@@ -2698,13 +2689,15 @@
             '<button class="tab" data-recordspanel="week5">Week 5</button>' +
           '</div>' +
           '<div id="recordsExportCapture">' +
-            '<div class="records-export-title" id="recordsExportTitle"></div>' +
-            '<div class="records-panel active" id="recordspanel-membership" data-export-label="Monthly Membership"></div>' +
-            '<div class="records-panel" id="recordspanel-week1" data-export-label="Week 1"></div>' +
-            '<div class="records-panel" id="recordspanel-week2" data-export-label="Week 2"></div>' +
-            '<div class="records-panel" id="recordspanel-week3" data-export-label="Week 3"></div>' +
-            '<div class="records-panel" id="recordspanel-week4" data-export-label="Week 4"></div>' +
-            '<div class="records-panel" id="recordspanel-week5" data-export-label="Week 5"></div>' +
+            '<div class="export-card">' +
+              '<div class="records-export-title" id="recordsExportTitle"></div>' +
+              '<div class="records-panel active" id="recordspanel-membership" data-export-label="Monthly Membership"></div>' +
+              '<div class="records-panel" id="recordspanel-week1" data-export-label="Week 1"></div>' +
+              '<div class="records-panel" id="recordspanel-week2" data-export-label="Week 2"></div>' +
+              '<div class="records-panel" id="recordspanel-week3" data-export-label="Week 3"></div>' +
+              '<div class="records-panel" id="recordspanel-week4" data-export-label="Week 4"></div>' +
+              '<div class="records-panel" id="recordspanel-week5" data-export-label="Week 5"></div>' +
+            '</div>' +
           '</div>' +
         '</div>' +
         '<div class="page" id="page-teammanager">' +
@@ -3123,7 +3116,9 @@
       // overflows the card on a phone-width container.
       const needsWiden = elementId === 'recordsExportCapture' || elementId === 'ldExportCapture' ||
         elementId === 'financeExportCapture';
-      if (needsWiden) target.style.width = '700px';
+      // 700px of card + the 16px gutter either side the capture root
+      // gets during an export.
+      if (needsWiden) target.style.width = '732px';
 
       setTimeout(function () {
         html2canvas(target, { scale: 2 }).then(function (canvas) {
