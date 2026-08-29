@@ -451,6 +451,9 @@
       font-size: 11.5px;
       margin-bottom: 0;
     }
+    #ldCreateLeagueSection {
+      display: contents;
+    }
     .records-export-title {
       text-align: center;
       font-weight: 700;
@@ -2018,20 +2021,18 @@
       if (btn) btn.textContent = isAdmin() ? '🔓 Admin' : '🔒 Admin';
     }
 
-    // Shown under League Draft's results once teams are assembled — lets
-    // the admin imprint the current split into a new active league. Backed
-    // by DATA.leagues from the last load, so this only actually succeeds
-    // server-side if there's no other league already active.
+    // Shown next to League Draft's Assemble Teams button, only once teams
+    // are actually assembled and within Internal Leagues' 3-5 team cap —
+    // lets the admin imprint the current split into a new active league.
+    // Backed by DATA.leagues from the last load, so this only actually
+    // succeeds server-side if there's no other league already active.
     function renderCreateLeagueSection() {
       const box = document.getElementById('ldCreateLeagueSection');
       if (!box) return;
       if (!isAdmin() || !ldLastResult) { box.innerHTML = ''; return; }
       const n = ldLastResult.teams.length;
-      if (n < 3 || n > 5) {
-        box.innerHTML = '<div class="ld-validation-error">Internal Leagues supports 3-5 teams only (this split has ' + n + ') — Create League is unavailable.</div>';
-        return;
-      }
-      box.innerHTML = '<button id="ldCreateLeagueBtn" class="export-btn tm-assemble-btn" type="button">🏆 Create League from these Teams</button>';
+      if (n < 3 || n > 5) { box.innerHTML = ''; return; }
+      box.innerHTML = '<button id="ldCreateLeagueBtn" class="export-btn tm-assemble-btn" type="button">Create League</button>';
     }
 
     function createLeagueFromDraft_() {
@@ -2544,9 +2545,11 @@
             '<input type="number" id="ldNumTeams" class="tm-textarea" min="1" value="4" style="width:100px;">' +
           '</div>' +
           '<div id="ldValidationMessage"></div>' +
-          '<button id="ldAssembleBtn" class="export-btn tm-assemble-btn" type="button" disabled>🏀 Assemble Teams</button>' +
+          '<div class="records-actions">' +
+            '<button id="ldAssembleBtn" class="export-btn tm-assemble-btn" type="button" disabled>🏀 Assemble Teams</button>' +
+            '<div id="ldCreateLeagueSection"></div>' +
+          '</div>' +
           '<div id="ldResults"></div>' +
-          '<div id="ldCreateLeagueSection"></div>' +
         '</div>' +
         '<div class="page" id="page-internalleagues">' +
           '<div id="internalLeaguesContent"></div>' +
