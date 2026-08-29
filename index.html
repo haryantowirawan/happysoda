@@ -17,6 +17,11 @@
       --muted: #a89478;
       --accent: #eed3b6;
       --accent-ink: #3a2c19;
+      /* Deeper companion to --accent, for primary action buttons only
+         (Assemble Teams / Create League) so they don't read as the same
+         swatch as a selected Team Manager name tile, which uses --accent. */
+      --action: #c17f36;
+      --action-ink: #1c1409;
       --gold: #ffcc4d;
       --silver: #d7cdbe;
       --bronze: #cd8a4d;
@@ -101,6 +106,8 @@
       --muted: #8a7455;
       --accent: #c9a267;
       --accent-ink: #ffffff;
+      --action: #96602a;
+      --action-ink: #ffffff;
       --gold: #b8860b;
       --silver: #8a8a8a;
       --bronze: #a56a35;
@@ -318,17 +325,18 @@
       color: var(--muted);
     }
     .tm-assemble-btn:disabled:hover { border-color: var(--border); }
-    /* Primary-action tint — same accent used for the active side-menu
-       item — so Assemble Teams / Create League read as the primary
-       action, distinct from the neutral Export/Copy buttons below them. */
+    /* Primary-action tint — a deeper shade than --accent so Assemble Teams /
+       Create League read as the primary action, distinct both from the
+       neutral Export/Copy buttons below them and from a selected .tm-tile
+       name box, which fills with --accent itself. */
     .tm-assemble-btn:not(:disabled) {
-      background: var(--accent);
-      color: var(--accent-ink);
-      border-color: var(--accent);
+      background: var(--action);
+      color: var(--action-ink);
+      border-color: var(--action);
     }
     .tm-assemble-btn:not(:disabled):hover {
       opacity: 0.9;
-      border-color: var(--accent);
+      border-color: var(--action);
     }
     .tm-tile-grid {
       display: grid;
