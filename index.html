@@ -455,6 +455,17 @@
     #ldCreateLeagueSection {
       display: contents;
     }
+    .ld-assemble-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .ld-assemble-row .export-btn {
+      flex: 0 0 auto;
+      margin-bottom: 0;
+    }
     .records-export-title {
       text-align: center;
       font-weight: 700;
@@ -762,6 +773,7 @@
       font-size: 16px;
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
     }
     .il-league-meta {
@@ -862,6 +874,35 @@
     .il-danger-btn {
       border-color: #c0392b !important;
       color: #c0392b !important;
+    }
+    .il-rename-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 0 2px;
+      opacity: 0.7;
+    }
+    .il-rename-btn:hover { opacity: 1; }
+    .il-rename-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .il-rename-wrap input {
+      font-size: 14px;
+      font-weight: 700;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+    }
+    .il-rename-wrap .export-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      margin-bottom: 0;
     }
 
     .delta-row {
@@ -2038,11 +2079,9 @@
 
     function createLeagueFromDraft_() {
       if (!ldLastResult) return;
-      const name = document.getElementById('ldLeagueNameInput').value.trim();
-      if (!name) {
-        alert('Enter a league name first (e.g. "Spring League 2026").');
-        return;
-      }
+      // Default name — rename it afterward from Internal Leagues, where
+      // it's editable for admin (and just displayed for public viewers).
+      const name = 'HS League ' + new Date().getFullYear();
       const teams = ldLastResult.teams.map(function (team, i) {
         return {
           teamName: 'Team ' + (i + 1),
@@ -2059,6 +2098,7 @@
 
     let ilEditingGameId = null;
     let ilAddingGameForLeague = null;
+    let ilRenamingLeagueId = null;
 
     function computeLeagueGameCounts_(games) {
       const played = games.filter(function (g) { return g.played === true || g.played === 'TRUE'; }).length;
@@ -2189,10 +2229,23 @@
         ? '<button class="export-btn il-danger-btn il-delete-league-btn" data-league="' + esc(league.leagueId) + '" data-name="' + esc(league.name) + '" type="button">Delete League</button>'
         : '';
 
+      // Renaming is cosmetic-only (not a result), so — like Delete — it's
+      // available to admin regardless of status; public always just sees
+      // the plain name, active league or archived.
+      const nameHtml = (isAdmin() && ilRenamingLeagueId === league.leagueId)
+        ? '<span class="il-rename-wrap" data-league="' + esc(league.leagueId) + '">' +
+            '<input type="text" class="il-f-leaguename" value="' + esc(league.name) + '">' +
+            '<button class="export-btn il-save-name-btn" type="button">Save</button>' +
+            '<button class="export-btn il-cancel-name-btn" type="button">Cancel</button>' +
+          '</span>'
+        : esc(league.name) + (isAdmin()
+          ? ' <button class="il-rename-btn" data-league="' + esc(league.leagueId) + '" type="button" title="Rename">✏️</button>'
+          : '');
+
       return '' +
         '<div class="il-league-block">' +
           '<div class="il-league-header">' +
-            '<h3>' + esc(league.name) + ' <span class="il-status-badge il-status-' + esc(league.status) + '">' + esc(league.status) + '</span></h3>' +
+            '<h3>' + nameHtml + ' <span class="il-status-badge il-status-' + esc(league.status) + '">' + esc(league.status) + '</span></h3>' +
             '<div class="il-league-meta">' + esc(league.numTeams) + ' teams · ' + computeLeagueGameCounts_(league.games) + '</div>' +
           '</div>' +
           winnerBanner +
@@ -2338,6 +2391,31 @@
             loadData(currentMonthParam, currentRecordsMonthParam);
           })
           .catch(function (err) { alert('Could not delete league: ' + err.message); });
+      }
+
+      const renameBtn = e.target.closest('.il-rename-btn');
+      if (renameBtn) {
+        ilRenamingLeagueId = renameBtn.dataset.league;
+        document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+      }
+
+      const cancelNameBtn = e.target.closest('.il-cancel-name-btn');
+      if (cancelNameBtn) {
+        ilRenamingLeagueId = null;
+        document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+      }
+
+      const saveNameBtn = e.target.closest('.il-save-name-btn');
+      if (saveNameBtn) {
+        const wrap = saveNameBtn.closest('.il-rename-wrap');
+        const newName = wrap.querySelector('.il-f-leaguename').value.trim();
+        if (!newName) { alert('League name cannot be empty.'); return; }
+        callLeagueApi_('renameLeague', { leagueId: wrap.dataset.league, name: newName })
+          .then(function () {
+            currentPage = 'internalleagues';
+            loadData(currentMonthParam, currentRecordsMonthParam);
+          })
+          .catch(function (err) { alert('Could not rename league: ' + err.message); });
       }
     });
     /** =================== END Internal Leagues ==================== **/
@@ -2549,11 +2627,7 @@
             '<input type="number" id="ldNumTeams" class="tm-textarea" min="1" value="4" style="width:100px;">' +
           '</div>' +
           '<div id="ldValidationMessage"></div>' +
-          '<div class="tm-section">' +
-            '<label class="tm-label">League name (for Create League)</label>' +
-            '<input type="text" id="ldLeagueNameInput" class="tm-textarea" placeholder="e.g. Spring League 2026">' +
-          '</div>' +
-          '<div class="records-actions">' +
+          '<div class="ld-assemble-row">' +
             '<button id="ldAssembleBtn" class="export-btn tm-assemble-btn" type="button" disabled>🏀 Assemble Teams</button>' +
             '<div id="ldCreateLeagueSection"></div>' +
           '</div>' +
