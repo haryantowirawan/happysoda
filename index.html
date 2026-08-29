@@ -26,6 +26,7 @@
       --silver: #d7cdbe;
       --bronze: #cd8a4d;
       --green: #7fd99a;
+      --red: #e0715c;
       --radius: 16px;
     }
     * { box-sizing: border-box; }
@@ -112,6 +113,7 @@
       --silver: #8a8a8a;
       --bronze: #a56a35;
       --green: #2f9e57;
+      --red: #c0392b;
       background:
         radial-gradient(1200px 500px at 50% -10%, #fff6e6 0%, transparent 60%),
         var(--bg);
@@ -588,7 +590,7 @@
       font-weight: 700;
     }
     .finance-table td.fin-name { font-weight: 600; color: var(--text); }
-    .finance-table td.outstanding-cell { color: #e0715c; text-align: right; }
+    .finance-table td.outstanding-cell { color: var(--red); text-align: right; }
     .finance-table td.credit-cell { color: var(--green); text-align: right; }
     .finance-table tr.fin-total-row td { border-bottom: none; padding-top: 12px; }
 
@@ -1061,6 +1063,9 @@
       font-weight: 800;
       color: var(--accent);
     }
+    /* Outstanding = money owed (red), Player Credits = money in hand (green). */
+    .card-points .num.amount-owed { color: var(--red); }
+    .card-points .num.amount-credit { color: var(--green); }
     .card-points .label {
       font-size: 10.5px;
       color: var(--muted);
@@ -1198,7 +1203,7 @@
           '<div class="card">' +
             '<div class="' + rankClass(i) + '">' + (i + 1) + '</div>' +
             '<div class="card-main">' +
-              '<div class="card-name">' + esc(r.name) + catBadge + '</div>' +
+              '<div class="card-name">' + catBadge + esc(r.name) + '</div>' +
               '<div class="card-reason">' + esc(r.reason) + '</div>' +
             '</div>' +
             '<div class="card-points"><div class="num">' + r.points + '</div><div class="label">points</div></div>' +
@@ -1237,7 +1242,9 @@
       return 'Rp ' + Math.round(n).toLocaleString('id-ID');
     }
 
-    function renderBalanceList(list, total, totalLabel, filter) {
+    // amountClass tints the fee column: 'amount-owed' (red) or 'amount-credit' (green).
+    function renderBalanceList(list, total, totalLabel, filter, amountClass) {
+      const numClass = 'num' + (amountClass ? ' ' + amountClass : '');
       const rows = list.filter(function (item) {
         return !filter || item.name.toLowerCase().includes(filter);
       });
@@ -1247,13 +1254,13 @@
           '<div class="card">' +
             '<div class="' + rankClass(i) + '">' + (i + 1) + '</div>' +
             '<div class="card-main"><div class="card-name">' + esc(item.name) + '</div></div>' +
-            '<div class="card-points"><div class="num">' + formatIDR(item.amount) + '</div></div>' +
+            '<div class="card-points"><div class="' + numClass + '">' + formatIDR(item.amount) + '</div></div>' +
           '</div>';
       }).join('');
       const totalCard =
         '<div class="card balance-total">' +
           '<div class="card-main"><div class="card-name">' + esc(totalLabel) + '</div></div>' +
-          '<div class="card-points"><div class="num">' + formatIDR(total) + '</div></div>' +
+          '<div class="card-points"><div class="' + numClass + '">' + formatIDR(total) + '</div></div>' +
         '</div>';
       return cards + totalCard;
     }
@@ -1316,7 +1323,7 @@
           '<div class="card">' +
             '<div class="' + rankClass(i) + '">' + (i + 1) + '</div>' +
             '<div class="card-main">' +
-              '<div class="card-name">' + esc(item.name) + badge + '</div>' +
+              '<div class="card-name">' + badge + esc(item.name) + '</div>' +
               '<div class="card-reason">' + esc(item.reason) + '</div>' +
             '</div>' +
             '<div class="card-points"><div class="num">' + item.points + '</div><div class="label">points</div></div>' +
@@ -2766,9 +2773,9 @@
       renderAllPanels('');
 
       document.getElementById('page-outstanding-content').innerHTML =
-        renderBalanceList(DATA.outstanding || [], DATA.outstandingTotal || 0, 'Total Outstanding', '');
+        renderBalanceList(DATA.outstanding || [], DATA.outstandingTotal || 0, 'Total Outstanding', '', 'amount-owed');
       document.getElementById('page-credits-content').innerHTML =
-        renderBalanceList(DATA.credits || [], DATA.creditsTotal || 0, 'Total Player Credits', '');
+        renderBalanceList(DATA.credits || [], DATA.creditsTotal || 0, 'Total Player Credits', '', 'amount-credit');
       document.getElementById('financeExportTitle').textContent =
         (DATA.membershipReminderCommunity || 'HS') + ' Outstanding & Player Credits — ' + (DATA.currentYear || '');
       document.getElementById('financeExportTable').innerHTML = renderFinanceSideBySide(
