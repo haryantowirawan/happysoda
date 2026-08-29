@@ -1290,9 +1290,16 @@
       document.getElementById('assembleBtn').disabled = tmSelected.size !== 10;
     }
 
+    // impact's raw scale (-1..5, players who "don't know how to play at
+    // all" score negative) is already narrower than skillLevel/
+    // athleticism/defense's ~0..9 — and it's the stat that most directly
+    // captures how much a player actually swings a real game, good or
+    // bad, so it's weighted UP (x2) rather than halved: at x2 its ~12-point
+    // swing outweighs any single one of the other stats below, making it
+    // the single biggest factor in the composite rating.
     function computeCompositeRating(p) {
       const ts = (p.trueShootingPct !== null && p.trueShootingPct !== undefined ? p.trueShootingPct : 50) / 10;
-      const impact = (p.impact || 0) / 2;
+      const impact = (p.impact || 0) * 2;
       return (p.skillLevel || 5) + ts + impact + (p.athleticism || 5) + (p.defense || 5);
     }
 
@@ -1356,6 +1363,24 @@
       return penalty;
     }
 
+    // A team's combined strength of its 2 best players by composite
+    // rating — same "best available X" pattern as bestPlaymakerSkill
+    // above, but for overall talent rather than playmaking. Every other
+    // balance term in this file (ratingVariance, impactPenalty, ...)
+    // only checks TEAM AVERAGES, and an average can't tell "2 stars + 3
+    // weak fillers" apart from "5 solid mid-tier players" if both happen
+    // to average out the same — which is exactly how e.g. 2 of a pool's
+    // best players can end up on the same team while every score term
+    // reports a perfectly balanced split. Balancing THIS value instead
+    // (see starClusterPenalty below) catches that regardless of team
+    // averages, and — unlike a fixed-size "top N players are elite" set —
+    // it naturally covers "2nd tier but still clearly strong" players
+    // too, without needing an arbitrary cutoff.
+    function topTalentStrength(team) {
+      const sorted = team.slice().sort(function (a, b) { return computeCompositeRating(b) - computeCompositeRating(a); });
+      return sorted.slice(0, Math.min(2, sorted.length)).reduce(function (s, p) { return s + computeCompositeRating(p); }, 0);
+    }
+
     // Penalizes a split where one team has NO ONE (primary or secondary
     // role) covering a key role while the other team has at least one —
     // e.g. a team with zero playmakers, when the other team has two.
@@ -1377,7 +1402,7 @@
     function bestPlaymakerSkill(team) {
       const capable = team.filter(isPlaymakingCapable);
       if (capable.length === 0) return 0;
-      return Math.max.apply(null, capable.map(function (p) { return (p.skillLevel || 5) + (p.impact || 0) / 2; }));
+      return Math.max.apply(null, capable.map(function (p) { return (p.skillLevel || 5) + (p.impact || 0) * 2; }));
     }
 
     function choose5(players) {
@@ -1433,9 +1458,13 @@
         // doesn't stop two high-impact players (or two strong
         // playmakers) from landing on the same team as long as other
         // stats happen to average out.
+        // impact carries a higher weight here (x3, vs x1.5 for the other
+        // variance-based penalties below) to match its doubled weight in
+        // computeCompositeRating — it's judged the stat most likely to
+        // change how a real game actually plays out.
         const impactA = teamA.reduce(function (s, p) { return s + (p.impact || 0); }, 0) / 5;
         const impactB = teamB.reduce(function (s, p) { return s + (p.impact || 0); }, 0) / 5;
-        const impactPenalty = Math.abs(impactA - impactB) * 1.5;
+        const impactPenalty = Math.abs(impactA - impactB) * 3;
 
         const playmakerA = bestPlaymakerSkill(teamA);
         const playmakerB = bestPlaymakerSkill(teamB);
@@ -1449,8 +1478,13 @@
         const rimGapPenalty = coverageGapPenalty([teamA, teamB], function (p) { return hasRimPresence(p, tallThreshold); }, 4);
         const playmakerGapPenalty = coverageGapPenalty([teamA, teamB], isPlaymakingCapable, 6);
 
+        // Star clustering: don't let 2 of the pool's best players land on
+        // the same team just because the rest of the roster happens to
+        // average out — see topTalentStrength above.
+        const starPenalty = Math.abs(topTalentStrength(teamA) - topTalentStrength(teamB)) * 2;
+
         const score = ratingDiff + positionPenalty + heightPenalty + rolePenalty + impactPenalty + playmakerPenalty +
-          centerGapPenalty + rimGapPenalty + playmakerGapPenalty;
+          centerGapPenalty + rimGapPenalty + playmakerGapPenalty + starPenalty;
 
         results.push({ teamA: teamA, teamB: teamB, ratingA: ratingA, ratingB: ratingB, score: score });
       });
@@ -1608,11 +1642,13 @@
       const heightPenalty = heightAvgs.reduce(function (s, h) { return s + Math.abs(h - overallHeightAvg); }, 0) / 5;
 
       // Impact balance: the overall composite rating already folds in
-      // impact at half-weight, but that alone doesn't stop two very
-      // high-impact players from landing on the same team as long as
-      // their OTHER stats happen to average out across the roster.
-      // Impact tends to swing real games more than the aggregate number
-      // suggests, so it gets its own dedicated balance check.
+      // impact at double-weight (see computeCompositeRating), but that
+      // alone doesn't stop two very high-impact players from landing on
+      // the same team as long as their OTHER stats happen to average out
+      // across the roster. Impact tends to swing real games more than
+      // the aggregate number suggests, so it gets its own dedicated
+      // balance check too, weighted up (x3 below, vs x1.5 for the other
+      // variance penalties) to match.
       const impactAvgs = teams.map(function (team) {
         return team.reduce(function (s, p) { return s + (p.impact || 0); }, 0) / team.length;
       });
@@ -1640,8 +1676,15 @@
       const rimGapPenalty = coverageGapPenalty(teams, function (p) { return hasRimPresence(p, tallThreshold); }, 4);
       const playmakerGapPenalty = coverageGapPenalty(teams, isPlaymakingCapable, 6);
 
-      return ratingVariance + positionPenalty * 2 + rolePenalty + heightPenalty + impactPenalty * 1.5 + playmakerPenalty * 1.5 +
-        centerGapPenalty + rimGapPenalty + playmakerGapPenalty;
+      // Star clustering: don't let 2+ of the pool's best players land on
+      // the same team just because the rest of the roster happens to
+      // average out — see topTalentStrength above.
+      const topTalentValues = teams.map(topTalentStrength);
+      const overallTopTalentAvg = topTalentValues.reduce(function (a, b) { return a + b; }, 0) / topTalentValues.length;
+      const starPenalty = topTalentValues.reduce(function (s, v) { return s + Math.pow(v - overallTopTalentAvg, 2); }, 0);
+
+      return ratingVariance + positionPenalty * 2 + rolePenalty + heightPenalty + impactPenalty * 3 + playmakerPenalty * 1.5 +
+        centerGapPenalty + rimGapPenalty + playmakerGapPenalty + starPenalty * 2;
     }
 
     // Randomly swaps players between two teams, keeping the swap only if
