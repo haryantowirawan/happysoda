@@ -854,6 +854,10 @@
       font-size: 13px;
       font-weight: 600;
     }
+    .il-danger-btn {
+      border-color: #c0392b !important;
+      color: #c0392b !important;
+    }
 
     .delta-row {
       display: flex;
@@ -2172,6 +2176,13 @@
         ? '<button class="export-btn il-close-league-btn" data-league="' + esc(league.leagueId) + '" type="button">Close League</button>'
         : '';
 
+      // Deleting is available to the admin regardless of status — unlike
+      // Close League it's not about locking in real results, it's for
+      // purging a mistake (wrong teams, a test run) entirely. Permanent.
+      const deleteBtn = isAdmin()
+        ? '<button class="export-btn il-danger-btn il-delete-league-btn" data-league="' + esc(league.leagueId) + '" data-name="' + esc(league.name) + '" type="button">Delete League</button>'
+        : '';
+
       return '' +
         '<div class="il-league-block">' +
           '<div class="il-league-header">' +
@@ -2186,7 +2197,7 @@
           '<div class="il-section-title">Games</div>' +
           '<div class="il-table-wrap"><table class="il-table"><thead><tr>' + gamesHeader + '</tr></thead><tbody>' + gamesRows + '</tbody></table></div>' +
           addGameHtml +
-          (closeBtn ? '<div class="records-actions">' + closeBtn + '</div>' : '') +
+          ((closeBtn || deleteBtn) ? '<div class="records-actions">' + closeBtn + deleteBtn + '</div>' : '') +
         '</div>';
     }
 
@@ -2309,6 +2320,18 @@
             loadData(currentMonthParam, currentRecordsMonthParam);
           })
           .catch(function (err) { alert('Could not close league: ' + err.message); });
+      }
+
+      const deleteLeagueBtn = e.target.closest('.il-delete-league-btn');
+      if (deleteLeagueBtn) {
+        const name = deleteLeagueBtn.dataset.name;
+        if (!confirm('Permanently delete "' + name + '" and all its teams/games? This cannot be undone.')) return;
+        callLeagueApi_('deleteLeague', { leagueId: deleteLeagueBtn.dataset.league })
+          .then(function () {
+            currentPage = 'internalleagues';
+            loadData(currentMonthParam, currentRecordsMonthParam);
+          })
+          .catch(function (err) { alert('Could not delete league: ' + err.message); });
       }
     });
     /** =================== END Internal Leagues ==================== **/
