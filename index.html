@@ -1891,8 +1891,17 @@
       const data = DATA.monthlyAttendance || [];
       if (data.length === 0) return '';
       const values = data.map(function (d) { return d.count; });
-      const max = Math.max.apply(null, values) || 1;
-      const min = Math.min.apply(null, values);
+      // The last bar is the selected "as of" end month, which is often
+      // still in progress (or, if picked ahead of the real current month,
+      // barely started) — its naturally low, partial count would otherwise
+      // pull the min way down and squash every completed month into a
+      // narrow high band near the top of the chart. Calibrate the zoom off
+      // the completed months only, then plot the last bar on that same
+      // scale (clamped to 100%, since a still-forming month can't sensibly
+      // set the scale but could in principle already exceed it).
+      const scaleValues = values.length > 1 ? values.slice(0, -1) : values;
+      const max = Math.max.apply(null, scaleValues) || 1;
+      const min = Math.min.apply(null, scaleValues);
       const range = max - min;
       // Zoom the baseline so month-to-month differences are actually
       // visible even when values are clustered close together, instead of
@@ -1901,7 +1910,7 @@
       const span = (max - baseline) || 1;
 
       const cols = data.map(function (d) {
-        const pct = Math.max(Math.round(((d.count - baseline) / span) * 100), 4);
+        const pct = Math.min(Math.max(Math.round(((d.count - baseline) / span) * 100), 4), 100);
         return '' +
           '<div class="trend-bar-col">' +
             '<div class="trend-bar-value">' + d.count + '</div>' +
