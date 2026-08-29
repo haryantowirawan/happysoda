@@ -732,6 +732,129 @@
       white-space: nowrap;
     }
 
+    .il-empty {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 14px 4px;
+    }
+    .il-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      margin: 14px 0 6px;
+    }
+    .il-league-block {
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .il-league-header h3 {
+      margin: 0 0 2px;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .il-league-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .il-status-badge {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: var(--panel-2);
+      color: var(--muted);
+    }
+    .il-status-active {
+      background: var(--green);
+      color: #0d2b17;
+    }
+    .il-winner-banner {
+      background: var(--panel-2);
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin: 8px 0;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .il-team-row {
+      font-size: 13px;
+      padding: 4px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .il-table-wrap {
+      overflow-x: auto;
+    }
+    .il-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .il-table th, .il-table td {
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .il-vs {
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .il-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+      padding: 8px 0;
+    }
+    .il-form-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .il-form-grid input, .il-form-grid select {
+      font-size: 13px;
+      padding: 5px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+    }
+    .il-checkbox {
+      flex-direction: row !important;
+      align-items: center;
+      gap: 6px !important;
+    }
+    .il-add-game-box {
+      background: var(--panel-2);
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-top: 8px;
+    }
+    .il-archive-year {
+      margin-bottom: 6px;
+    }
+    .il-archive-item {
+      margin-bottom: 6px;
+    }
+    .il-archive-item summary {
+      cursor: pointer;
+      padding: 8px 10px;
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
     .delta-row {
       display: flex;
       flex-direction: column;
@@ -1832,7 +1955,7 @@
     function renderLeagueTeamResults(result) {
       const box = document.getElementById('ldResults');
       if (!box) return;
-      if (!result) { box.innerHTML = ''; return; }
+      if (!result) { box.innerHTML = ''; renderCreateLeagueSection(); return; }
       const avgs = result.teams.map(computeTeamAvgRating);
       const spread = (Math.max.apply(null, avgs) - Math.min.apply(null, avgs)).toFixed(1);
       const teamCardsHtml = result.teams.map(function (team, i) {
@@ -1851,7 +1974,344 @@
           '<div class="tm-fairness-note">Balanced across ' + result.teams.length + ' teams · avg rating spread ' + spread + '</div>' +
           teamCardsHtml +
         '</div>';
+      renderCreateLeagueSection();
     }
+
+    /** ===================== Internal Leagues ===================== **/
+
+    function getAdminToken() {
+      try { return localStorage.getItem('hsAdminToken') || null; } catch (e) { return null; }
+    }
+    function isAdmin() { return !!getAdminToken(); }
+    function setAdminToken(token) {
+      try { localStorage.setItem('hsAdminToken', token); } catch (e) { /* ignore */ }
+    }
+    function clearAdminToken() {
+      try { localStorage.removeItem('hsAdminToken'); } catch (e) { /* ignore */ }
+    }
+
+    // Sent as text/plain, not application/json — a cross-origin JSON POST
+    // triggers a CORS preflight (OPTIONS) that Apps Script web apps can't
+    // answer, so text/plain (a CORS "simple request") is used instead; the
+    // server reads the raw body regardless of the declared content type.
+    function callLeagueApi_(action, payload) {
+      const body = Object.assign({ action: action, adminToken: getAdminToken() }, payload);
+      return fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(body),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (json) {
+          if (!json.ok) throw new Error(json.error || 'Request failed.');
+          return json.result;
+        });
+    }
+
+    function updateAdminToggleLabel() {
+      const btn = document.getElementById('adminToggle');
+      if (btn) btn.textContent = isAdmin() ? '🔓 Admin' : '🔒 Admin';
+    }
+
+    // Shown under League Draft's results once teams are assembled — lets
+    // the admin imprint the current split into a new active league. Backed
+    // by DATA.leagues from the last load, so this only actually succeeds
+    // server-side if there's no other league already active.
+    function renderCreateLeagueSection() {
+      const box = document.getElementById('ldCreateLeagueSection');
+      if (!box) return;
+      if (!isAdmin() || !ldLastResult) { box.innerHTML = ''; return; }
+      const n = ldLastResult.teams.length;
+      if (n < 3 || n > 5) {
+        box.innerHTML = '<div class="ld-validation-error">Internal Leagues supports 3-5 teams only (this split has ' + n + ') — Create League is unavailable.</div>';
+        return;
+      }
+      box.innerHTML = '<button id="ldCreateLeagueBtn" class="export-btn tm-assemble-btn" type="button">🏆 Create League from these Teams</button>';
+    }
+
+    function createLeagueFromDraft_() {
+      if (!ldLastResult) return;
+      const name = prompt('League name (e.g. "Spring League 2026"):');
+      if (!name) return;
+      const teams = ldLastResult.teams.map(function (team, i) {
+        return {
+          teamName: 'Team ' + (i + 1),
+          players: team.map(function (p) { return { name: p.name, position: p.position || '' }; }),
+        };
+      });
+      callLeagueApi_('createLeague', { name: name, teams: teams })
+        .then(function () {
+          currentPage = 'internalleagues';
+          loadData(currentMonthParam, currentRecordsMonthParam);
+        })
+        .catch(function (err) { alert('Could not create league: ' + err.message); });
+    }
+
+    let ilEditingGameId = null;
+    let ilAddingGameForLeague = null;
+
+    function computeLeagueGameCounts_(games) {
+      const played = games.filter(function (g) { return g.played === true || g.played === 'TRUE'; }).length;
+      return played + ' / ' + games.length + ' games played';
+    }
+
+    function renderStandingsTable_(standings) {
+      const rows = standings.map(function (s, i) {
+        return '' +
+          '<tr>' +
+            '<td>' + (i + 1) + '</td>' +
+            '<td>' + esc(s.team) + '</td>' +
+            '<td>' + s.wins + '</td>' +
+            '<td>' + s.losses + '</td>' +
+            '<td>' + s.pointsFor + '</td>' +
+            '<td>' + s.pointsAgainst + '</td>' +
+            '<td>' + (s.diff > 0 ? '+' : '') + s.diff + '</td>' +
+          '</tr>';
+      }).join('');
+      return '' +
+        '<table class="il-table">' +
+          '<thead><tr><th>#</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Diff</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table>';
+    }
+
+    function teamOptions_(teamNames, selected) {
+      return teamNames.map(function (t) {
+        return '<option value="' + esc(t) + '"' + (t === selected ? ' selected' : '') + '>' + esc(t) + '</option>';
+      }).join('');
+    }
+
+    function renderGameEditForm_(league, game) {
+      const teamNames = league.teams.map(function (t) { return t.teamName; });
+      const winnerOptions =
+        '<option value=""' + (!game.winningTeam ? ' selected' : '') + '>Auto (by score)</option>' +
+        '<option value="' + esc(game.homeTeam) + '"' + (game.winningTeam === game.homeTeam ? ' selected' : '') + '>' + esc(game.homeTeam) + '</option>' +
+        '<option value="' + esc(game.awayTeam) + '"' + (game.winningTeam === game.awayTeam ? ' selected' : '') + '>' + esc(game.awayTeam) + '</option>';
+      return '' +
+        '<tr class="il-edit-row" data-league="' + esc(league.leagueId) + '" data-game="' + esc(game.gameId) + '">' +
+          '<td colspan="8">' +
+            '<div class="il-form-grid">' +
+              '<label>Stage<input type="text" class="il-f-stage" value="' + esc(game.stage || '') + '"></label>' +
+              '<label>Date<input type="date" class="il-f-date" value="' + esc(game.date || '') + '"></label>' +
+              '<label>Time<input type="time" class="il-f-time" value="' + esc(game.time || '') + '"></label>' +
+              '<label>Home<select class="il-f-home">' + teamOptions_(teamNames, game.homeTeam) + '</select></label>' +
+              '<label>Away<select class="il-f-away">' + teamOptions_(teamNames, game.awayTeam) + '</select></label>' +
+              '<label>Home score<input type="number" class="il-f-homescore" value="' + esc(game.homeScore != null ? game.homeScore : '') + '"></label>' +
+              '<label>Away score<input type="number" class="il-f-awayscore" value="' + esc(game.awayScore != null ? game.awayScore : '') + '"></label>' +
+              '<label>Winner<select class="il-f-winner">' + winnerOptions + '</select></label>' +
+              '<label>Referee<input type="text" class="il-f-referee" value="' + esc(game.referee || '') + '"></label>' +
+              '<label>Game admin<input type="text" class="il-f-gameadmin" value="' + esc(game.gameAdmin || '') + '"></label>' +
+              '<label class="il-checkbox"><input type="checkbox" class="il-f-played"' + (game.played === true || game.played === 'TRUE' ? ' checked' : '') + '> Played</label>' +
+            '</div>' +
+            '<div class="records-actions">' +
+              '<button class="export-btn il-save-game-btn" type="button">Save</button>' +
+              '<button class="export-btn il-cancel-game-btn" type="button">Cancel</button>' +
+            '</div>' +
+          '</td>' +
+        '</tr>';
+    }
+
+    function renderGameRow_(league, game, editable) {
+      if (editable && ilEditingGameId === game.gameId) {
+        return renderGameEditForm_(league, game);
+      }
+      const played = game.played === true || game.played === 'TRUE';
+      const score = played ? (game.homeScore + ' - ' + game.awayScore) : '—';
+      const when = [game.date, game.time].filter(Boolean).join(' ');
+      return '' +
+        '<tr>' +
+          '<td>' + esc(game.stage || '') + '</td>' +
+          '<td>' + esc(when || '—') + '</td>' +
+          '<td>' + esc(game.homeTeam) + ' <span class="il-vs">vs</span> ' + esc(game.awayTeam) + '</td>' +
+          '<td>' + esc(score) + '</td>' +
+          '<td>' + esc(game.winningTeam || '') + '</td>' +
+          '<td>' + esc(game.referee || '') + '</td>' +
+          '<td>' + esc(game.gameAdmin || '') + '</td>' +
+          (editable ? '<td><button class="export-btn il-edit-game-btn" data-league="' + esc(league.leagueId) + '" data-game="' + esc(game.gameId) + '" type="button">Edit</button></td>' : '') +
+        '</tr>';
+    }
+
+    function renderAddGameForm_(league) {
+      const teamNames = league.teams.map(function (t) { return t.teamName; });
+      return '' +
+        '<div class="il-form-grid" data-league="' + esc(league.leagueId) + '">' +
+          '<label>Stage<input type="text" class="il-f-stage" placeholder="e.g. Semifinal"></label>' +
+          '<label>Date<input type="date" class="il-f-date"></label>' +
+          '<label>Time<input type="time" class="il-f-time"></label>' +
+          '<label>Home<select class="il-f-home">' + teamOptions_(teamNames) + '</select></label>' +
+          '<label>Away<select class="il-f-away">' + teamOptions_(teamNames) + '</select></label>' +
+          '<label>Referee<input type="text" class="il-f-referee"></label>' +
+          '<label>Game admin<input type="text" class="il-f-gameadmin"></label>' +
+        '</div>' +
+        '<div class="records-actions">' +
+          '<button class="export-btn il-save-add-game-btn" data-league="' + esc(league.leagueId) + '" type="button">Add Game</button>' +
+          '<button class="export-btn il-cancel-add-game-btn" type="button">Cancel</button>' +
+        '</div>';
+    }
+
+    function renderLeagueDetail_(league, editable) {
+      const teamsHtml = league.teams.map(function (t) {
+        const players = t.players.map(function (p) { return esc(p.name) + (p.position ? ' (' + esc(p.position) + ')' : ''); }).join(', ');
+        return '<div class="il-team-row"><strong>' + esc(t.teamName) + ':</strong> ' + players + '</div>';
+      }).join('');
+
+      const gamesRows = league.games.map(function (g) { return renderGameRow_(league, g, editable); }).join('');
+      const gamesHeader = '<th>Stage</th><th>When</th><th>Matchup</th><th>Score</th><th>Winner</th><th>Referee</th><th>Game Admin</th>' + (editable ? '<th></th>' : '');
+
+      const addGameHtml = editable
+        ? (ilAddingGameForLeague === league.leagueId
+          ? '<div class="il-add-game-box">' + renderAddGameForm_(league) + '</div>'
+          : '<button class="export-btn il-open-add-game-btn" data-league="' + esc(league.leagueId) + '" type="button">+ Add Game</button>')
+        : '';
+
+      const winnerBanner = league.status === 'closed' && league.winnerTeam
+        ? '<div class="il-winner-banner">🏆 Winner: ' + esc(league.winnerTeam) + '</div>'
+        : '';
+
+      const closeBtn = editable
+        ? '<button class="export-btn il-close-league-btn" data-league="' + esc(league.leagueId) + '" type="button">Close League</button>'
+        : '';
+
+      return '' +
+        '<div class="il-league-block">' +
+          '<div class="il-league-header">' +
+            '<h3>' + esc(league.name) + ' <span class="il-status-badge il-status-' + esc(league.status) + '">' + esc(league.status) + '</span></h3>' +
+            '<div class="il-league-meta">' + esc(league.numTeams) + ' teams · ' + computeLeagueGameCounts_(league.games) + '</div>' +
+          '</div>' +
+          winnerBanner +
+          '<div class="il-section-title">Teams</div>' +
+          teamsHtml +
+          '<div class="il-section-title">Standings</div>' +
+          renderStandingsTable_(league.standings) +
+          '<div class="il-section-title">Games</div>' +
+          '<div class="il-table-wrap"><table class="il-table"><thead><tr>' + gamesHeader + '</tr></thead><tbody>' + gamesRows + '</tbody></table></div>' +
+          addGameHtml +
+          (closeBtn ? '<div class="records-actions">' + closeBtn + '</div>' : '') +
+        '</div>';
+    }
+
+    function renderInternalLeaguesPage() {
+      const leagues = (DATA.leagues && DATA.leagues.list) || [];
+      if (leagues.length === 0) {
+        return '<div class="il-empty">No leagues yet. Assemble teams on League Draft, then use Create League to start one.</div>';
+      }
+
+      const active = leagues.find(function (l) { return l.status === 'active'; });
+      const closed = leagues.filter(function (l) { return l.status !== 'active'; });
+
+      const activeHtml = active
+        ? renderLeagueDetail_(active, isAdmin())
+        : '<div class="il-empty">No active league right now.</div>';
+
+      const byYear = {};
+      closed.forEach(function (l) {
+        const y = l.year || 'Unknown';
+        if (!byYear[y]) byYear[y] = [];
+        byYear[y].push(l);
+      });
+      const years = Object.keys(byYear).sort(function (a, b) { return b - a; });
+      const archiveHtml = years.map(function (y) {
+        const items = byYear[y].map(function (l) {
+          return '<details class="il-archive-item"><summary>' + esc(l.name) + (l.winnerTeam ? ' — 🏆 ' + esc(l.winnerTeam) : '') + '</summary>' + renderLeagueDetail_(l, false) + '</details>';
+        }).join('');
+        return '<div class="il-archive-year"><div class="il-section-title">' + y + '</div>' + items + '</div>';
+      }).join('');
+
+      return '' +
+        '<div class="il-section-title">Active League</div>' +
+        activeHtml +
+        (years.length ? '<div class="il-section-title" style="margin-top:20px;">Archive</div>' + archiveHtml : '');
+    }
+
+    document.addEventListener('click', function (e) {
+      const createLeagueBtn = e.target.closest('#ldCreateLeagueBtn');
+      if (createLeagueBtn) createLeagueFromDraft_();
+
+      const editGameBtn = e.target.closest('.il-edit-game-btn');
+      if (editGameBtn) {
+        ilEditingGameId = editGameBtn.dataset.game;
+        document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+      }
+
+      const cancelGameBtn = e.target.closest('.il-cancel-game-btn');
+      if (cancelGameBtn) {
+        ilEditingGameId = null;
+        document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+      }
+
+      const saveGameBtn = e.target.closest('.il-save-game-btn');
+      if (saveGameBtn) {
+        const row = saveGameBtn.closest('.il-edit-row');
+        const leagueId = row.dataset.league;
+        const gameId = row.dataset.game;
+        const winnerVal = row.querySelector('.il-f-winner').value;
+        callLeagueApi_('updateGame', {
+          leagueId: leagueId,
+          gameId: gameId,
+          stage: row.querySelector('.il-f-stage').value,
+          date: row.querySelector('.il-f-date').value,
+          time: row.querySelector('.il-f-time').value,
+          homeTeam: row.querySelector('.il-f-home').value,
+          awayTeam: row.querySelector('.il-f-away').value,
+          homeScore: row.querySelector('.il-f-homescore').value,
+          awayScore: row.querySelector('.il-f-awayscore').value,
+          winningTeam: winnerVal,
+          referee: row.querySelector('.il-f-referee').value,
+          gameAdmin: row.querySelector('.il-f-gameadmin').value,
+          played: row.querySelector('.il-f-played').checked,
+        })
+          .then(function () {
+            currentPage = 'internalleagues';
+            loadData(currentMonthParam, currentRecordsMonthParam);
+          })
+          .catch(function (err) { alert('Could not save game: ' + err.message); });
+      }
+
+      const openAddGameBtn = e.target.closest('.il-open-add-game-btn');
+      if (openAddGameBtn) {
+        ilAddingGameForLeague = openAddGameBtn.dataset.league;
+        document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+      }
+
+      const cancelAddGameBtn = e.target.closest('.il-cancel-add-game-btn');
+      if (cancelAddGameBtn) {
+        ilAddingGameForLeague = null;
+        document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+      }
+
+      const saveAddGameBtn = e.target.closest('.il-save-add-game-btn');
+      if (saveAddGameBtn) {
+        const box = saveAddGameBtn.closest('.il-add-game-box');
+        const leagueId = saveAddGameBtn.dataset.league;
+        callLeagueApi_('addGame', {
+          leagueId: leagueId,
+          stage: box.querySelector('.il-f-stage').value,
+          date: box.querySelector('.il-f-date').value,
+          time: box.querySelector('.il-f-time').value,
+          homeTeam: box.querySelector('.il-f-home').value,
+          awayTeam: box.querySelector('.il-f-away').value,
+          referee: box.querySelector('.il-f-referee').value,
+          gameAdmin: box.querySelector('.il-f-gameadmin').value,
+        })
+          .then(function () {
+            currentPage = 'internalleagues';
+            loadData(currentMonthParam, currentRecordsMonthParam);
+          })
+          .catch(function (err) { alert('Could not add game: ' + err.message); });
+      }
+
+      const closeLeagueBtn = e.target.closest('.il-close-league-btn');
+      if (closeLeagueBtn) {
+        if (!confirm('Close this league permanently? This cannot be undone.')) return;
+        callLeagueApi_('closeLeague', { leagueId: closeLeagueBtn.dataset.league })
+          .then(function () {
+            currentPage = 'internalleagues';
+            loadData(currentMonthParam, currentRecordsMonthParam);
+          })
+          .catch(function (err) { alert('Could not close league: ' + err.message); });
+      }
+    });
+    /** =================== END Internal Leagues ==================== **/
 
     function copyTeamList(btn) {
       if (!ldLastResult) {
@@ -1968,8 +2428,10 @@
           '<button class="side-menu-item" data-page="records">Monthly Records</button>' +
           '<button class="side-menu-item" data-page="teammanager">Team Manager</button>' +
           '<button class="side-menu-item" data-page="leaguedraft">League Draft</button>' +
+          '<button class="side-menu-item" data-page="internalleagues">Internal Leagues</button>' +
           '<button class="side-menu-item" data-page="about">About Us</button>' +
           '<div class="side-menu-divider"></div>' +
+          '<button id="adminToggle" class="side-menu-item" type="button">🔒 Admin</button>' +
           '<button id="themeToggle" class="side-menu-item" type="button">🌙 Dark Mode</button>' +
         '</nav>' +
         '<div class="page active" id="page-dashboard">' +
@@ -2060,6 +2522,10 @@
           '<div id="ldValidationMessage"></div>' +
           '<button id="ldAssembleBtn" class="export-btn tm-assemble-btn" type="button" disabled>🏀 Assemble Teams</button>' +
           '<div id="ldResults"></div>' +
+          '<div id="ldCreateLeagueSection"></div>' +
+        '</div>' +
+        '<div class="page" id="page-internalleagues">' +
+          '<div id="internalLeaguesContent"></div>' +
         '</div>' +
         '<div class="page" id="page-about">' +
           '<div class="about-card">' +
@@ -2088,6 +2554,9 @@
         'Period ' + formatMonthSeptStyle(DATA.period.start) + ' - ' + formatMonthSeptStyle(DATA.period.end);
       document.getElementById('attendanceChartContainer').innerHTML = renderAttendanceChart();
       document.getElementById('deltaRowContainer').innerHTML = renderDeltaRow();
+      updateAdminToggleLabel();
+      document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+      renderCreateLeagueSection();
 
       function renderAllPanels(filter) {
         document.getElementById('panel-members').innerHTML = renderMembers(DATA.members, filter);
@@ -2172,6 +2641,7 @@
         records: 'Monthly Records',
         teammanager: 'Team Manager',
         leaguedraft: 'League Draft',
+        internalleagues: 'Internal Leagues',
         about: 'About Us',
       };
 
@@ -2196,6 +2666,25 @@
         if (!ym) return;
         document.getElementById('loadingOverlay').classList.add('show');
         loadData(ym);
+      });
+
+      document.getElementById('adminToggle').addEventListener('click', function () {
+        if (isAdmin()) {
+          if (confirm('Log out of Admin mode?')) {
+            clearAdminToken();
+            updateAdminToggleLabel();
+            renderCreateLeagueSection();
+            document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+          }
+        } else {
+          const token = prompt('Enter admin passcode:');
+          if (token) {
+            setAdminToken(token);
+            updateAdminToggleLabel();
+            renderCreateLeagueSection();
+            document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+          }
+        }
       });
 
       // Dark/light toggle — now lives in the side menu as a settings-style
@@ -2512,6 +3001,7 @@
         ldUnmatchedNames = result.unmatched;
         ldLastResult = null;
         document.getElementById('ldResults').innerHTML = '';
+        renderCreateLeagueSection();
         renderLeagueDraftLists();
         updateLeagueDraftValidation();
       }
