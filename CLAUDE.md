@@ -60,13 +60,19 @@ points, or eligibility; it only renders whatever JSON the backend computes. See
 `../app-script-backend/CLAUDE.md` for the full rules (tier thresholds, New Comers, Comeback/
 Departed, Outstanding/Credits, etc.).
 
-Client-side logic that **does** live only in this file (duplicated, not shared, with
-`ui.html`): rendering/formatting helpers, search/filtering, CSV-less table building, team
-auto-balance (`assembleTeams`, `snakeDraftAssign`, `computeTeamAvgRating`, `evaluateAllSplits`),
-League Draft splitting (`assembleLeagueTeams`, `buildSnakeOrder`, `computeTeamSizes`,
-`findMaxValidTeams`), attendance-name parsing (`parseAttendanceNames`,
-`matchAttendanceToProfiles`), image export (`exportImageFromElement`, via html2canvas), and
-WhatsApp-list copy helpers (`copyMembershipList`, `copyPerksList`, `copyTeamList`).
+Client-side logic that lives only in this file, NOT shared with `ui.html`: rendering/
+formatting helpers, search/filtering, CSV-less table building, image export
+(`exportImageFromElement`, via html2canvas), and WhatsApp-list copy helpers
+(`copyMembershipList`, `copyPerksList`, `copyTeamList`).
+
+Team auto-balance and League Draft splitting (`assembleTeams`, `snakeDraftAssign`,
+`computeTeamAvgRating`, `evaluateAllSplits`, `assembleLeagueTeams`, `buildSnakeOrder`,
+`computeTeamSizes`, `findMaxValidTeams`, `parseAttendanceNames`, `matchAttendanceToProfiles`,
+and their supporting functions) **are** shared, mechanically — see
+[Relationship to `../app-script-backend`](#relationship-to-app-script-backend) below. Don't
+edit these functions in `index.html` directly; they live between
+`// SHARED-LOGIC:<name>:START`/`:END` marker comments and get overwritten by
+`../app-script-backend/scripts/sync-shared.js`.
 
 ## UI pages
 
@@ -76,14 +82,19 @@ Manager, League Draft, About Us — built by `buildDashboard()` instead of being
 ## Relationship to `../app-script-backend`
 
 This repo's `index.html` and the sibling repo's `ui.html` implement **the same dashboard
-twice**, kept in sync by hand — there is no shared source. See
-`../app-script-backend/CLAUDE.md` → "Relationship to `../web-frontend`" for the authoritative
-statement of this, but in short:
+twice**. See `../app-script-backend/CLAUDE.md` → "Relationship to `../web-frontend`" for the
+authoritative statement of this, but in short:
 
-- **UI/rendering/client-logic changes** (styling, new panels, team-balance algorithm tweaks,
-  formatting, etc.) — make the change here **and** in `../app-script-backend/ui.html` in the
-  same session, unless the change is deliberately frontend-only (e.g. something about how this
-  static page loads/fetches data, which has no equivalent in `ui.html`).
+- **Team-balancing/draft-algorithm changes** — edit `../app-script-backend/shared/draft-logic.js`
+  (the canonical source), then run `node scripts/sync-shared.js` from `../app-script-backend`.
+  It rewrites the `SHARED-LOGIC:*`-marked block in both this file and `ui.html` to match —
+  never edit those blocks in `index.html` directly, the sync script will overwrite it. See
+  `../app-script-backend/CLAUDE.md` → "Shared draft/team-balancing logic".
+- **Other UI/rendering/client-logic changes** (styling, new panels, formatting not covered by
+  the mechanism above, etc.) — still make the change here **and** in
+  `../app-script-backend/ui.html` in the same session, unless the change is deliberately
+  frontend-only (e.g. something about how this static page loads/fetches data, which has no
+  equivalent in `ui.html`). There is no shared source for these, they're copy-kept-in-sync.
 - **Business-logic/JSON-shape changes** — happen in `../app-script-backend/Main.js`. If a field
   used by this file's `DATA.*` accesses is renamed or removed there, this file needs a matching
   update, or the page will break silently (or via `showFatalError`).
@@ -91,8 +102,12 @@ statement of this, but in short:
 ## Workflow for making changes
 
 1. Edit `index.html` as needed.
-2. If the change is a UI/rendering/shared-logic change, make the matching change in
-   `../app-script-backend/ui.html` in the same session (see
+   - If the change is to team-balancing/draft-algorithm logic (anything inside a
+     `SHARED-LOGIC:*` marked block), edit `../app-script-backend/shared/draft-logic.js`
+     instead and run `node scripts/sync-shared.js` from that repo — see
+     [Relationship to `../app-script-backend`](#relationship-to-app-script-backend) above.
+2. If the change is some OTHER UI/rendering change not covered by the shared-logic mechanism,
+   make the matching change in `../app-script-backend/ui.html` in the same session (see
    [Relationship to `../app-script-backend`](#relationship-to-app-script-backend) above and
    that repo's `CLAUDE.md`).
 3. Add a dated entry to the [Changelog](#changelog) below in **this** file describing what
@@ -113,6 +128,15 @@ statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-29** — Team-balancing/draft-algorithm code (attendance parsing, `evaluateAllSplits`/
+  `assembleTeams`, `computeMultiTeamScore`/`assembleLeagueTeams`/etc.) is no longer hand-copied
+  from `../app-script-backend/ui.html` — it's now generated from
+  `../app-script-backend/shared/draft-logic.js` via that repo's `scripts/sync-shared.js`, into
+  `SHARED-LOGIC:*`-marked blocks in this file. The first sync run fixed two small pre-existing
+  drifts here (a missing comment on `choose5`, a missing inline comment in
+  `evaluateAllSplits`). Everything else in this file (rendering, `buildDashboard()`, formatting
+  helpers, etc.) is unaffected and still hand-kept-in-sync as before. See
+  `../app-script-backend/CLAUDE.md`'s Changelog for the full rationale.
 - **2026-08-29** — Added this `CLAUDE.md` (documentation only; no functional code changes).
   Confirmed this page has no build step and is a hand-kept-in-sync duplicate of
   `../app-script-backend/ui.html`'s client code, fetching JSON from the backend's pinned

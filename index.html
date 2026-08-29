@@ -1201,6 +1201,7 @@
     // ===================== Team Manager =====================
     const POSITIONS = ['PG', 'SG', 'SF', 'PF', 'C'];
 
+    // SHARED-LOGIC:attendance-parsing:START (generated from shared/draft-logic.js — do not edit here; run node scripts/sync-shared.js)
     function parseAttendanceNames(text) {
       return text.split('\n')
         .map(function (line) {
@@ -1244,6 +1245,7 @@
       });
       return { matched: matched, unmatched: unmatched };
     }
+    // SHARED-LOGIC:attendance-parsing:END
 
     function renderTeamManagerLists() {
       const unmatchedBox = document.getElementById('tmUnmatchedSection');
@@ -1290,6 +1292,7 @@
       document.getElementById('assembleBtn').disabled = tmSelected.size !== 10;
     }
 
+    // SHARED-LOGIC:team-manager-algorithm:START (generated from shared/draft-logic.js — do not edit here; run node scripts/sync-shared.js)
     // impact's raw scale (-1..5, players who "don't know how to play at
     // all" score negative) is already narrower than skillLevel/
     // athleticism/defense's ~0..9 — and it's the stat that most directly
@@ -1405,6 +1408,8 @@
       return Math.max.apply(null, capable.map(function (p) { return (p.skillLevel || 5) + (p.impact || 0) * 2; }));
     }
 
+    // Every way to choose 5 of the 10 players (252 total), used below to
+    // evaluate every one of the 126 distinct team pairings.
     function choose5(players) {
       const results = [];
       const n = players.length;
@@ -1434,7 +1439,7 @@
         const idxB = [];
         for (let i = 0; i < players.length; i++) if (!idxBSet.has(i)) idxB.push(i);
         const complementKey = idxB.join(',');
-        if (seenKeys.has(complementKey)) return;
+        if (seenKeys.has(complementKey)) return; // already evaluated this pairing from the other side
         seenKeys.add(key);
 
         const teamA = idxA.map(function (i) { return players[i]; });
@@ -1503,6 +1508,7 @@
       const topK = allResults.slice(0, Math.min(10, allResults.length));
       return topK[Math.floor(Math.random() * topK.length)];
     }
+    // SHARED-LOGIC:team-manager-algorithm:END
 
     function renderTeamCard(title, team, rating) {
       const avg = (rating / team.length).toFixed(1);
@@ -1538,6 +1544,7 @@
     // matchAttendanceToProfiles are generic — reused as-is), but this
     // splits EVERYONE pasted in into N teams, not a hand-picked 10 into 2.
 
+    // SHARED-LOGIC:league-draft-algorithm:START (generated from shared/draft-logic.js — do not edit here; run node scripts/sync-shared.js)
     function computeTeamSizes(total, numTeams) {
       const base = Math.floor(total / numTeams);
       const remainder = total % numTeams;
@@ -1739,6 +1746,7 @@
       const choice = topPool[Math.floor(Math.random() * topPool.length)];
       return { teams: choice.teams, score: choice.score, teamSizes: teamSizes };
     }
+    // SHARED-LOGIC:league-draft-algorithm:END
 
     function renderLeagueDraftLists() {
       const unmatchedBox = document.getElementById('ldUnmatchedSection');
