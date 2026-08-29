@@ -608,8 +608,8 @@
       font-weight: 700;
     }
     .finance-table td.fin-name { font-weight: 600; color: var(--text); }
-    .finance-table td.outstanding-cell { color: var(--red); text-align: right; }
-    .finance-table td.credit-cell { color: var(--green); text-align: right; }
+    .finance-table td.outstanding-cell { color: var(--red); text-align: right; white-space: nowrap; }
+    .finance-table td.credit-cell { color: var(--green); text-align: right; white-space: nowrap; }
     .finance-table tr.fin-total-row td { border-bottom: none; padding-top: 12px; }
 
     .hamburger-btn {
@@ -3118,8 +3118,11 @@
       // only phone-width, which isn't enough room for a legible font per
       // column. Widen it just for the capture (doesn't affect normal
       // browsing, which isn't in this "exporting-records" state) so the
-      // fee amounts don't clip.
-      const needsWiden = elementId === 'recordsExportCapture' || elementId === 'ldExportCapture';
+      // fee amounts don't clip. The finance export needs it for the same
+      // reason: its table is 4 columns (name + fee, twice) at 16px, which
+      // overflows the card on a phone-width container.
+      const needsWiden = elementId === 'recordsExportCapture' || elementId === 'ldExportCapture' ||
+        elementId === 'financeExportCapture';
       if (needsWiden) target.style.width = '700px';
 
       setTimeout(function () {

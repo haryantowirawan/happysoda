@@ -129,6 +129,11 @@ authoritative statement of this, but in short:
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
 - **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: the Outstanding &
+  Player Credits export image had its credits columns overflowing the card, so
+  `financeExportCapture` now joins `recordsExportCapture`/`ldExportCapture` in
+  `exportImageFromElement`'s `needsWiden` 700px capture-time widening, and the fee cells
+  are `white-space: nowrap`.
+- **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: the Outstanding &
   Player Credits export image's border was invisible at the image edge (html2canvas crops
   to the capture root's border box), so `#financeExportCapture` is now an opaque
   `var(--bg)` gutter and the bordered/rounded card is a new inner `.finance-export-card` —
