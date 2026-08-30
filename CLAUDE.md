@@ -128,6 +128,21 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-31** — Mirrored from `../app-script-backend/ui.html`: added a first-load progress
+  bar. Unlike `ui.html` (which had no visible markup at all before its data fetch resolves, so
+  it uses a full-screen overlay), this page's header/logo already render immediately as static
+  HTML — only `#content` showed a plain "Loading the latest player data…" placeholder — so the
+  bar replaces that placeholder inline (`.initial-load-progress` / `#initialProgressFill`)
+  instead of covering the whole page. Simulated fill (eases to 90%, holds, snaps to 100% on
+  arrival — no real per-response progress signal exists to track). Wired into `loadData()`'s
+  existing success/error paths via a `firstLoadTicker` guard so only the very first call is
+  affected; every other `loadData()` caller (month-picker changes, league actions, the 15-min
+  auto-refresh) already shows `#loadingOverlay`'s spinner instead, since `#content` holds the
+  real dashboard by then. Removed the now-dead `.loading` CSS rule. This was originally skipped
+  as "not the reported problem" when added to `ui.html` — wrong call, since this file (not
+  `ui.html`'s Apps Script URL) is the page actually used day to day; see
+  `../app-script-backend/CLAUDE.md`'s changelog for the fuller story. Verified with a local Node
+  HTTP server standing in for the Apps Script backend and a real headless-Chrome session.
 - **2026-08-30** — Mirrored from `../app-script-backend/ui.html`: reverted the single-column
   League Draft export (tall images suffer most from WhatsApp's resize) — back to the
   2-column grid at 732px, with the `ld-cols-*` class and `ldCaptureWidth_()` removed. The

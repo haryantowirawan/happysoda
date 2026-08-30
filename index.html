@@ -1170,11 +1170,39 @@
       line-height: 1.6;
     }
 
-    .loading {
-      text-align: center;
-      color: var(--muted);
+    /* First-load progress bar, shown inside #content until the initial
+       loadData() resolves — see the matching #initialLoadOverlay in
+       ../app-script-backend/ui.html (mirrored here per that repo's
+       CLAUDE.md, since this isn't shared-logic-mechanism code). Unlike
+       ui.html's version this isn't full-screen: the header/logo already
+       render immediately since this is a static page, only #content
+       itself was showing a placeholder. */
+    .initial-load-progress {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
       padding: 60px 20px;
-      font-size: 14px;
+    }
+    .initial-progress-track {
+      width: 220px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .initial-progress-fill {
+      height: 100%;
+      width: 4%;
+      border-radius: 999px;
+      background: var(--accent);
+      transition: width 0.4s ease;
+    }
+    .initial-load-text {
+      color: var(--muted);
+      font-size: 13px;
     }
   </style>
 </head>
@@ -1195,7 +1223,10 @@
     <div id="warningsBox"></div>
 
     <div id="content">
-      <div class="loading">Loading the latest player data…</div>
+      <div class="initial-load-progress">
+        <div class="initial-progress-track"><div id="initialProgressFill" class="initial-progress-fill"></div></div>
+        <div id="initialLoadText" class="initial-load-text">Loading the latest player data…</div>
+      </div>
     </div>
 
     <footer id="footerLabel"></footer>
@@ -3140,8 +3171,35 @@
     let currentMonthParam = null;
     let currentRecordsMonthParam = null;
 
+    // Simulated progress for the very first loadData() call only (later
+    // calls — month-picker changes, league actions, the 15-min refresh —
+    // already use #loadingOverlay's spinner instead, since #content is
+    // showing the real dashboard by then, not this placeholder). There's
+    // no real byte-level progress signal worth tracking for a single
+    // fetch response, so this eases toward 90% and holds until the
+    // response actually arrives — see the matching comment in
+    // ../app-script-backend/ui.html.
+    let firstLoadTicker = null;
+    function startFirstLoadProgress() {
+      const fill = document.getElementById('initialProgressFill');
+      if (!fill) return;
+      let pct = 4;
+      fill.style.width = pct + '%';
+      firstLoadTicker = setInterval(function () {
+        pct += (90 - pct) * 0.08;
+        fill.style.width = Math.min(pct, 90) + '%';
+      }, 250);
+    }
+    function finishFirstLoadProgress() {
+      if (firstLoadTicker) {
+        clearInterval(firstLoadTicker);
+        firstLoadTicker = null;
+      }
+    }
+
     function loadData(monthParam, recordsMonthParam) {
       if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_') === 0) {
+        finishFirstLoadProgress();
         document.getElementById('loadingOverlay').classList.remove('show');
         showFatalError('APPS_SCRIPT_URL is not configured in this page yet.');
         return;
@@ -3186,10 +3244,12 @@
           document.getElementById('copyrightLabel').innerHTML =
             'Copyright © ' + (DATA.currentYear || new Date().getFullYear()) + ' Happy Soda<br>Authored by: Haryanto Wirawan';
 
+          finishFirstLoadProgress();
           buildDashboard();
           document.getElementById('loadingOverlay').classList.remove('show');
         })
         .catch(function (err) {
+          finishFirstLoadProgress();
           document.getElementById('loadingOverlay').classList.remove('show');
           showFatalError(
             'Could not reach the data source (' + err.message + '). ' +
@@ -3199,6 +3259,7 @@
         });
     }
 
+    startFirstLoadProgress();
     loadData();
 
     function fallbackCopy(text) {
