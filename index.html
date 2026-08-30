@@ -943,7 +943,9 @@
       border-color: #c0392b !important;
       color: #c0392b !important;
     }
-    .il-rename-btn {
+    /* Bare icon buttons sitting inline in the league title row. */
+    .il-rename-btn,
+    .il-share-btn {
       background: none;
       border: none;
       cursor: pointer;
@@ -951,7 +953,16 @@
       padding: 0 2px;
       opacity: 0.7;
     }
-    .il-rename-btn:hover { opacity: 1; }
+    .il-rename-btn:hover,
+    .il-share-btn:hover { opacity: 1; }
+    /* Share is the one control here every viewer gets (rename is
+       admin-only), and it's tapped on a phone — give it a bigger glyph
+       and a wider hit area than the rename pencil beside it. */
+    .il-share-btn {
+      font-size: 16px;
+      padding: 2px 6px;
+      opacity: 0.85;
+    }
     .il-rename-wrap {
       display: inline-flex;
       align-items: center;
@@ -2292,17 +2303,10 @@
       if (editable && ilEditingGameId === game.gameId) {
         return renderGameEditForm_(league, game);
       }
-      const played = game.played === true || game.played === 'TRUE';
+      const played = isGamePlayed_(game);
       const score = played ? (game.homeScore + ' - ' + game.awayScore) : '—';
       const when = [game.date, game.time].filter(Boolean).join(' ');
-      // Normally already resolved and stored server-side (updateGame_
-      // auto-derives and writes the winner when "Auto (by score)" is
-      // chosen), but this fallback keeps the column correct for any
-      // older row saved before that existed, or a game whose scores are
-      // tied so the server left it blank on purpose.
-      const hs = Number(game.homeScore), as = Number(game.awayScore);
-      const displayWinner = game.winningTeam ||
-        (played && !isNaN(hs) && !isNaN(as) && hs !== as ? (hs > as ? game.homeTeam : game.awayTeam) : '');
+      const displayWinner = gameWinner_(game);
       return '' +
         '<tr>' +
           '<td>' + esc(game.stage || '') + '</td>' +
@@ -2334,6 +2338,138 @@
         '</div>';
     }
 
+    function isGamePlayed_(game) {
+      // A checkbox written to the sheet reads back as either a real
+      // boolean or the string 'TRUE' depending on the cell, so every
+      // read of this field has to accept both.
+      return game.played === true || game.played === 'TRUE';
+    }
+
+    // Normally already resolved and stored server-side (updateGame_
+    // auto-derives and writes the winner when "Auto (by score)" is
+    // chosen), but this fallback keeps it correct for any older row
+    // saved before that existed. Returns '' for an unplayed or tied
+    // game, which the server deliberately leaves blank.
+    function gameWinner_(game) {
+      if (game.winningTeam) return game.winningTeam;
+      const hs = Number(game.homeScore), as = Number(game.awayScore);
+      if (!isGamePlayed_(game) || isNaN(hs) || isNaN(as) || hs === as) return '';
+      return hs > as ? game.homeTeam : game.awayTeam;
+    }
+
+    // Closed leagues have an official, snapshotted winner. An active
+    // league gets a live version of the same line once at least one game
+    // has been played (before that, standings are just an arbitrary
+    // alphabetical tie, not worth declaring) — "Current Leader" while
+    // games remain, switching to "Winner" once every game is played even
+    // though the league hasn't been formally closed yet. Returns null
+    // when there is nothing worth declaring.
+    function leagueWinnerLabel_(league) {
+      if (league.status === 'closed' && league.winnerTeam) {
+        return { label: 'Winner', team: league.winnerTeam };
+      }
+      if (league.status === 'active' && league.standings.length && league.games.some(isGamePlayed_)) {
+        return {
+          label: league.games.every(isGamePlayed_) ? 'Winner' : 'Current Leader',
+          team: league.standings[0].team
+        };
+      }
+      return null;
+    }
+
+    // A league shares as TEXT, not as an image. The Games table is seven
+    // columns wide, so a phone-width screenshot of it goes illegible the
+    // moment WhatsApp resizes the picture — the same fight the League
+    // Draft export has already had twice (see the Changelog). Text
+    // arrives crisp at whatever size the reader's phone is set to, stays
+    // selectable and quotable, and shows up in the chat-list preview.
+    // WhatsApp's own *bold* markup does the formatting.
+    function buildLeagueShareText_(league) {
+      const lines = ['🏀 *' + league.name + '*'];
+      const winner = leagueWinnerLabel_(league);
+      if (winner) lines.push('🏆 ' + winner.label + ': ' + winner.team);
+      lines.push(league.numTeams + ' teams · ' + computeLeagueGameCounts_(league.games));
+
+      // All-zero standings say nothing, so a league nobody has played in
+      // yet shares as teams + schedule only.
+      if (league.games.some(isGamePlayed_)) {
+        lines.push('', '*Standings*');
+        league.standings.forEach(function (s, i) {
+          lines.push((i + 1) + '. ' + s.team + ' — ' + s.wins + 'W ' + s.losses + 'L (' +
+            (s.diff > 0 ? '+' : '') + s.diff + ')');
+        });
+      }
+
+      if (league.games.length) {
+        lines.push('', '*Games*');
+        league.games.forEach(function (g) {
+          const played = isGamePlayed_(g);
+          const parts = [];
+          if (g.stage) parts.push(g.stage);
+          if (played) {
+            parts.push(g.homeTeam + ' ' + g.homeScore + '-' + g.awayScore + ' ' + g.awayTeam);
+            const w = gameWinner_(g);
+            if (w) parts.push('🏆 ' + w);
+          } else {
+            parts.push(g.homeTeam + ' vs ' + g.awayTeam);
+            const when = [g.date, g.time].filter(Boolean).join(' ');
+            if (when) parts.push(when);
+          }
+          lines.push((played ? '✅ ' : '⏳ ') + parts.join(' · '));
+        });
+      }
+
+      lines.push('', '*Teams*');
+      league.teams.forEach(function (t) {
+        lines.push(t.teamName + ': ' + t.players.map(function (p) {
+          return p.name + (p.position ? ' (' + p.position + ')' : '');
+        }).join(', '));
+      });
+
+      return lines.join('\n');
+    }
+
+    function shareLeague_(leagueId, btn) {
+      const league = ((DATA.leagues && DATA.leagues.list) || []).filter(function (l) {
+        return l.leagueId === leagueId;
+      })[0];
+      if (!league) {
+        alert('Could not find that league to share.');
+        return;
+      }
+      const text = buildLeagueShareText_(league);
+
+      // wa.me is WhatsApp's own deep link: on a phone it hands off to the
+      // app, on a desktop to WhatsApp Web, both with the message already
+      // typed so all that's left is picking the chat. Deliberately NOT
+      // navigator.share — ui.html is served inside the sandboxed iframe
+      // Apps Script wraps every web app in, which doesn't grant the
+      // web-share permission policy, so the native sheet would reject
+      // there and this button would behave differently in the two
+      // clients. Opened synchronously from the click so no popup blocker
+      // treats it as unsolicited.
+      let win = null;
+      try { win = window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); } catch (err) { win = null; }
+      if (win) return;
+
+      // Blocked anyway — fall back to the clipboard so the message isn't lost.
+      const original = btn.textContent;
+      const flash = function (label) {
+        btn.textContent = label;
+        setTimeout(function () { btn.textContent = original; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { flash('✅'); }).catch(function () {
+          if (fallbackCopy(text)) flash('✅');
+          else alert(text);
+        });
+      } else if (fallbackCopy(text)) {
+        flash('✅');
+      } else {
+        alert(text);
+      }
+    }
+
     function renderLeagueDetail_(league, editable) {
       const teamsHtml = league.teams.map(function (t) {
         const players = t.players.map(function (p) { return esc(p.name) + (p.position ? ' (' + esc(p.position) + ')' : ''); }).join(', ');
@@ -2349,23 +2485,12 @@
           : '<button class="export-btn il-open-add-game-btn" data-league="' + esc(league.leagueId) + '" type="button">+ Add Game</button>')
         : '';
 
-      // Closed leagues show the official, snapshotted winner. An active
-      // league shows a live version of the same banner once at least one
-      // game has been played (before that, standings are just an
-      // arbitrary alphabetical tie, not worth surfacing) — "Current
-      // Leader" while some games remain, switching to "Winner" once every
-      // game is played, even though it hasn't been formally closed yet.
-      let winnerBanner = '';
-      if (league.status === 'closed' && league.winnerTeam) {
-        winnerBanner = '<div class="il-winner-banner">🏆 Winner: ' + esc(league.winnerTeam) + '</div>';
-      } else if (league.status === 'active' && league.standings.length) {
-        const anyPlayed = league.games.some(function (g) { return g.played === true || g.played === 'TRUE'; });
-        if (anyPlayed) {
-          const allPlayed = league.games.every(function (g) { return g.played === true || g.played === 'TRUE'; });
-          const label = allPlayed ? 'Winner' : 'Current Leader';
-          winnerBanner = '<div class="il-winner-banner">🏆 ' + label + ': ' + esc(league.standings[0].team) + '</div>';
-        }
-      }
+      // See leagueWinnerLabel_ for when a banner is worth showing at all;
+      // the share text uses the same call so the two can't disagree.
+      const winnerLabel = leagueWinnerLabel_(league);
+      const winnerBanner = winnerLabel
+        ? '<div class="il-winner-banner">🏆 ' + winnerLabel.label + ': ' + esc(winnerLabel.team) + '</div>'
+        : '';
 
       const closeBtn = editable
         ? '<button class="export-btn il-close-league-btn" data-league="' + esc(league.leagueId) + '" type="button">Close League</button>'
@@ -2391,10 +2516,14 @@
           ? ' <button class="il-rename-btn" data-league="' + esc(league.leagueId) + '" type="button" title="Rename">✏️</button>'
           : '');
 
+      // Sharing is a read action, so unlike rename/close/delete this one
+      // shows for every viewer, on the active league and archived ones alike.
+      const shareBtn = ' <button class="il-share-btn" data-league="' + esc(league.leagueId) + '" type="button" title="Share to WhatsApp">📤</button>';
+
       return '' +
         '<div class="il-league-block">' +
           '<div class="il-league-header">' +
-            '<h3>' + nameHtml + ' <span class="il-status-badge il-status-' + esc(league.status) + '">' + esc(league.status) + '</span></h3>' +
+            '<h3>' + nameHtml + ' <span class="il-status-badge il-status-' + esc(league.status) + '">' + esc(league.status) + '</span>' + shareBtn + '</h3>' +
             '<div class="il-league-meta">' + esc(league.numTeams) + ' teams · ' + computeLeagueGameCounts_(league.games) + '</div>' +
           '</div>' +
           winnerBanner +
@@ -2557,6 +2686,9 @@
         ilRenamingLeagueId = renameBtn.dataset.league;
         document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
       }
+
+      const shareLeagueBtn = e.target.closest('.il-share-btn');
+      if (shareLeagueBtn) shareLeague_(shareLeagueBtn.dataset.league, shareLeagueBtn);
 
       const cancelNameBtn = e.target.closest('.il-cancel-name-btn');
       if (cancelNameBtn) {
