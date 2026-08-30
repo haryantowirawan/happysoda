@@ -1113,6 +1113,18 @@
     /* Outstanding = money owed (red), Player Credits = money in hand (green). */
     .card-points .num.amount-owed { color: var(--red); }
     .card-points .num.amount-credit { color: var(--green); }
+    /* A currency amount is a long string, not a 2-digit point count — left at
+       the .num size (20px/800) it dwarfs the 15px name beside it, so the two
+       fee lists size their amount to sit with the name instead. */
+    .card-points .num.amount-owed,
+    .card-points .num.amount-credit {
+      font-size: 15px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    /* These cards are a single line (no reason/label under either side), so the
+       name's second-line spacing would just push it off-center from the fee. */
+    .balance-card .card-name { margin-bottom: 0; }
     .card-points .label {
       font-size: 10.5px;
       color: var(--muted);
@@ -1298,14 +1310,14 @@
       if (rows.length === 0) return '<div class="empty">Nothing to show.</div>';
       const cards = rows.map(function (item, i) {
         return '' +
-          '<div class="card">' +
+          '<div class="card balance-card">' +
             '<div class="' + rankClass(i) + '">' + (i + 1) + '</div>' +
             '<div class="card-main"><div class="card-name">' + esc(item.name) + '</div></div>' +
             '<div class="card-points"><div class="' + numClass + '">' + formatIDR(item.amount) + '</div></div>' +
           '</div>';
       }).join('');
       const totalCard =
-        '<div class="card balance-total">' +
+        '<div class="card balance-card balance-total">' +
           '<div class="card-main"><div class="card-name">' + esc(totalLabel) + '</div></div>' +
           '<div class="card-points"><div class="' + numClass + '">' + formatIDR(total) + '</div></div>' +
         '</div>';
