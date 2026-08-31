@@ -130,6 +130,19 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-31** — Renamed `images/og-image.jpg` → `images/og-image-v2.jpg` (and repointed
+  `og:image` at it) purely to bust WhatsApp's preview cache. Confirmed the previous entry's
+  fix was live and correct — `curl`ing the site showed `og:image` already pointed at the
+  1200×800 landscape file, and the file at that URL really was 1200×800 — but WhatsApp still
+  showed the old portrait image even after changing the *page* URL with a `?v=` query string.
+  That's because WhatsApp's preview proxy appears to cache the **image** by its own URL,
+  independent of whatever page URL referenced it, so changing the page URL alone can never
+  bust a stale image the proxy already fetched — only a new image URL does. This is invisible
+  to end users: the page URL people actually share (`https://happysoda.pages.dev/`) is
+  completely unchanged, only the internal `og:image` filename changed. Worth remembering for
+  any future og-image swap: the filename needs to change (or gain a version suffix) every
+  time, not just the file contents, or WhatsApp may keep serving whatever it cached under the
+  old filename.
 - **2026-08-31** — Replaced both artwork images with newly redrawn versions (jersey fixes)
   and moved them into a new `images/` folder as real files instead of base64: `images/og-image.jpg`
   (1200×800 landscape, for the WhatsApp/Open Graph preview — supersedes the pillarboxed
