@@ -130,6 +130,18 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-31** — Fixed `og-image.jpg` rendering as a narrow WhatsApp preview card: the
+  source photo is portrait (700×1050), and link-preview cards size themselves to the image's
+  aspect ratio, so the whole card came out tall and narrow. Regenerated it at the standard
+  1200×630 Open Graph landscape ratio by centering the untouched artwork on a solid-color
+  canvas (pillarboxed left/right) rather than cropping — cropping would have cut off the
+  jumping figure at top or the group's feet at bottom, since the illustration is a vertically
+  stacked composition with no good landscape crop. The pillarbox color (`#5A1E37`) was sampled
+  directly from the artwork's own maroon accents (the "Happy Soda" logo tag and the right-hand
+  banner), so the padding blends in rather than looking like an obvious border. Also added
+  `og:image:width`/`og:image:height` meta tags alongside the existing Open Graph tags so
+  clients don't need to fetch the image just to learn its dimensions. Verified visually by
+  reading the regenerated file back.
 - **2026-08-31** — Added Open Graph tags (`og:title`/`og:description`/`og:image`/`og:url`/
   `og:type`) to `<head>` so pasting `https://happysoda.pages.dev/` into WhatsApp (or any other
   link-unfurling client) shows a preview card instead of a bare link — requested when the user
