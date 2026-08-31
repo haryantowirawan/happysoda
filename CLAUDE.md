@@ -130,6 +130,22 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-31** — Replaced both artwork images with newly redrawn versions (jersey fixes)
+  and moved them into a new `images/` folder as real files instead of base64: `images/og-image.jpg`
+  (1200×800 landscape, for the WhatsApp/Open Graph preview — supersedes the pillarboxed
+  version from the entry below, which looked bad in practice once actually tested in
+  WhatsApp) and `images/about-us.jpg` (800×1200 portrait, for the About Us page's
+  `.about-photo`). The previous pillarbox approach is now moot since the replacement artwork
+  is natively landscape, no padding needed. Deleted the old root-level `og-image.jpg`.
+  Replacing the About Us page's inline `data:image/jpeg;base64,...` `<img src>` with a plain
+  `images/about-us.jpg` reference dropped `index.html` from ~321KB to ~179KB — a real file
+  is also independently browser-cacheable, unlike a blob baked into the page's own markup.
+  `og:image`/`og:image:width`/`og:image:height` updated to match (`images/og-image.jpg`,
+  1200×800). Not mirrored into `../app-script-backend/ui.html` — that page still embeds the
+  team photo as base64 since it's server-rendered by Apps Script with no static file hosting
+  of its own; it *could* instead reference `https://happysoda.pages.dev/images/about-us.jpg`
+  cross-origin (a plain `<img src>`, not a fetch, so the sandboxed iframe Apps Script renders
+  it in shouldn't block it) but that's a separate change, not done here.
 - **2026-08-31** — Fixed `og-image.jpg` rendering as a narrow WhatsApp preview card: the
   source photo is portrait (700×1050), and link-preview cards size themselves to the image's
   aspect ratio, so the whole card came out tall and narrow. Regenerated it at the standard
