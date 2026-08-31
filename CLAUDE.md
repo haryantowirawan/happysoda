@@ -130,6 +130,11 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-31** — Mirrored from `../app-script-backend/ui.html`: added a helper line under
+  Team Manager's "X / 10 selected" counter ("Select exactly 10 players to assemble two
+  balanced teams.") — worded around the real constraint (exactly 10, not a minimum; the
+  Assemble Teams button only enables at exactly 10 selected) after the initial request asked
+  for "minimum" phrasing that didn't match the actual behavior. New `.tm-selection-hint` CSS.
 - **2026-08-31** — Switched the About Us photo (`images/about-us.jpg`) from the portrait crop
   to the landscape one — same artwork as `images/og-image-v2.jpg`, just copied over the file
   rather than referenced, so the two stay independently editable if their needs ever diverge

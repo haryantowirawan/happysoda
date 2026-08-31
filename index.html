@@ -331,6 +331,11 @@
       font-weight: 700;
       color: var(--muted);
     }
+    .tm-selection-hint {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
     .tm-assemble-btn:disabled {
       opacity: 0.4;
       cursor: not-allowed;
@@ -2946,6 +2951,7 @@
           '<div id="tmUnmatchedSection"></div>' +
           '<div class="tm-selection-header">' +
             '<span id="tmSelectionCount">0 / 10 selected</span>' +
+            '<div class="tm-selection-hint">Select exactly 10 players to assemble two balanced teams.</div>' +
           '</div>' +
           '<div class="tm-tile-grid" id="tmTileGrid"></div>' +
           '<div class="records-actions">' +
