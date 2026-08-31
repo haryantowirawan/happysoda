@@ -130,6 +130,15 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-31** — Switched the About Us photo (`images/about-us.jpg`) from the portrait crop
+  to the landscape one — same artwork as `images/og-image-v2.jpg`, just copied over the file
+  rather than referenced, so the two stay independently editable if their needs ever diverge
+  (og-image tuned for link-preview size/cache-busting, about-us tuned for in-page display).
+  Reasoning: `.about-photo` is `width: 100%` inside the About Us card, so the portrait version
+  forced a lot of scroll before reaching the actual bio text, and its vertically-stacked
+  characters read as more cropped/overlapping than the landscape composition. No HTML changed
+  in either this repo or `../app-script-backend/ui.html` — both already reference this same
+  filename (the latter cross-origin), so the swap took effect just by replacing the file.
 - **2026-08-31** — Renamed `images/og-image.jpg` → `images/og-image-v2.jpg` (and repointed
   `og:image` at it) purely to bust WhatsApp's preview cache. Confirmed the previous entry's
   fix was live and correct — `curl`ing the site showed `og:image` already pointed at the
