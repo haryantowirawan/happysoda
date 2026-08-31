@@ -18,8 +18,10 @@ client-side UI, adapted to run outside Apps Script:
   renders the dashboard client-side into `#content` via `buildDashboard()`.
 
 There is only one file, `index.html`, no other repo content (no `package.json`, no build
-tooling) — presumed deployed as-is via a static host (e.g. GitHub Pages) pointed at this repo.
-**Verify/update this note** once the actual hosting is confirmed.
+tooling) — deployed as-is via **Cloudflare Pages** pointed at this repo, live at
+`https://happysoda.pages.dev/` (this is the URL shared with the community — see the Changelog
+entry on Open Graph tags below for why it needs to be kept in sync with `index.html`'s
+`og:url`/`og:image`).
 
 ## Files
 
@@ -118,8 +120,8 @@ authoritative statement of this, but in short:
    git commit -m "..."
    git push origin main
    ```
-   This repo has no build/deploy step beyond the git push itself — whatever host serves this
-   repo (e.g. GitHub Pages) picks up `index.html` directly from the pushed branch.
+   This repo has no build/deploy step beyond the git push itself — Cloudflare Pages picks up
+   `index.html` (and any other files, e.g. `og-image.jpg`) directly from the pushed branch.
 5. If the paired backend change in `app-script-backend` also needs deploying (JSON shape
    changed, etc.), follow that repo's `clasp push` + `clasp deploy` steps too — see
    `../app-script-backend/CLAUDE.md` → Workflow.
@@ -128,6 +130,24 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-08-31** — Added Open Graph tags (`og:title`/`og:description`/`og:image`/`og:url`/
+  `og:type`) to `<head>` so pasting `https://happysoda.pages.dev/` into WhatsApp (or any other
+  link-unfurling client) shows a preview card instead of a bare link — requested when the user
+  started sharing the URL in the community group. `og:image` needs a plain fetchable URL, not
+  a `data:` URI (unfurlers generally won't fetch/embed those), so the same team photo already
+  embedded as a base64 `data:image/jpeg` in the About Us page (`.about-photo`) was decoded out
+  to a real file, `og-image.jpg` (700×1050, ~105KB), committed alongside `index.html` — this is
+  the first non-`index.html` file in this repo. Confirmed via this session that the live site
+  is hosted on Cloudflare Pages at that URL (the file's hosting note above was previously an
+  unconfirmed guess at GitHub Pages), so `og:image`/`og:url` are hardcoded to it the same way
+  `APPS_SCRIPT_URL` is hardcoded elsewhere in this file — if the Cloudflare Pages domain ever
+  changes, both need updating together. Not mirrored into `../app-script-backend/ui.html`:
+  that page is rendered at the Apps Script `/exec` URL, which isn't the link the community
+  actually shares (see `[web-frontend is primary]` in project memory), so there was nothing to
+  preview there. Not yet verified against a real WhatsApp unfurl (these are commonly
+  aggressively cached per-URL by the client once fetched — some clients don't easily refresh an
+  already-shared link's cached preview) — worth checking by pasting the URL fresh, or using a
+  cache-busting query string, before relying on it in the field.
 - **2026-08-31** — Mirrored from `../app-script-backend/ui.html`: added a first-load progress
   bar. Unlike `ui.html` (which had no visible markup at all before its data fetch resolves, so
   it uses a full-screen overlay), this page's header/logo already render immediately as static
