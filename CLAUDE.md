@@ -130,6 +130,44 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-11** — Branding/SEO pass, requested so people searching "happy soda basketball"
+  can actually find `https://happysoda.pages.dev/` (this repo's live URL — see
+  `[web-frontend is primary]` in project memory for why this file, not `ui.html`, is the one
+  that matters for public discovery).
+  - **`<title>`**: `Happy Soda - Home` → `Happy Soda Basketball Community – Makassar` — the
+    old title had no keywords a search engine or a searcher would actually type.
+  - **Added a plain `<meta name="description">`** (there was previously only `og:description`,
+    which link-unfurlers use but Google's own search-result snippet does not always fall back
+    to) mentioning "basketball community," "Makassar," and the weekly schedule.
+  - **Added `<link rel="canonical">`**, `<html lang="en">`, Twitter Card meta tags (`summary_large_image`,
+    reusing the existing `og:image`), and a `SportsOrganization` JSON-LD block (name, sport,
+    Instagram `sameAs`, and a `location`/`PostalAddress` pinned to Makassar, South Sulawesi, ID)
+    so search engines have structured confirmation this is a real basketball community based in
+    Makassar, not just page text.
+  - **Added `robots.txt`** (allow-all + `Sitemap:` pointer) and a minimal **`sitemap.xml`**
+    (single URL, the homepage) — this repo previously had neither. Google Search Console
+    verification was already done before this session (`google1e7f278898037151.html` was
+    already present); submitting the new sitemap there is a manual follow-up outside what this
+    session can do.
+  - **Bigger logo + a persistent tagline**: `.logo` height 92px → 140px, and added a
+    `.site-tagline` ("Basketball Community · Makassar") between the logo and the `<h1>` — the
+    `<h1>` itself (`#pageTitle`) is dynamic per-page ("Loyalty Board", "Team Manager", etc.), so
+    it was never a place to put static branding; the tagline is the static text instead, and
+    happens to also put "Basketball Community" and "Makassar" as real visible/indexable page
+    text rather than only inside `<head>` meta.
+  - **About Us copy**: now explicitly says "based in Makassar, Indonesia" in the intro
+    paragraph, and the location link text is now "SLK Basketball Court, Makassar" instead of
+    just the venue name — both were previously implied only by an unlabeled Google Maps link,
+    which contributes nothing to a page's indexable text.
+  Mirrored the non-SEO-specific parts (bigger logo, `.site-tagline`, About Us Makassar wording)
+  into `../app-script-backend/ui.html` and its `doGet()` `setTitle()` call, since those are
+  visible UI/content, not metadata specific to this repo's publicly-shared URL. The `<head>`
+  SEO tags (meta description, canonical, JSON-LD, Twitter Card, `robots.txt`/`sitemap.xml`)
+  were **not** mirrored — `ui.html` is served from the Apps Script `/exec` URL inside a
+  sandboxed iframe, isn't the link the community shares, and isn't what should show up for a
+  "happy soda basketball" search, matching the existing precedent for `og:*` tags (see the
+  2026-08-31 entry below). Not yet verified against a live Google re-crawl (that takes time
+  regardless); verified the JSON-LD parses as valid JSON and the page still renders correctly.
 - **2026-08-31** — Mirrored from `../app-script-backend/ui.html`: added a helper line under
   Team Manager's "X / 10 selected" counter ("Select exactly 10 players to assemble two
   balanced teams.") — worded around the real constraint (exactly 10, not a minimum; the

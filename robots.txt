@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://happysoda.pages.dev/sitemap.xml
