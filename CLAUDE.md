@@ -142,6 +142,12 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html` (see that changelog for
+  detail): added `images/header-bg.jpg` (the banner's photo, also loaded cross-origin by
+  `ui.html`), restored the original logo artwork for "Happy Soda" and the supplied HS
+  monogram as CSS masks, harmonized corner radii (10/7/5px), added a "More players" scroll
+  cue, and made admin login check the passcode with the server first (`verifyAdmin`). The
+  backend must be deployed before this is pushed, or even the correct passcode is rejected.
 - **2026-09-18** — Added "Step 0" to the Workflow section: fetch/pull both repos before
   analysing or changing any code, and again before committing/deploying. See
   `../app-script-backend/CLAUDE.md` for the stale-checkout deploy that prompted it.
