@@ -142,6 +142,15 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Swapped the About Us / link-preview artwork again, to
+  `images/about-us-v4.jpg` + `images/og-image-v5.jpg` — a different illustration (five
+  players seated on court under an "INTERN LEAGUE 2026" banner, "More People Better
+  Basketball" / "Makassar Hoops Community" taglines) chosen over the jersey line-up. New
+  filenames again for cache-busting. Note the artwork's banner reads "INTERN LEAGUE", not
+  "INTERNAL LEAGUE" — flagged to the user, who may replace the file later; nothing in the
+  code depends on that text. Superseded files (`about-us.jpg`, `og-image-v2.jpg`,
+  `about-us-v2.jpg`, `og-image-v3.jpg`, `about-us-v3.jpg`, `og-image-v4.jpg`) are all kept
+  unreferenced as archive.
 - **2026-09-18** — Replaced the About Us / link-preview artwork added in the entry below with
   `images/about-us-v3.jpg` + `images/og-image-v4.jpg`: that entry used a superseded draft of
   the same illustration ("INTERNAL LEAGUE 2025", no tagline), and the intended version reads
