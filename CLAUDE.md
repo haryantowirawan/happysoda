@@ -103,6 +103,18 @@ authoritative statement of this, but in short:
 
 ## Workflow for making changes
 
+**Step 0 — sync both repos before doing anything else.** Before reading, analysing, or
+changing any code, run this in **both** `app-script-backend` and `web-frontend` (they're edited
+from more than one machine/session, and they depend on each other):
+```
+git fetch origin
+git status -sb          # must not say "behind"
+git pull --rebase origin main
+```
+Do it again right before committing/deploying. Working from a stale checkout means analysing
+outdated code, and `deploy.sh` deploys whatever is on local disk: on 2026-09-18 a stale checkout
+was deployed over newer live fixes and had to be rolled back (see the changelog).
+
 1. Edit `index.html` as needed.
    - If the change is to team-balancing/draft-algorithm logic (anything inside a
      `SHARED-LOGIC:*` marked block), edit `../app-script-backend/shared/draft-logic.js`
@@ -130,6 +142,10 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Added "Step 0" to the Workflow section: fetch/pull both repos before
+  analysing or changing any code, and again before committing/deploying. See
+  `../app-script-backend/CLAUDE.md` for the stale-checkout deploy that prompted it.
+  Documentation only.
 - **2026-09-18** — Mirrored the re-theme follow-ups from `../app-script-backend/ui.html`: trend
   badge now compares last month with the month before and colours green/red/yellow for
   up/down/no change, "equiv. visits" shortened wording, banner tagline "For The Love of The
