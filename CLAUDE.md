@@ -130,6 +130,16 @@ authoritative statement of this, but in short:
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Mirrored the re-theme follow-ups from `../app-script-backend/ui.html`: trend
+  badge now compares last month with the month before and colours green/red/yellow for
+  up/down/no change, "equiv. visits" shortened wording, banner tagline "For The Love of The
+  Game". See that repo's changelog.
+- **2026-09-18** — Green re-theme (hero banner, icon side rail, viewport-contained Dashboard
+  player list with pinned search/tabs/heading, avatar player rows, new chart header). Applied
+  identically to `../app-script-backend/ui.html`; see that repo's CLAUDE.md changelog (same
+  date) for the full write-up. Specific to this file: the hero is static markup ahead of
+  `.wrap`, `buildDashboard()` calls `hydrateIcons_(content)` right after injecting its
+  markup, and the rail/hamburger stay inside that built markup as before.
 - **2026-09-11** — Branding/SEO pass, requested so people searching "happy soda basketball"
   can actually find `https://happysoda.pages.dev/` (this repo's live URL — see
   `[web-frontend is primary]` in project memory for why this file, not `ui.html`, is the one
