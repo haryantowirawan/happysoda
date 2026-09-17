@@ -142,6 +142,9 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: tinted names box in the New
+  & Returning card, people icon on "Member/Regular Changes", and Monthly Records' month
+  picker restyled to match the Dashboard's pill.
 - **2026-09-18** — Deleted the four files from the two superseded green-jersey artwork
   versions (`about-us-v2.jpg`/`og-image-v3.jpg` — the "INTERNAL LEAGUE 2025" draft — and
   `about-us-v3.jpg`/`og-image-v4.jpg` — the jersey line-up), neither of which was referenced

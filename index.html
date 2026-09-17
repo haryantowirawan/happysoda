@@ -1978,6 +1978,17 @@
     }
     .period-chip-label { color: var(--accent); opacity: 0.85; }
     .dash-toolbar .dashboard-period { color: var(--accent); font-weight: 700; }
+
+    /* ---- New & Returning names get the same tinted box as New/Departed ---- */
+    .delta-names-box {
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-soft);
+    }
+    /* People icon beside "Member/Regular Changes", matching the chart header's
+       icon treatment. */
+    .delta-group-title { display: flex; align-items: center; gap: 8px; }
+    .delta-title-icon { display: flex; font-size: 20px; color: var(--accent); }
   </style>
 </head>
 <body class="light-mode">
@@ -3875,10 +3886,10 @@
         '<div class="delta-row">' +
           '<div' + boxAttrs('delta-box newcomer', newcomers) + '>' +
             '<div class="delta-label">🌱 New &amp; Returning Players (' + newcomers.length + ')' + chevron(newcomers) + '</div>' +
-            '<div class="delta-names">' + listOrNone(newcomers) + '</div>' +
+            '<div class="delta-names delta-names-box">' + listOrNone(newcomers) + '</div>' +
           '</div>' +
           '<div class="delta-group">' +
-            '<div class="delta-group-title">Member/Regular Changes</div>' +
+            '<div class="delta-group-title"><span class="delta-title-icon">' + icon_('users') + '</span>Member/Regular Changes</div>' +
             '<div class="delta-group-row">' +
               '<div' + boxAttrs('delta-subbox comeback', comeback) + '>' +
                 '<div class="delta-label">🆕 New (' + comeback.length + ')' + chevron(comeback) + '</div>' +
@@ -3961,7 +3972,7 @@
         '</div>' +
         '<div class="page" id="page-records">' +
           '<div class="controls-row">' +
-            '<label class="asat-label">Month <select id="recordsMonthPicker" class="asat-input month-select"></select><span class="pill-chevron" data-icon="chevronDown"></span></label>' +
+            '<label class="asat-label month-pill"><span class="smi-icon" data-icon="calendar"></span><select id="recordsMonthPicker" class="asat-input month-select"></select><span class="pill-chevron" data-icon="chevronDown"></span></label>' +
           '</div>' +
           '<div class="records-actions">' +
             '<button id="exportRecordsImageBtn" class="export-btn" type="button">🖼️ Export All as Image</button>' +
