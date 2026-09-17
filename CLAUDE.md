@@ -143,6 +143,11 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
 - **2026-09-18** — Mirrored from `../app-script-backend/ui.html` (see that changelog for
+  detail): centered banner wordmark, `<select>` month pickers, rail starting below the banner
+  on desktop and hidden behind the hamburger on phones, "equiv. weekly visits" wording, a
+  visible tab strip, and New/Returning + New/Departed boxes that link into All Players
+  pre-filtered to their own names.
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html` (see that changelog for
   detail): added `images/header-bg.jpg` (the banner's photo, also loaded cross-origin by
   `ui.html`), restored the original logo artwork for "Happy Soda" and the supplied HS
   monogram as CSS masks, harmonized corner radii (10/7/5px), added a "More players" scroll
