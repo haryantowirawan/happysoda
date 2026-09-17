@@ -142,6 +142,10 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: shared page headers (icon
+  badge + title + subtitle + updated stamp) on every page, Outstanding/Player Credits
+  rebuilt with a search + Export toolbar, chevron rows that link into All Players where the
+  player exists, closing note banners, and Monthly Records' action buttons restyled.
 - **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: About Us rebuilt (full-bleed
   artwork, big headline + script tagline, three value columns, script tiles, info panel, CTA,
   brand footer) and Internal Leagues rebuilt (champions banner, jersey-badged team cards,
