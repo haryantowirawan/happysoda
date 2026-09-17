@@ -142,6 +142,11 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Deleted the four files from the two superseded green-jersey artwork
+  versions (`about-us-v2.jpg`/`og-image-v3.jpg` — the "INTERNAL LEAGUE 2025" draft — and
+  `about-us-v3.jpg`/`og-image-v4.jpg` — the jersey line-up), neither of which was referenced
+  any more. The maroon-jersey originals (`about-us.jpg`, `og-image-v2.jpg`) are still kept as
+  the archive, as is `about-us-v4.jpg`/`og-image-v5.jpg` in use now.
 - **2026-09-18** — Swapped the About Us / link-preview artwork again, to
   `images/about-us-v4.jpg` + `images/og-image-v5.jpg` — a different illustration (five
   players seated on court under an "INTERN LEAGUE 2026" banner, "More People Better
