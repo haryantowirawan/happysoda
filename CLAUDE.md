@@ -142,6 +142,18 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — New artwork for the About Us photo and the WhatsApp/social link preview:
+  `images/about-us-v2.jpg` (1200px, ~277KB) and `images/og-image-v3.jpg` (1200x800, ~281KB),
+  both from the green-jersey version of the team illustration. `og:image`, `twitter:image`
+  and the `SportsOrganization` structured data's `logo`/`image` all point at the v3 file — a
+  new filename rather than an overwrite, which is what busts WhatsApp's preview cache (same
+  reason as the 2026-08-31 og-image-v2 rename). The old `about-us.jpg` and `og-image-v2.jpg`
+  are deliberately kept in the repo, unreferenced, as an archive of the maroon-jersey
+  artwork. `../app-script-backend/ui.html` references the about-us file cross-origin, so this
+  repo must be pushed before that one is deployed.
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: a clear (×) button plus
+  Escape shortcut for the Dashboard search box, and the 12-month period line restyled as an
+  accent-tinted chip beside the month picker. See that changelog for detail.
 - **2026-09-18** — Mirrored from `../app-script-backend/ui.html` (see that changelog for
   detail): centered banner wordmark, `<select>` month pickers, rail starting below the banner
   on desktop and hidden behind the hamburger on phones, "equiv. weekly visits" wording, a

@@ -12,7 +12,7 @@
        fetch) — reuses the same team photo as the About Us page, exported to a real file. -->
   <meta property="og:title" content="Happy Soda Basketball Community – Makassar">
   <meta property="og:description" content="A basketball community in Makassar playing every Wednesday. Loyalty tiers, payments, attendance, and team balancing for the Happy Soda community.">
-  <meta property="og:image" content="https://happysoda.pages.dev/images/og-image-v2.jpg">
+  <meta property="og:image" content="https://happysoda.pages.dev/images/og-image-v3.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="800">
   <meta property="og:url" content="https://happysoda.pages.dev/">
@@ -20,7 +20,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Happy Soda Basketball Community – Makassar">
   <meta name="twitter:description" content="A basketball community in Makassar playing every Wednesday. Loyalty tiers, payments, attendance, and team balancing for the Happy Soda community.">
-  <meta name="twitter:image" content="https://happysoda.pages.dev/images/og-image-v2.jpg">
+  <meta name="twitter:image" content="https://happysoda.pages.dev/images/og-image-v3.jpg">
   <!-- Structured data so search engines can identify Happy Soda as a real-world sports
        community based in Makassar, not just a generic page title. -->
   <script type="application/ld+json">
@@ -31,8 +31,8 @@
     "alternateName": "Happy Soda Basketball Community",
     "description": "Happy Soda is a mixed-age basketball community in Makassar, Indonesia, playing pickup games every Wednesday evening.",
     "url": "https://happysoda.pages.dev/",
-    "logo": "https://happysoda.pages.dev/images/og-image-v2.jpg",
-    "image": "https://happysoda.pages.dev/images/og-image-v2.jpg",
+    "logo": "https://happysoda.pages.dev/images/og-image-v3.jpg",
+    "image": "https://happysoda.pages.dev/images/og-image-v3.jpg",
     "sport": "Basketball",
     "sameAs": ["https://www.instagram.com/happysoda.hoopers/"],
     "location": {
@@ -1910,6 +1910,74 @@
         -webkit-backdrop-filter: blur(6px);
       }
     }
+
+    /* ---- Search clear button ----
+       Shown only while the box has text (.search-wrap.has-text). Matters most
+       for the New/Departed box links, which fill the box with several names at
+       once — clearing that by hand is tedious. Escape clears it too. */
+    .search-wrap .search { padding-right: 46px; }
+    .search-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 15px;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-50%);
+      transition: opacity 0.15s ease, color 0.15s ease;
+    }
+    .search-wrap.has-text .search-clear { opacity: 1; pointer-events: auto; }
+    .search-clear:hover { color: var(--text); }
+
+    /* ---- 12-month window chip ----
+       The period used to be a bare line of text beside the month picker,
+       which read as stray text and didn't say what the dates meant. */
+    .period-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--panel-solid);
+      box-shadow: var(--shadow);
+    }
+    .period-icon { display: flex; font-size: 18px; color: var(--accent); }
+    .period-chip-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .dash-toolbar .dashboard-period {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      text-align: left;
+    }
+
+    /* Tinted like the active tab/rail item, so the chip reads as the period
+       currently selected rather than a static note. */
+    .period-chip {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: none;
+    }
+    .period-chip-label { color: var(--accent); opacity: 0.85; }
+    .dash-toolbar .dashboard-period { color: var(--accent); font-weight: 700; }
   </style>
 </head>
 <body class="light-mode">
@@ -2025,6 +2093,8 @@
       trendFlat: '<path d="M3 12h18M16 7l5 5-5 5"/>',
       chevronDown: '<path d="m6 9 6 6 6-6"/>',
       chevronRight: '<path d="m9 18 6-6-6-6"/>',
+      close: '<path d="M18 6 6 18M6 6l12 12"/>',
+      history: '<path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><path d="M3 3v5h5"/>',
     };
     function icon_(name) {
       return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + (ICON_PATHS[name] || '') + '</svg>';
@@ -2071,6 +2141,15 @@
     // A filter containing commas means "any of these names" — the
     // New/Returning and Member-change boxes link into All Players with
     // several names at once.
+    // Keeps the clear button in sync with the search box's contents; the box
+    // is also filled programmatically (see showPlayersFiltered_), so this is
+    // called from there too, not just on input.
+    function updateSearchClear_() {
+      const search = document.getElementById('searchBox');
+      if (!search) return;
+      search.parentNode.classList.toggle('has-text', search.value.length > 0);
+    }
+
     function matchesFilter_(name, filter) {
       if (!filter) return true;
       const lower = String(name).toLowerCase();
@@ -3837,13 +3916,13 @@
         '<div class="page active" id="page-dashboard">' +
           '<div class="dash-toolbar">' +
             '<label class="asat-label month-pill"><span class="smi-icon" data-icon="calendar"></span><select id="asAtDate" class="asat-input month-select"></select><span class="pill-chevron" data-icon="chevronDown"></span></label>' +
-            '<div class="dashboard-period" id="periodLabel">Period —</div>' +
+            '<div class="period-chip"><span class="period-icon" data-icon="history"></span><div><div class="period-chip-label">12-month window</div><div class="dashboard-period" id="periodLabel">—</div></div></div>' +
           '</div>' +
           '<div id="attendanceChartContainer"></div>' +
           '<div id="deltaRowContainer"></div>' +
           '<div class="players-section">' +
             '<div class="players-head">' +
-              '<div class="search-wrap"><span data-icon="search"></span><input class="search" id="searchBox" type="text" placeholder="Search a name…"></div>' +
+              '<div class="search-wrap"><span data-icon="search"></span><input class="search" id="searchBox" type="text" placeholder="Search a name…"><button type="button" class="search-clear" id="searchClearBtn" aria-label="Clear search"><span data-icon="close"></span></button></div>' +
               '<div class="tabs" id="tierTabs">' +
                 '<button class="tab active" data-panel="members" data-title="Top Members" data-sub="Ranked by points over the last 12 months">Members <span class="count" id="cnt-members"></span></button>' +
                 '<button class="tab" data-panel="regular" data-title="Regular Players" data-sub="Ranked by points over the last 12 months">Regular <span class="count" id="cnt-regular"></span></button>' +
@@ -3949,7 +4028,7 @@
         '</div>' +
         '<div class="page" id="page-about">' +
           '<div class="about-card">' +
-            '<img class="about-photo" alt="Happy Soda team" src="images/about-us.jpg">' +
+            '<img class="about-photo" alt="Happy Soda team" src="images/about-us-v2.jpg">' +
             '<h2>About Happy Soda</h2>' +
             '<p class="about-tagline">Play hard. Respect everyone. No hard feelings.</p>' +
             '<p>Happy Soda is a mixed-age basketball community based in Makassar, Indonesia, ' +
@@ -3974,7 +4053,7 @@
       initPlayersScrollCue_();
       initRailOffset_();
       document.getElementById('periodLabel').textContent =
-        'Period ' + formatMonthSeptStyle(DATA.period.start) + ' - ' + formatMonthSeptStyle(DATA.period.end);
+        formatMonthSeptStyle(DATA.period.start) + ' \u2013 ' + formatMonthSeptStyle(DATA.period.end);
       document.getElementById('attendanceChartContainer').innerHTML = renderAttendanceChart();
       document.getElementById('deltaRowContainer').innerHTML = renderDeltaRow();
       updateAdminToggleLabel();
@@ -4005,6 +4084,7 @@
       function showPlayersFiltered_(names) {
         const search = document.getElementById('searchBox');
         search.value = names;
+        updateSearchClear_();
         const allTab = document.querySelector('#tierTabs .tab[data-panel="all"]');
         if (allTab) allTab.click();
         renderAllPanels(names.trim().toLowerCase());
@@ -4134,9 +4214,21 @@
         setMenuItemLabel_(document.getElementById('themeToggle'), isLight ? 'moon' : 'sun', isLight ? 'Dark Mode' : 'Light Mode');
       });
 
-      document.getElementById('searchBox').addEventListener('input', function (e) {
+      const searchBox = document.getElementById('searchBox');
+      searchBox.addEventListener('input', function (e) {
+        updateSearchClear_();
         renderAllPanels(e.target.value.trim().toLowerCase());
       });
+      searchBox.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') clearSearch_();
+      });
+      document.getElementById('searchClearBtn').addEventListener('click', clearSearch_);
+      function clearSearch_() {
+        searchBox.value = '';
+        updateSearchClear_();
+        renderAllPanels('');
+        searchBox.focus();
+      }
 
       document.getElementById('ldNumTeams').addEventListener('input', function (e) {
         ldNumTeamsValue = parseInt(e.target.value, 10) || 4;
