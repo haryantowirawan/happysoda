@@ -1302,6 +1302,34 @@
     // restore the same page instead of always landing back on Dashboard.
     let currentPage = 'dashboard';
 
+    const PAGE_TITLES = {
+      dashboard: 'Loyalty Board',
+      outstanding: 'Outstanding Payments',
+      credits: 'Player Credits',
+      records: 'Monthly Records',
+      teammanager: 'Team Manager',
+      leaguedraft: 'League Draft',
+      internalleagues: 'Internal Leagues',
+      about: 'About Us',
+    };
+
+    // Switches the visible page without a full buildDashboard() rebuild —
+    // a plain DOM class toggle, same mechanism app-script-backend's
+    // ui.html uses (activatePage there). Used by the side-menu click
+    // handler, by buildDashboard()'s own tail (to restore whichever page
+    // was active before a rebuild), and by the Internal Leagues write
+    // flows to jump to that page without reloading the whole dashboard.
+    function activatePage(pageKey) {
+      document.querySelectorAll('.side-menu-item[data-page]').forEach(function (t) {
+        t.classList.toggle('active', t.dataset.page === pageKey);
+      });
+      document.querySelectorAll('.page').forEach(function (p) {
+        p.classList.toggle('active', p.id === 'page-' + pageKey);
+      });
+      document.getElementById('pageTitle').textContent = PAGE_TITLES[pageKey] || 'Loyalty Board';
+      currentPage = pageKey;
+    }
+
     // Team Manager state — kept at top level (not reset by buildDashboard)
     // so an in-progress team-picking session survives the 15-minute
     // auto-refresh rebuild instead of silently losing selections.
@@ -2241,6 +2269,28 @@
       document.getElementById('loadingOverlay').classList.toggle('show', show);
     }
 
+    // Internal Leagues is fetched as its own separate, always-fresh request
+    // (?format=json&part=leagues) rather than being part of the main
+    // dashboard payload — see app-script-backend's CLAUDE.md, 2026-09-17
+    // entry. Called once, non-blocking, right after the main dashboard
+    // renders (so it never delays first paint), and again after any league
+    // write instead of a full loadData() (a league write never touches
+    // dashboard/tier/outstanding data).
+    function fetchLeagues_() {
+      return fetch(APPS_SCRIPT_URL + (APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&') + 'format=json&part=leagues')
+        .then(function (r) { return r.json(); })
+        .then(function (json) {
+          DATA.leagues = json.leagues;
+          DATA.warnings = (DATA.warnings || []).concat(json.warnings || []);
+          document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+          setLoadingOverlay_(false);
+        })
+        .catch(function (err) {
+          console.error('Could not load Internal Leagues:', err);
+          setLoadingOverlay_(false);
+        });
+    }
+
     // Sent as text/plain, not application/json — a cross-origin JSON POST
     // triggers a CORS preflight (OPTIONS) that Apps Script web apps can't
     // answer, so text/plain (a CORS "simple request") is used instead; the
@@ -2302,8 +2352,8 @@
       });
       callLeagueApi_('createLeague', { name: name, teams: teams })
         .then(function () {
-          currentPage = 'internalleagues';
-          loadData(currentMonthParam, currentRecordsMonthParam, true);
+          activatePage('internalleagues');
+          fetchLeagues_();
         })
         .catch(function (err) { alert('Could not create league: ' + err.message); });
     }
@@ -2627,6 +2677,9 @@
     }
 
     function renderInternalLeaguesPage() {
+      if (DATA.leagues === undefined) {
+        return '<div class="il-empty">Loading leagues…</div>';
+      }
       const leagues = (DATA.leagues && DATA.leagues.list) || [];
       if (leagues.length === 0) {
         return '<div class="il-empty">No leagues yet. Assemble teams on League Draft, then use Create League to start one.</div>';
@@ -2702,8 +2755,8 @@
           played: row.querySelector('.il-f-played').checked,
         })
           .then(function () {
-            currentPage = 'internalleagues';
-            loadData(currentMonthParam, currentRecordsMonthParam, true);
+            activatePage('internalleagues');
+            fetchLeagues_();
           })
           .catch(function (err) { alert('Could not save game: ' + err.message); });
       }
@@ -2740,8 +2793,8 @@
           gameAdmin: box.querySelector('.il-f-gameadmin').value,
         })
           .then(function () {
-            currentPage = 'internalleagues';
-            loadData(currentMonthParam, currentRecordsMonthParam, true);
+            activatePage('internalleagues');
+            fetchLeagues_();
           })
           .catch(function (err) { alert('Could not add game: ' + err.message); });
       }
@@ -2751,8 +2804,8 @@
         if (!confirm('Close this league permanently? This cannot be undone.')) return;
         callLeagueApi_('closeLeague', { leagueId: closeLeagueBtn.dataset.league })
           .then(function () {
-            currentPage = 'internalleagues';
-            loadData(currentMonthParam, currentRecordsMonthParam, true);
+            activatePage('internalleagues');
+            fetchLeagues_();
           })
           .catch(function (err) { alert('Could not close league: ' + err.message); });
       }
@@ -2763,8 +2816,8 @@
         if (!confirm('Permanently delete "' + name + '" and all its teams/games? This cannot be undone.')) return;
         callLeagueApi_('deleteLeague', { leagueId: deleteLeagueBtn.dataset.league })
           .then(function () {
-            currentPage = 'internalleagues';
-            loadData(currentMonthParam, currentRecordsMonthParam, true);
+            activatePage('internalleagues');
+            fetchLeagues_();
           })
           .catch(function (err) { alert('Could not delete league: ' + err.message); });
       }
@@ -2791,8 +2844,8 @@
         if (!newName) { alert('League name cannot be empty.'); return; }
         callLeagueApi_('renameLeague', { leagueId: wrap.dataset.league, name: newName })
           .then(function () {
-            currentPage = 'internalleagues';
-            loadData(currentMonthParam, currentRecordsMonthParam, true);
+            activatePage('internalleagues');
+            fetchLeagues_();
           })
           .catch(function (err) { alert('Could not rename league: ' + err.message); });
       }
@@ -3050,7 +3103,14 @@
       document.getElementById('attendanceChartContainer').innerHTML = renderAttendanceChart();
       document.getElementById('deltaRowContainer').innerHTML = renderDeltaRow();
       updateAdminToggleLabel();
+      // DATA.leagues isn't part of the main payload at all (see
+      // fetchLeagues_'s comment) — show the loading state immediately,
+      // then fetch it in the background, non-blocking, so it never delays
+      // this render. Runs on every buildDashboard() call (initial load,
+      // month-picker changes, the 15-min auto-refresh), which is fine —
+      // it's cheap and always-fresh by design.
       document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+      fetchLeagues_();
       renderCreateLeagueSection();
 
       function renderAllPanels(filter) {
@@ -3129,25 +3189,9 @@
       });
       menuOverlay.addEventListener('click', closeSideMenu);
 
-      const PAGE_TITLES = {
-        dashboard: 'Loyalty Board',
-        outstanding: 'Outstanding Payments',
-        credits: 'Player Credits',
-        records: 'Monthly Records',
-        teammanager: 'Team Manager',
-        leaguedraft: 'League Draft',
-        internalleagues: 'Internal Leagues',
-        about: 'About Us',
-      };
-
       document.querySelectorAll('.side-menu-item[data-page]').forEach(function (btn) {
         btn.addEventListener('click', function () {
-          document.querySelectorAll('.side-menu-item[data-page]').forEach(function (t) { t.classList.remove('active'); });
-          document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
-          btn.classList.add('active');
-          document.getElementById('page-' + btn.dataset.page).classList.add('active');
-          document.getElementById('pageTitle').textContent = PAGE_TITLES[btn.dataset.page] || 'Loyalty Board';
-          currentPage = btn.dataset.page;
+          activatePage(btn.dataset.page);
           closeSideMenu();
         });
       });
@@ -3206,13 +3250,7 @@
       // being active — override that here with whichever page the user
       // was actually on before this rebuild ran (e.g. after changing a
       // month picker), so they don't get bounced back to the Dashboard.
-      document.querySelectorAll('.side-menu-item[data-page]').forEach(function (t) {
-        t.classList.toggle('active', t.dataset.page === currentPage);
-      });
-      document.querySelectorAll('.page').forEach(function (p) {
-        p.classList.toggle('active', p.id === 'page-' + currentPage);
-      });
-      document.getElementById('pageTitle').textContent = PAGE_TITLES[currentPage] || 'Loyalty Board';
+      activatePage(currentPage);
     }
 
     function showFatalError(message) {
@@ -3254,7 +3292,7 @@
       }
     }
 
-    function loadData(monthParam, recordsMonthParam, skipCache) {
+    function loadData(monthParam, recordsMonthParam) {
       if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_') === 0) {
         finishFirstLoadProgress();
         document.getElementById('loadingOverlay').classList.remove('show');
@@ -3270,13 +3308,6 @@
       let url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&') + 'format=json';
       if (effectiveMonth) url += '&month=' + encodeURIComponent(effectiveMonth);
       if (effectiveRecordsMonth) url += '&recordsMonth=' + encodeURIComponent(effectiveRecordsMonth);
-      // Internal Leagues writes need this: the backend now caches Internal
-      // Leagues data alongside the rest of the dashboard (see this repo's
-      // CLAUDE.md, 2026-09-17), so the reload right after createLeague/
-      // updateGame/addGame/closeLeague/deleteLeague/renameLeague passes
-      // skipCache=true to see the just-written change immediately instead
-      // of whatever was cached up to CONFIG.CACHE_SECONDS earlier.
-      if (skipCache) url += '&refresh=1';
 
       fetch(url)
         .then(function (res) {
