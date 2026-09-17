@@ -142,6 +142,12 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: About Us rebuilt (full-bleed
+  artwork, big headline + script tagline, three value columns, script tiles, info panel, CTA,
+  brand footer) and Internal Leagues rebuilt (champions banner, jersey-badged team cards,
+  standings with highlighted leader and coloured Diff, winner-tinted scores, league footer).
+  See that changelog for detail, including the note that the mockup's three photos are stood
+  in for by tinted panels.
 - **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: fixed the search clear
   button's icon being positioned outside its circle (the magnifier rule was catching it),
   gave the New & Returning box a soft blue tint distinct from the green "New" box, and

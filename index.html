@@ -943,19 +943,6 @@
       background: var(--green);
       color: #0d2b17;
     }
-    .il-winner-banner {
-      background: var(--panel-2);
-      border-radius: 10px;
-      padding: 8px 12px;
-      margin: 8px 0;
-      font-weight: 700;
-      color: var(--gold);
-    }
-    .il-team-row {
-      font-size: 13px;
-      padding: 4px 0;
-      border-bottom: 1px dashed var(--border);
-    }
     .il-table-wrap {
       overflow-x: auto;
       margin-bottom: 12px;
@@ -1756,7 +1743,6 @@
     .hamburger-btn,
     .side-menu-item,
     .about-photo,
-    .il-winner-banner,
     .il-add-game-box,
     .il-archive-item summary,
     .delta-subbox,
@@ -2004,6 +1990,363 @@
     .delta-box.newcomer .delta-label { color: var(--info); }
     /* Monthly Records' picker sits left, like the Dashboard's. */
     #page-records .controls-row { justify-content: flex-start; }
+
+    /* ===================== ABOUT US PAGE =====================
+       Rebuilt to the mockup: full-bleed artwork, an oversized headline with
+       the script tagline beside it, three value columns, three script tiles,
+       an info panel and a call to action. */
+    .about-card { padding: 0; overflow: hidden; }
+    .about-photo { margin-bottom: 0; border-radius: 0; }
+    .about-body { padding: 26px 26px 20px; }
+    .about-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .about-rule { flex: 1; height: 1px; background: var(--border); }
+    .about-head-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .about-headline {
+      margin: 0;
+      font-size: clamp(26px, 4.4vw, 40px);
+      line-height: 1.08;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .about-headline-alt { color: var(--action); }
+    .about-script {
+      position: relative;
+      flex-shrink: 0;
+      font-family: "Kaushan Script", cursive;
+      font-size: 22px;
+      line-height: 1.25;
+      text-align: right;
+      color: var(--accent);
+      transform: rotate(-6deg);
+      padding-bottom: 18px;
+    }
+    .about-script-crown {
+      position: absolute;
+      right: 6px;
+      bottom: -4px;
+      display: flex;
+      font-size: 18px;
+      color: var(--gold);
+    }
+    .about-script-crown .icon { fill: currentColor; stroke: none; }
+    .about-lead {
+      margin: 16px 0 0;
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text);
+      max-width: 620px;
+    }
+    .about-values-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin: 24px 0;
+      text-align: center;
+    }
+    .about-value { padding: 0 6px; border-left: 1px solid var(--border); }
+    .about-value:first-child { border-left: none; }
+    .about-value-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 52px;
+      height: 52px;
+      margin-bottom: 10px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      font-size: 24px;
+      color: var(--accent);
+    }
+    .about-value-title {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .about-value-text { font-size: 13px; color: var(--muted); line-height: 1.45; }
+    /* Script tiles. The mockup has photographs here; until there are real
+       ones to use, these are tinted panels carrying the same three lines. */
+    .about-tiles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .about-tile {
+      display: flex;
+      align-items: flex-end;
+      min-height: 120px;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(150deg, #14452f 0%, #0b2c1e 100%);
+      font-family: "Kaushan Script", cursive;
+      font-size: 21px;
+      line-height: 1.15;
+      color: #f3e7cf;
+    }
+    .about-info-panel {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      padding: 16px;
+      margin-bottom: 20px;
+      border-radius: var(--radius-sm);
+      background: var(--panel-2);
+    }
+    .about-info-item { display: flex; align-items: flex-start; gap: 10px; }
+    .about-info-icon { display: flex; font-size: 22px; color: var(--accent); }
+    .about-info-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .about-info-value { font-size: 14.5px; font-weight: 700; color: var(--text); }
+    .about-info-value a { color: var(--text); text-decoration: none; }
+    .about-info-value a:hover { color: var(--accent); }
+    .about-info-sub { font-size: 12.5px; color: var(--muted); }
+    .about-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      max-width: 360px;
+      margin: 0 auto 22px;
+      padding: 14px 24px;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+    .about-cta:hover { opacity: 0.92; }
+    .about-cta span { display: flex; font-size: 18px; }
+    .about-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .about-foot-brand { display: flex; align-items: center; gap: 10px; }
+    .about-foot-crown { display: flex; font-size: 22px; color: var(--gold); }
+    .about-foot-crown .icon { fill: currentColor; stroke: none; }
+    .about-foot-name {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .about-foot-sub {
+      font-size: 10.5px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .about-foot-links {
+      font-size: 10.5px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: right;
+    }
+    @media (max-width: 720px) {
+      .about-body { padding: 20px 16px 16px; }
+      .about-head-row { flex-direction: column; gap: 10px; }
+      .about-script { text-align: left; transform: rotate(-4deg); }
+      .about-values-row, .about-info-panel { grid-template-columns: 1fr; gap: 14px; }
+      .about-value { border-left: none; border-top: 1px solid var(--border); padding-top: 14px; }
+      .about-value:first-child { border-top: none; padding-top: 0; }
+      .about-tiles { grid-template-columns: 1fr; }
+      .about-tile { min-height: 86px; }
+      .about-foot { flex-direction: column; align-items: flex-start; }
+      .about-foot-links { text-align: left; }
+    }
+
+    /* ===================== INTERNAL LEAGUES =====================
+       Rebuilt to the mockup: a champions banner, jersey-marked team cards,
+       and standings/games tables with section headers. */
+    .il-league-block { padding: 0; overflow: hidden; }
+    .il-league-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 18px 14px;
+    }
+    .il-league-header h3 { font-size: 22px; font-weight: 800; }
+    .il-league-meta { margin-top: 2px; font-size: 13px; }
+    .il-champion-banner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 0 18px 16px;
+      padding: 14px 18px;
+      border: 1px solid #e3c98a;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(100deg, #fdf3d8 0%, #f7e3ad 55%, #f3d78f 100%);
+    }
+    .il-champion-trophy { font-size: 34px; line-height: 1; }
+    .il-champion-text { flex: 1; min-width: 0; }
+    .il-champion-label {
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #8a6a1f;
+    }
+    .il-champion-team {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.1;
+      color: #6b4c12;
+    }
+    .il-champion-script {
+      flex-shrink: 0;
+      font-family: "Kaushan Script", cursive;
+      font-size: 20px;
+      color: #8a6a1f;
+      transform: rotate(-6deg);
+    }
+    .il-section {
+      padding: 16px 18px;
+      border-top: 1px solid var(--border);
+    }
+    .il-section-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .il-section-icon { display: flex; font-size: 19px; color: var(--accent); }
+    .il-section-title {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .il-section-note { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+    .il-teams-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .il-team-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius-sm);
+      background: var(--panel-solid);
+    }
+    .il-team-card.tone-1 { border-left-color: #2f8f5b; }
+    .il-team-card.tone-2 { border-left-color: #c9a227; }
+    .il-team-card.tone-3 { border-left-color: #2f6f9e; }
+    .il-team-card.tone-4 { border-left-color: #a2542a; }
+    .il-jersey {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 42px;
+      height: 42px;
+      color: var(--accent);
+    }
+    .il-jersey .icon { width: 100%; height: 100%; fill: currentColor; stroke: none; }
+    .il-jersey-num {
+      position: absolute;
+      top: 55%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--panel-solid);
+    }
+    .il-jersey.tone-1 { color: #2f8f5b; }
+    .il-jersey.tone-2 { color: #c9a227; }
+    .il-jersey.tone-3 { color: #2f6f9e; }
+    .il-jersey.tone-4 { color: #a2542a; }
+    .il-jersey.small { width: 26px; height: 26px; }
+    .il-jersey.small .il-jersey-num { font-size: 9px; }
+    .il-team-card-name { font-size: 15.5px; font-weight: 800; margin-bottom: 3px; }
+    .il-team-card-players { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .il-table thead th {
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: var(--panel-2);
+    }
+    .il-table td { font-size: 13px; }
+    .il-table tbody tr.il-leader { background: var(--accent-soft); }
+    .il-table tbody tr.il-leader td { font-weight: 700; }
+    .il-team-cell { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+    .il-diff-pos { color: var(--green); font-weight: 800; }
+    .il-diff-neg { color: var(--red); font-weight: 800; }
+    .il-matchup { font-weight: 700; }
+    .il-score-win { color: var(--green); font-weight: 800; }
+    .il-league-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+    }
+    .il-foot-script {
+      font-family: "Kaushan Script", cursive;
+      font-size: 17px;
+      color: var(--muted);
+    }
+    .il-foot-meta {
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: right;
+    }
+    @media (max-width: 720px) {
+      .il-teams-grid { grid-template-columns: 1fr; }
+      .il-champion-banner { flex-wrap: wrap; gap: 10px; }
+      .il-champion-script { font-size: 17px; }
+      .il-league-foot { flex-direction: column; align-items: flex-start; }
+      .il-foot-meta { text-align: left; }
+    }
+
+    /* New & Returning keeps the plain text colour for its label; only the
+       names box is tinted. */
+    .delta-box.newcomer .delta-label { color: var(--text); }
   </style>
 </head>
 <body class="light-mode">
@@ -2120,6 +2463,11 @@
       chevronDown: '<path d="m6 9 6 6 6-6"/>',
       chevronRight: '<path d="m9 18 6-6-6-6"/>',
       close: '<path d="M18 6 6 18M6 6l12 12"/>',
+      handshake: '<path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/>',
+      pin: '<path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+      arrowRight: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+      jersey: '<path d="M8.5 3 5 4.8V11h2.5v10h9V11H19V4.8L15.5 3a3.6 3.6 0 0 1-7 0z"/>',
+      instagram: '<path fill="currentColor" stroke="none" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>',
       history: '<path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><path d="M3 3v5h5"/>',
     };
     function icon_(name) {
@@ -3298,24 +3646,45 @@
       return played + ' / ' + games.length + ' games played';
     }
 
-    function renderStandingsTable_(standings) {
+    // Jersey badge used by the league team cards and standings rows. The tone
+    // is taken from the team's position in the league's own team list, so a
+    // team keeps the same colour in both places.
+    function teamJersey_(tone, label, small) {
+      return '<span class="il-jersey tone-' + tone + (small ? ' small' : '') + '">' +
+        icon_('jersey') + '<span class="il-jersey-num">' + esc(label) + '</span></span>';
+    }
+    // "Team 3" -> "3"; anything without a number falls back to its position.
+    function teamJerseyLabel_(teamName, index) {
+      const m = /(\d+)/.exec(String(teamName || ''));
+      return m ? m[1] : String(index + 1);
+    }
+    function leagueTeamTones_(league) {
+      const tones = {};
+      (league.teams || []).forEach(function (t, i) { tones[t.teamName] = (i % 4) + 1; });
+      return tones;
+    }
+
+    function renderStandingsTable_(standings, league) {
+      const tones = league ? leagueTeamTones_(league) : {};
       const rows = standings.map(function (s, i) {
+        const tone = tones[s.team] || ((i % 4) + 1);
+        const diffClass = s.diff > 0 ? 'il-diff-pos' : (s.diff < 0 ? 'il-diff-neg' : '');
         return '' +
-          '<tr>' +
+          '<tr' + (i === 0 ? ' class="il-leader"' : '') + '>' +
             '<td>' + (i + 1) + '</td>' +
-            '<td>' + esc(s.team) + '</td>' +
+            '<td><span class="il-team-cell">' + teamJersey_(tone, teamJerseyLabel_(s.team, i), true) + esc(s.team) + '</span></td>' +
             '<td>' + s.wins + '</td>' +
             '<td>' + s.losses + '</td>' +
             '<td>' + s.pointsFor + '</td>' +
             '<td>' + s.pointsAgainst + '</td>' +
-            '<td>' + (s.diff > 0 ? '+' : '') + s.diff + '</td>' +
+            '<td class="' + diffClass + '">' + (s.diff > 0 ? '+' : '') + s.diff + '</td>' +
           '</tr>';
       }).join('');
       return '' +
-        '<table class="il-table">' +
+        '<div class="il-table-wrap"><table class="il-table">' +
           '<thead><tr><th>#</th><th>Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>Diff</th></tr></thead>' +
           '<tbody>' + rows + '</tbody>' +
-        '</table>';
+        '</table></div>';
     }
 
     function teamOptions_(teamNames, selected) {
@@ -3372,15 +3741,22 @@
         return renderGameEditForm_(league, game);
       }
       const played = isGamePlayed_(game);
-      const score = played ? (game.homeScore + ' - ' + game.awayScore) : '—';
       const when = [game.date, game.time].filter(Boolean).join(' ');
       const displayWinner = gameWinner_(game);
+      // Whichever side won gets its score (and name) highlighted, so a glance
+      // down the column reads as results rather than pairs of numbers.
+      const homeWon = played && displayWinner === game.homeTeam;
+      const awayWon = played && displayWinner === game.awayTeam;
+      const score = played
+        ? '<span class="' + (homeWon ? 'il-score-win' : '') + '">' + esc(String(game.homeScore)) + '</span> - ' +
+          '<span class="' + (awayWon ? 'il-score-win' : '') + '">' + esc(String(game.awayScore)) + '</span>'
+        : '—';
       return '' +
         '<tr>' +
           '<td>' + esc(game.stage || '') + '</td>' +
           '<td>' + esc(when || '—') + '</td>' +
-          '<td>' + esc(game.homeTeam) + ' <span class="il-vs">vs</span> ' + esc(game.awayTeam) + '</td>' +
-          '<td>' + esc(score) + '</td>' +
+          '<td class="il-matchup">' + esc(game.homeTeam) + ' <span class="il-vs">vs</span> ' + esc(game.awayTeam) + '</td>' +
+          '<td>' + score + '</td>' +
           '<td>' + esc(displayWinner) + '</td>' +
           '<td>' + esc(game.referee || '') + '</td>' +
           '<td>' + esc(game.gameAdmin || '') + '</td>' +
@@ -3540,10 +3916,17 @@
     }
 
     function renderLeagueDetail_(league, editable) {
-      const teamsHtml = league.teams.map(function (t) {
+      const teamsHtml = '<div class="il-teams-grid">' + league.teams.map(function (t, i) {
         const players = t.players.map(function (p) { return esc(p.name) + (p.position ? ' (' + esc(p.position) + ')' : ''); }).join(', ');
-        return '<div class="il-team-row"><strong>' + esc(t.teamName) + ':</strong> ' + players + '</div>';
-      }).join('');
+        return '' +
+          '<div class="il-team-card tone-' + ((i % 4) + 1) + '">' +
+            teamJersey_((i % 4) + 1, teamJerseyLabel_(t.teamName, i)) +
+            '<div class="il-team-card-main">' +
+              '<div class="il-team-card-name">' + esc(t.teamName) + '</div>' +
+              '<div class="il-team-card-players">' + players + '</div>' +
+            '</div>' +
+          '</div>';
+      }).join('') + '</div>';
 
       const gamesRows = league.games.map(function (g) { return renderGameRow_(league, g, editable); }).join('');
       const gamesHeader = '<th>Stage</th><th>When</th><th>Matchup</th><th>Score</th><th>Winner</th><th>Referee</th><th>Game Admin</th>' + (editable ? '<th></th>' : '');
@@ -3557,8 +3940,18 @@
       // See leagueWinnerLabel_ for when a banner is worth showing at all;
       // the share text uses the same call so the two can't disagree.
       const winnerLabel = leagueWinnerLabel_(league);
+      // A closed league's result is final, so it reads "Champions"; an
+      // active one keeps whatever leagueWinnerLabel_ decided (winner of a
+      // fully-played-but-open league, or the current leader).
       const winnerBanner = winnerLabel
-        ? '<div class="il-winner-banner">🏆 ' + winnerLabel.label + ': ' + esc(winnerLabel.team) + '</div>'
+        ? '<div class="il-champion-banner">' +
+            '<span class="il-champion-trophy">🏆</span>' +
+            '<div class="il-champion-text">' +
+              '<div class="il-champion-label">' + esc(league.status === 'closed' ? 'Champions' : winnerLabel.label) + '</div>' +
+              '<div class="il-champion-team">' + esc(winnerLabel.team) + '</div>' +
+            '</div>' +
+            '<span class="il-champion-script">Well Played!</span>' +
+          '</div>'
         : '';
 
       const closeBtn = editable
@@ -3591,19 +3984,42 @@
 
       return '' +
         '<div class="il-league-block">' +
-          '<div class="il-league-header">' +
-            '<h3>' + nameHtml + ' <span class="il-status-badge il-status-' + esc(league.status) + '">' + esc(league.status) + '</span>' + shareBtn + '</h3>' +
-            '<div class="il-league-meta">' + esc(league.numTeams) + ' teams · ' + computeLeagueGameCounts_(league.games) + '</div>' +
+          '<div class="il-league-top">' +
+            '<div class="il-league-header">' +
+              '<h3>' + nameHtml + ' <span class="il-status-badge il-status-' + esc(league.status) + '">' + esc(league.status) + '</span>' + shareBtn + '</h3>' +
+              '<div class="il-league-meta">' + esc(league.numTeams) + ' teams · ' + computeLeagueGameCounts_(league.games) + '</div>' +
+            '</div>' +
           '</div>' +
           winnerBanner +
-          '<div class="il-section-title">Teams</div>' +
-          teamsHtml +
-          '<div class="il-section-title">Standings</div>' +
-          renderStandingsTable_(league.standings) +
-          '<div class="il-section-title">Games</div>' +
-          '<div class="il-table-wrap"><table class="il-table"><thead><tr>' + gamesHeader + '</tr></thead><tbody>' + gamesRows + '</tbody></table></div>' +
-          addGameHtml +
-          ((closeBtn || deleteBtn) ? '<div class="records-actions">' + closeBtn + deleteBtn + '</div>' : '') +
+          '<div class="il-section">' +
+            '<div class="il-section-head">' +
+              '<span class="il-section-icon">' + icon_('users') + '</span>' +
+              '<div class="il-section-title">Teams</div>' +
+              '<div class="il-section-note">' + esc(league.numTeams) + ' teams</div>' +
+            '</div>' +
+            teamsHtml +
+          '</div>' +
+          '<div class="il-section">' +
+            '<div class="il-section-head">' +
+              '<span class="il-section-icon">' + icon_('bars') + '</span>' +
+              '<div class="il-section-title">Standings</div>' +
+            '</div>' +
+            renderStandingsTable_(league.standings, league) +
+          '</div>' +
+          '<div class="il-section">' +
+            '<div class="il-section-head">' +
+              '<span class="il-section-icon">' + icon_('calendar') + '</span>' +
+              '<div class="il-section-title">Games</div>' +
+              '<div class="il-section-note">' + computeLeagueGameCounts_(league.games) + '</div>' +
+            '</div>' +
+            '<div class="il-table-wrap"><table class="il-table"><thead><tr>' + gamesHeader + '</tr></thead><tbody>' + gamesRows + '</tbody></table></div>' +
+            addGameHtml +
+            ((closeBtn || deleteBtn) ? '<div class="records-actions">' + closeBtn + deleteBtn + '</div>' : '') +
+          '</div>' +
+          '<div class="il-league-foot">' +
+            '<span class="il-foot-script">Same People. Better Basketball.</span>' +
+            '<span class="il-foot-meta">' + esc(league.name) + ' | Play · Compete · Respect</span>' +
+          '</div>' +
         '</div>';
     }
 
@@ -4054,24 +4470,59 @@
         '</div>' +
         '<div class="page" id="page-about">' +
           '<div class="about-card">' +
-            '<img class="about-photo" alt="Happy Soda team" src="images/about-us-v4.jpg">' +
-            '<h2>About Happy Soda</h2>' +
-            '<p class="about-tagline">Play hard. Respect everyone. No hard feelings.</p>' +
-            '<p>Happy Soda is a mixed-age basketball community based in Makassar, Indonesia, ' +
-            'built around fun, competitive play. We are out there to win — but the real ' +
-            'trophy is the beers and laughs afterward. Play hard on the court, leave it all ' +
-            'there, and walk off with respect for whoever you just battled.</p>' +
-            '<ul class="about-values">' +
-              '<li>Mixed-age, everyone welcome</li>' +
-              '<li>We play to win, but drink beers to grin</li>' +
-              '<li>Play hard, respect everyone — no hard feelings</li>' +
-            '</ul>' +
-            '<p>If that sounds like your kind of game, come and join us.</p>' +
-            '<div class="about-info-row"><span class="about-icon">🏀</span><span>Every Wednesday, 6:00 – 8:00 PM</span></div>' +
-            '<div class="about-info-row"><span class="about-icon">📍</span>' +
-              '<a href="https://maps.app.goo.gl/r4GottghsEzgpr9E8" target="_blank" rel="noopener">SLK Basketball Court, Makassar</a></div>' +
-            '<div class="about-info-row"><span class="about-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></span>' +
-              '<a href="https://www.instagram.com/happysoda.hoopers/" target="_blank" rel="noopener">@happysoda.hoopers on Instagram</a></div>' +
+          '<img class="about-photo" alt="Happy Soda team" src="images/about-us-v4.jpg">' +
+          '<div class="about-body">' +
+          '<div class="about-eyebrow">About Happy Soda<span class="about-rule"></span></div>' +
+          '<div class="about-head-row">' +
+          '<h2 class="about-headline">Play Hard.<br>Respect Everyone.<br><span class="about-headline-alt">No Hard Feelings.</span></h2>' +
+          '<div class="about-script">Same People<br>Better Basketball<span class="about-script-crown" data-icon="crown"></span></div>' +
+          '</div>' +
+          '<p class="about-lead">Happy Soda is a mixed-age basketball community based in Makassar, Indonesia, built around fun, competitive play. We are out there to win &mdash; but the real trophy is the beers and laughs afterward. Play hard on the court, leave it all there, and walk off with respect for whoever you just battled.</p>' +
+          '<div class="about-values-row">' +
+          '<div class="about-value">' +
+          '<span class="about-value-icon" data-icon="users"></span>' +
+          '<div class="about-value-title">Mixed-age</div>' +
+          '<div class="about-value-text">Everyone welcome.</div>' +
+          '</div>' +
+          '<div class="about-value">' +
+          '<span class="about-value-icon" data-icon="trophy"></span>' +
+          '<div class="about-value-title">Play to win</div>' +
+          '<div class="about-value-text">But drink beers to grin.</div>' +
+          '</div>' +
+          '<div class="about-value">' +
+          '<span class="about-value-icon" data-icon="handshake"></span>' +
+          '<div class="about-value-title">Respect</div>' +
+          '<div class="about-value-text">Play hard, respect everyone &mdash; no hard feelings.</div>' +
+          '</div>' +
+          '</div>' +
+          '<div class="about-tiles">' +
+          '<div class="about-tile">Good People</div>' +
+          '<div class="about-tile">Better Basketball</div>' +
+          '<div class="about-tile">Stronger Community</div>' +
+          '</div>' +
+          '<div class="about-info-panel">' +
+          '<div class="about-info-item">' +
+          '<span class="about-info-icon" data-icon="calendar"></span>' +
+          '<div><div class="about-info-label">When</div><div class="about-info-value">Every Wednesday</div><div class="about-info-sub">6:00 &ndash; 8:00 PM</div></div>' +
+          '</div>' +
+          '<div class="about-info-item">' +
+          '<span class="about-info-icon" data-icon="pin"></span>' +
+          '<div><div class="about-info-label">Where</div><div class="about-info-value"><a href="https://maps.app.goo.gl/r4GottghsEzgpr9E8" target="_blank" rel="noopener">SLK Basketball Court</a></div><div class="about-info-sub">Makassar</div></div>' +
+          '</div>' +
+          '<div class="about-info-item">' +
+          '<span class="about-info-icon" data-icon="instagram"></span>' +
+          '<div><div class="about-info-label">Follow</div><div class="about-info-value"><a href="https://www.instagram.com/happysoda.hoopers/" target="_blank" rel="noopener">@happysoda.hoopers</a></div><div class="about-info-sub">on Instagram</div></div>' +
+          '</div>' +
+          '</div>' +
+          '<a class="about-cta" href="https://www.instagram.com/happysoda.hoopers/" target="_blank" rel="noopener">Come play with us<span data-icon="arrowRight"></span></a>' +
+          '<div class="about-foot">' +
+          '<div class="about-foot-brand">' +
+          '<span class="about-foot-crown" data-icon="crown"></span>' +
+          '<div><div class="about-foot-name">Happy Soda</div><div class="about-foot-sub">Makassar Hoops Community</div></div>' +
+          '</div>' +
+          '<div class="about-foot-links">Play &bull; Compete &bull; Connect</div>' +
+          '</div>' +
+          '</div>' +
           '</div>' +
         '</div>';
 
