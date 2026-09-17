@@ -2303,7 +2303,7 @@
       callLeagueApi_('createLeague', { name: name, teams: teams })
         .then(function () {
           currentPage = 'internalleagues';
-          loadData(currentMonthParam, currentRecordsMonthParam);
+          loadData(currentMonthParam, currentRecordsMonthParam, true);
         })
         .catch(function (err) { alert('Could not create league: ' + err.message); });
     }
@@ -2703,7 +2703,7 @@
         })
           .then(function () {
             currentPage = 'internalleagues';
-            loadData(currentMonthParam, currentRecordsMonthParam);
+            loadData(currentMonthParam, currentRecordsMonthParam, true);
           })
           .catch(function (err) { alert('Could not save game: ' + err.message); });
       }
@@ -2741,7 +2741,7 @@
         })
           .then(function () {
             currentPage = 'internalleagues';
-            loadData(currentMonthParam, currentRecordsMonthParam);
+            loadData(currentMonthParam, currentRecordsMonthParam, true);
           })
           .catch(function (err) { alert('Could not add game: ' + err.message); });
       }
@@ -2752,7 +2752,7 @@
         callLeagueApi_('closeLeague', { leagueId: closeLeagueBtn.dataset.league })
           .then(function () {
             currentPage = 'internalleagues';
-            loadData(currentMonthParam, currentRecordsMonthParam);
+            loadData(currentMonthParam, currentRecordsMonthParam, true);
           })
           .catch(function (err) { alert('Could not close league: ' + err.message); });
       }
@@ -2764,7 +2764,7 @@
         callLeagueApi_('deleteLeague', { leagueId: deleteLeagueBtn.dataset.league })
           .then(function () {
             currentPage = 'internalleagues';
-            loadData(currentMonthParam, currentRecordsMonthParam);
+            loadData(currentMonthParam, currentRecordsMonthParam, true);
           })
           .catch(function (err) { alert('Could not delete league: ' + err.message); });
       }
@@ -2792,7 +2792,7 @@
         callLeagueApi_('renameLeague', { leagueId: wrap.dataset.league, name: newName })
           .then(function () {
             currentPage = 'internalleagues';
-            loadData(currentMonthParam, currentRecordsMonthParam);
+            loadData(currentMonthParam, currentRecordsMonthParam, true);
           })
           .catch(function (err) { alert('Could not rename league: ' + err.message); });
       }
@@ -3254,7 +3254,7 @@
       }
     }
 
-    function loadData(monthParam, recordsMonthParam) {
+    function loadData(monthParam, recordsMonthParam, skipCache) {
       if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_') === 0) {
         finishFirstLoadProgress();
         document.getElementById('loadingOverlay').classList.remove('show');
@@ -3270,6 +3270,13 @@
       let url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&') + 'format=json';
       if (effectiveMonth) url += '&month=' + encodeURIComponent(effectiveMonth);
       if (effectiveRecordsMonth) url += '&recordsMonth=' + encodeURIComponent(effectiveRecordsMonth);
+      // Internal Leagues writes need this: the backend now caches Internal
+      // Leagues data alongside the rest of the dashboard (see this repo's
+      // CLAUDE.md, 2026-09-17), so the reload right after createLeague/
+      // updateGame/addGame/closeLeague/deleteLeague/renameLeague passes
+      // skipCache=true to see the just-written change immediately instead
+      // of whatever was cached up to CONFIG.CACHE_SECONDS earlier.
+      if (skipCache) url += '&refresh=1';
 
       fetch(url)
         .then(function (res) {
