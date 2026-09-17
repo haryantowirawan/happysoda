@@ -72,6 +72,8 @@
       --action-ink: #1b0f04;
       --bar: #2c6b4a;
       --tabs-bg: rgba(255, 255, 255, 0.06);
+      --info: #7ab6e6;
+      --info-soft: #17293a;
       --gold: #f5c542;
       --silver: #c9d1cc;
       --bronze: #d49a5b;
@@ -179,6 +181,8 @@
       --action-ink: #ffffff;
       --bar: #a8d5b4;
       --tabs-bg: #e3ebe4;
+      --info: #2c6c9c;
+      --info-soft: #e0eaf7;
       --gold: #e0a100;
       --silver: #8a8f8b;
       --bronze: #a56a35;
@@ -1616,7 +1620,9 @@
       background: var(--panel-solid);
     }
     .search-wrap { position: relative; margin-bottom: 12px; }
-    .search-wrap .icon {
+    /* Direct child only: the magnifier. The clear button's own icon is
+       nested inside the button and must not be absolutely positioned. */
+    .search-wrap > [data-icon] .icon {
       position: absolute;
       left: 17px;
       top: 50%;
@@ -1939,6 +1945,7 @@
     }
     .search-wrap.has-text .search-clear { opacity: 1; pointer-events: auto; }
     .search-clear:hover { color: var(--text); }
+    .search-clear > span { display: flex; }
 
     /* ---- 12-month window chip ----
        The period used to be a bare line of text beside the month picker,
@@ -1989,6 +1996,14 @@
        icon treatment. */
     .delta-group-title { display: flex; align-items: center; gap: 8px; }
     .delta-title-icon { display: flex; font-size: 20px; color: var(--accent); }
+
+    /* New & Returning is its own thing (first-timers and players back after a
+       gap), not a Member/Regular change — so its box gets a soft blue rather
+       than reusing the green the "New" box uses. */
+    .delta-names-box { background: var(--info-soft); }
+    .delta-box.newcomer .delta-label { color: var(--info); }
+    /* Monthly Records' picker sits left, like the Dashboard's. */
+    #page-records .controls-row { justify-content: flex-start; }
   </style>
 </head>
 <body class="light-mode">

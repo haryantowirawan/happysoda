@@ -142,6 +142,10 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: fixed the search clear
+  button's icon being positioned outside its circle (the magnifier rule was catching it),
+  gave the New & Returning box a soft blue tint distinct from the green "New" box, and
+  left-aligned Monthly Records' month picker.
 - **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: tinted names box in the New
   & Returning card, people icon on "Member/Regular Changes", and Monthly Records' month
   picker restyled to match the Dashboard's pill.
