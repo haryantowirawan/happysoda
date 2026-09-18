@@ -227,14 +227,6 @@
       border-radius: 10px;
       padding: 6px 10px;
     }
-    .asat-input {
-      background: transparent;
-      border: none;
-      color: var(--text);
-      font-size: 12.5px;
-      font-family: inherit;
-    }
-    .asat-input:focus { outline: none; }
     .theme-toggle {
       background: var(--panel-solid);
       border: 1px solid var(--border);
@@ -1619,7 +1611,6 @@
       box-shadow: var(--shadow);
     }
     .month-pill { position: relative; cursor: pointer; }
-    .month-pill .asat-input { font-size: 15px; font-weight: 600; cursor: pointer; }
 
     /* ---- Dashboard: attendance chart ---- */
     .trend-chart-wrap { padding: 18px 18px 12px; }
@@ -1954,24 +1945,80 @@
     .players-scroll.is-scrolling::-webkit-scrollbar-thumb { background: var(--bar); }
 
     /* ---- Month pickers ----
-       <select>s rather than <input type="month">: the native control renders
-       as segmented fields with its own picker button, which looked dated
-       beside the rest of the page. Options come from fillMonthSelect_(). */
-    .month-select {
-      appearance: none;
-      -webkit-appearance: none;
-      border: none;
-      background: transparent;
+       A custom popover instead of a <select> (itself already a replacement
+       for <input type="month">, whose segmented native fields looked dated
+       — see below) or an <input type="month"> — a <select>'s own dropdown
+       is unstyleable native OS chrome, which read as out of place next to
+       the rest of the page. Trigger stays the same clickable pill; opening
+       it shows a small calendar-style grid (one year at a time, with
+       ‹ year › navigation) instead of a flat 36-row list. Built by
+       initMonthPicker_()/renderMonthPickerGrid_(); values are still plain
+       'YYYY-MM' strings, so every reader of these controls is unchanged. */
+    .month-picker { position: relative; }
+    .month-picker-trigger {
+      width: 100%;
+      font-family: inherit;
+      text-align: left;
+    }
+    .month-picker-label { font-size: 15px; font-weight: 600; }
+    .pill-chevron { display: flex; font-size: 16px; color: var(--muted); transition: transform 0.15s ease; }
+    .month-picker.open .pill-chevron { transform: rotate(180deg); }
+    .asat-label { gap: 8px; }
+    .month-picker-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      z-index: 40;
+      width: 240px;
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+      padding: 12px;
+    }
+    .month-picker-year-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .month-picker-year-label { font-size: 14px; font-weight: 800; color: var(--text); }
+    .month-picker-year-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
       color: var(--text);
       font-family: inherit;
       font-size: 15px;
-      font-weight: 600;
-      padding: 0 2px 0 0;
       cursor: pointer;
     }
-    .month-select:focus { outline: none; }
-    .pill-chevron { display: flex; font-size: 16px; color: var(--muted); }
-    .asat-label { gap: 8px; }
+    .month-picker-year-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .month-picker-year-btn:disabled { opacity: 0.35; cursor: default; }
+    .month-picker-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .month-picker-cell {
+      padding: 8px 0;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: var(--panel-2);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    .month-picker-cell:hover:not(:disabled) { border-color: var(--accent); }
+    .month-picker-cell.selected { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+    .month-picker-cell:disabled { opacity: 0.3; cursor: default; background: transparent; }
 
     /* ---- Tier/records tab strip ----
        The strip was var(--panel-2), barely distinguishable from the page, so
@@ -2905,11 +2952,11 @@
         .some(function (t) { return lower.indexOf(t) !== -1; });
     }
 
-    // Month pickers list the last 36 months (plus the selected month, if a
+    // Month pickers cover the last 36 months (plus the selected month, if a
     // ?month= param puts it outside that range). Values stay 'YYYY-MM', so
-    // every reader of these controls is unchanged.
-    function fillMonthSelect_(select, selected) {
-      if (!select) return;
+    // every reader of these controls is unchanged — only how they're picked
+    // (a calendar-style popover, see initMonthPicker_ below) changed.
+    function computeValidMonths_(selected) {
       const months = [];
       const now = new Date();
       let y = now.getFullYear();
@@ -2920,11 +2967,99 @@
         if (m === 0) { m = 12; y--; }
       }
       if (selected && months.indexOf(selected) === -1) months.unshift(selected);
-      select.innerHTML = months.map(function (ym) {
-        return '<option value="' + ym + '">' + formatMonthSeptStyle(ym) + '</option>';
-      }).join('');
-      select.value = selected || months[0];
+      return months;
     }
+
+    const MONTH_PICKER_ABBR_ = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // (Re)draws one year's worth of month cells inside an already-open
+    // popover, and disables the ‹/› year buttons once they'd go past the
+    // valid range (see computeValidMonths_).
+    function renderMonthPickerYear_(popover, year, validSet, selectedValue) {
+      popover.querySelector('.month-picker-year-label').textContent = year;
+      popover.querySelector('.month-picker-grid').innerHTML = MONTH_PICKER_ABBR_.map(function (abbr, i) {
+        const ym = year + '-' + String(i + 1).padStart(2, '0');
+        const valid = validSet.has(ym);
+        const selected = ym === selectedValue;
+        return '<button type="button" class="month-picker-cell' + (selected ? ' selected' : '') + '"' +
+          ' data-ym="' + ym + '"' + (valid ? '' : ' disabled') + '>' + abbr + '</button>';
+      }).join('');
+      const years = Array.from(validSet, function (ym) { return parseInt(ym.slice(0, 4), 10); });
+      popover.querySelector('.month-picker-year-btn[data-dir="-1"]').disabled = year <= Math.min.apply(null, years);
+      popover.querySelector('.month-picker-year-btn[data-dir="1"]').disabled = year >= Math.max.apply(null, years);
+    }
+
+    // Wires one month-picker instance (trigger button + popover), rebuilt
+    // fresh every time this page's markup is (re)built — so, unlike the
+    // outside-click/Escape handling below (bound once, at the bottom of
+    // this script, since it has to survive those rebuilds), this can bind
+    // directly to the elements it's given with no risk of piling up
+    // duplicate listeners on stale, since-removed nodes.
+    function initMonthPicker_(rootId, initialValue, onChange) {
+      const root = document.getElementById(rootId);
+      if (!root) return;
+      const trigger = root.querySelector('.month-picker-trigger');
+      const labelEl = root.querySelector('.month-picker-label');
+      const popover = root.querySelector('.month-picker-popover');
+      let currentValue = initialValue;
+      let validSet = null;
+
+      labelEl.textContent = formatMonthSeptStyle(currentValue);
+
+      function openPopover() {
+        document.querySelectorAll('.month-picker.open').forEach(function (other) {
+          if (other !== root) { other.classList.remove('open'); other.querySelector('.month-picker-popover').hidden = true; }
+        });
+        validSet = new Set(computeValidMonths_(currentValue));
+        renderMonthPickerYear_(popover, parseInt(currentValue.slice(0, 4), 10), validSet, currentValue);
+        popover.hidden = false;
+        root.classList.add('open');
+      }
+      function closePopover() {
+        popover.hidden = true;
+        root.classList.remove('open');
+      }
+
+      trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (popover.hidden) openPopover(); else closePopover();
+      });
+      popover.addEventListener('click', function (e) {
+        const yearBtn = e.target.closest('.month-picker-year-btn');
+        if (yearBtn) {
+          if (yearBtn.disabled) return;
+          const year = parseInt(popover.querySelector('.month-picker-year-label').textContent, 10) + parseInt(yearBtn.dataset.dir, 10);
+          renderMonthPickerYear_(popover, year, validSet, currentValue);
+          return;
+        }
+        const cell = e.target.closest('.month-picker-cell');
+        if (!cell || cell.disabled) return;
+        closePopover();
+        if (cell.dataset.ym === currentValue) return; // re-picking the same month — nothing to do
+        currentValue = cell.dataset.ym;
+        labelEl.textContent = formatMonthSeptStyle(currentValue);
+        onChange(currentValue);
+      });
+    }
+    // Outside-click/Escape closes whichever picker(s) are currently open —
+    // bound once here rather than per-instance inside initMonthPicker_,
+    // since the trigger/popover elements themselves get replaced every time
+    // this page's markup is rebuilt (month change, auto-refresh) and a
+    // per-instance document listener would just accumulate stale copies.
+    document.addEventListener('click', function (e) {
+      document.querySelectorAll('.month-picker.open').forEach(function (root) {
+        if (root.contains(e.target)) return; // a year-nav/month-cell click inside it — handled by its own listener
+        root.classList.remove('open');
+        root.querySelector('.month-picker-popover').hidden = true;
+      });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      document.querySelectorAll('.month-picker.open').forEach(function (root) {
+        root.classList.remove('open');
+        root.querySelector('.month-picker-popover').hidden = true;
+      });
+    });
 
     // Keeps the desktop rail below the banner until the banner scrolls away.
     let railOffsetBound_ = false;
@@ -3310,7 +3445,10 @@
       fillRecordsPanel('recordspanel-week3', mr.week3);
       fillRecordsPanel('recordspanel-week4', mr.week4);
       fillRecordsPanel('recordspanel-week5', mr.week5);
-      fillMonthSelect_(document.getElementById('recordsMonthPicker'), DATA.recordsMonth || '');
+      initMonthPicker_('recordsMonthPickerPicker', DATA.recordsMonth || computeValidMonths_('')[0], function (ym) {
+        setLoadingOverlay_(true, 'Loading…');
+        loadData(undefined, ym);
+      });
     }
 
     // ===================== Team Manager =====================
@@ -4912,7 +5050,21 @@
         '</nav>' +
         '<div class="page active" id="page-dashboard">' +
           '<div class="dash-toolbar">' +
-            '<label class="asat-label month-pill"><span class="smi-icon" data-icon="calendar"></span><select id="asAtDate" class="asat-input month-select"></select><span class="pill-chevron" data-icon="chevronDown"></span></label>' +
+            '<div class="month-picker" id="asAtDatePicker">' +
+              '<button type="button" class="month-picker-trigger asat-label month-pill" id="asAtDateTrigger">' +
+                '<span class="smi-icon" data-icon="calendar"></span>' +
+                '<span class="month-picker-label" id="asAtDateLabel"></span>' +
+                '<span class="pill-chevron" data-icon="chevronDown"></span>' +
+              '</button>' +
+              '<div class="month-picker-popover" id="asAtDatePopover" hidden>' +
+                '<div class="month-picker-year-nav">' +
+                  '<button type="button" class="month-picker-year-btn" data-dir="-1">&lsaquo;</button>' +
+                  '<span class="month-picker-year-label"></span>' +
+                  '<button type="button" class="month-picker-year-btn" data-dir="1">&rsaquo;</button>' +
+                '</div>' +
+                '<div class="month-picker-grid"></div>' +
+              '</div>' +
+            '</div>' +
             '<div class="period-chip"><span class="period-icon" data-icon="history"></span><div><div class="period-chip-label">12-month window</div><div class="dashboard-period" id="periodLabel">—</div></div></div>' +
           '</div>' +
           '<div id="attendanceChartContainer"></div>' +
@@ -4952,7 +5104,21 @@
         '</div>' +
         '<div class="page" id="page-records">' +
           '<div class="controls-row">' +
-            '<label class="asat-label month-pill"><span class="smi-icon" data-icon="calendar"></span><select id="recordsMonthPicker" class="asat-input month-select"></select><span class="pill-chevron" data-icon="chevronDown"></span></label>' +
+            '<div class="month-picker" id="recordsMonthPickerPicker">' +
+              '<button type="button" class="month-picker-trigger asat-label month-pill" id="recordsMonthPickerTrigger">' +
+                '<span class="smi-icon" data-icon="calendar"></span>' +
+                '<span class="month-picker-label" id="recordsMonthPickerLabel"></span>' +
+                '<span class="pill-chevron" data-icon="chevronDown"></span>' +
+              '</button>' +
+              '<div class="month-picker-popover" id="recordsMonthPickerPopover" hidden>' +
+                '<div class="month-picker-year-nav">' +
+                  '<button type="button" class="month-picker-year-btn" data-dir="-1">&lsaquo;</button>' +
+                  '<span class="month-picker-year-label"></span>' +
+                  '<button type="button" class="month-picker-year-btn" data-dir="1">&rsaquo;</button>' +
+                '</div>' +
+                '<div class="month-picker-grid"></div>' +
+              '</div>' +
+            '</div>' +
           '</div>' +
           '<div class="records-actions"><button id="exportRecordsImageBtn" class="export-btn btn-primary" type="button"><span class="btn-icon" data-icon="download"></span><span class="btn-label"><span class="btn-label-main">Export</span><span class="btn-label-sub">All as image</span></span></button><button id="copyMembershipListBtn" class="export-btn" type="button"><span class="btn-icon" data-icon="copy"></span><span class="btn-label"><span class="btn-label-main">Copy</span><span class="btn-label-sub">Membership list</span></span></button></div>' +
           '<div class="tabs" id="recordsTabs">' +
@@ -5225,13 +5391,6 @@
         });
       });
 
-      document.getElementById('recordsMonthPicker').addEventListener('change', function (e) {
-        const ym = e.target.value;
-        if (!ym) return;
-        setLoadingOverlay_(true, 'Loading…');
-        loadData(undefined, ym);
-      });
-
       const menuToggle = document.getElementById('menuToggle');
       const sideMenu = document.getElementById('sideMenu');
       const menuOverlay = document.getElementById('menuOverlay');
@@ -5259,10 +5418,7 @@
       // "As At" month picker — lives inside the Dashboard page only.
       // Changing it re-fetches with a new ?month= (no full page reload),
       // preserved across auto-refreshes via currentMonthParam.
-      fillMonthSelect_(document.getElementById('asAtDate'), DATA.period.end);
-      document.getElementById('asAtDate').addEventListener('change', function (e) {
-        const ym = e.target.value; // 'YYYY-MM'
-        if (!ym) return;
+      initMonthPicker_('asAtDatePicker', DATA.period.end, function (ym) {
         setLoadingOverlay_(true, 'Loading…');
         loadData(ym);
       });

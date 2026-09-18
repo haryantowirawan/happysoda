@@ -142,6 +142,13 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-19** — Mirrored from `../app-script-backend/ui.html`: both month pickers (Dashboard
+  "as of" date, Monthly Records) replaced the native `<select>` — which still opened the
+  browser's own unstyleable dropdown to actually pick a month — with a custom calendar-style
+  popover (one year at a time, `‹ year ›` navigation, current month accent-highlighted). Same
+  trigger pill, same `'YYYY-MM'` values, only how a value gets picked changed. See that repo's
+  changelog for the full detail, including a real bug caught before shipping (clicking the
+  year-nav arrows was closing the popover instead of navigating, fixed before this went out).
 - **2026-09-18** — Four requests: the mobile hero banner's padding/logo size trimmed (was
   taking up roughly a third of the screen at phone width); the browser-tab favicon replaced
   with the actual "HS" rail-logo artwork (`--hs-mask`, decoded, tinted the dark-mode accent
