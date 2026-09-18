@@ -393,6 +393,14 @@
       letter-spacing: 0.04em;
       margin-top: 2px;
     }
+    /* Admin-only — the Upload Photo control, hidden entirely for a public
+       viewer (toggled in openPlayerProfile_, same isAdmin() check every
+       other admin-only control in this file already uses). */
+    .player-modal-admin { margin: 14px 0 4px; text-align: center; }
+    .player-modal-admin .export-btn { display: inline-block; margin: 0; cursor: pointer; }
+    .player-modal-upload-status { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .player-modal-upload-status.error { color: var(--red); }
+    .player-modal-upload-status.success { color: var(--green); }
     .player-modal-section-title {
       font-size: 11px;
       font-weight: 700;
@@ -2648,6 +2656,11 @@
         <div class="player-modal-name" id="playerModalName"></div>
         <div class="player-modal-position" id="playerModalPosition" hidden></div>
       </div>
+      <div class="player-modal-admin" id="playerModalAdmin" hidden>
+        <label class="export-btn" for="playerPhotoUploadInput">Upload Photo</label>
+        <input type="file" id="playerPhotoUploadInput" accept="image/*" style="display:none">
+        <div class="player-modal-upload-status" id="playerModalUploadStatus"></div>
+      </div>
       <div id="playerModalStats"></div>
     </div>
   </div>
@@ -2990,13 +3003,26 @@
       return '<div class="player-modal-stat"><div class="player-modal-stat-value">' + esc(shown) +
         '</div><div class="player-modal-stat-label">' + esc(label) + '</div></div>';
     }
+    // Tracks which player the popup is currently showing, so the Upload
+    // Photo handler (wired once, outside this function) knows who a
+    // selected file belongs to.
+    let currentProfilePlayerName = null;
+
     function openPlayerProfile_(name) {
+      currentProfilePlayerName = name;
       const profile = findPlayerProfile_(name);
       const loyalty = findPlayerLoyalty_(name);
       const crowned = (DATA.members || []).some(function (m) { return m.name.trim().toLowerCase() === name.trim().toLowerCase(); });
 
       document.getElementById('playerModalPhoto').innerHTML = playerAvatar_(name, crowned, true);
       document.getElementById('playerModalName').textContent = name;
+
+      // Upload Photo is admin-only, and any status message from a previous
+      // player's upload shouldn't linger onto this one.
+      document.getElementById('playerModalAdmin').hidden = !isAdmin();
+      const uploadStatusEl = document.getElementById('playerModalUploadStatus');
+      uploadStatusEl.textContent = '';
+      uploadStatusEl.className = 'player-modal-upload-status';
 
       const posEl = document.getElementById('playerModalPosition');
       if (profile && profile.position) {
@@ -5322,6 +5348,63 @@
       if (e.key === 'Escape' && document.getElementById('playerModalOverlay').classList.contains('show')) {
         closePlayerProfile_();
       }
+    });
+
+    // Admin-only photo upload, from inside the player profile popup — see
+    // Main.js's uploadPlayerPhoto_ for the backend half (also enforces this
+    // same 2MB cap; the client check is just for fast feedback, since it's
+    // trivial to bypass). Reads the file as base64 and posts it through the
+    // same callLeagueApi_ every other admin write already uses.
+    const MAX_PLAYER_PHOTO_BYTES = 2 * 1024 * 1024;
+    function readFileAsBase64_(file) {
+      return new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function () {
+          resolve(String(reader.result).slice(String(reader.result).indexOf(',') + 1));
+        };
+        reader.onerror = function () { reject(reader.error || new Error('Could not read file.')); };
+        reader.readAsDataURL(file);
+      });
+    }
+    document.getElementById('playerPhotoUploadInput').addEventListener('change', function (e) {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = ''; // lets the same file be re-picked later if needed
+      if (!file || !currentProfilePlayerName) return;
+      const playerName = currentProfilePlayerName;
+      const statusEl = document.getElementById('playerModalUploadStatus');
+      const showStatus = function (text, cls) { statusEl.textContent = text; statusEl.className = 'player-modal-upload-status' + (cls ? ' ' + cls : ''); };
+
+      if (file.type.indexOf('image/') !== 0) { showStatus('Please choose an image file.', 'error'); return; }
+      if (file.size > MAX_PLAYER_PHOTO_BYTES) { showStatus('Photo is too large (max 2MB).', 'error'); return; }
+
+      showStatus('Uploading…');
+      readFileAsBase64_(file)
+        .then(function (base64) {
+          return callLeagueApi_('uploadPlayerPhoto', { name: playerName, mimeType: file.type, dataBase64: base64 });
+        })
+        .then(function (result) {
+          const key = playerName.trim().toLowerCase();
+          if (!DATA.playerPhotos) DATA.playerPhotos = {};
+          DATA.playerPhotos[key] = result.fileId;
+          setLoadingOverlay_(false);
+          // Refresh the popup's own avatar. renderAllPanels/buildDashboard
+          // aren't reachable from here (they're local to buildDashboard's
+          // closure), so any already-rendered card avatars for this same
+          // player are patched directly instead of forcing a full
+          // re-render — which would also reset the active tab/search
+          // filter. Table rows (All Players) have no avatar to patch.
+          if (currentProfilePlayerName === playerName) openPlayerProfile_(playerName);
+          document.querySelectorAll('[data-player-name]').forEach(function (row) {
+            if (row.dataset.playerName.trim().toLowerCase() !== key) return;
+            const avatarEl = row.querySelector('.avatar');
+            if (avatarEl) avatarEl.outerHTML = playerAvatar_(playerName, !!row.querySelector('.avatar-crown'));
+          });
+          showStatus('Photo updated.', 'success');
+        })
+        .catch(function (err) {
+          setLoadingOverlay_(false);
+          showStatus(err.message || 'Upload failed.', 'error');
+        });
     });
 
     startFirstLoadProgress();

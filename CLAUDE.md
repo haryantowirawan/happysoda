@@ -142,6 +142,12 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: the player profile popup
+  gained an admin-only **Upload Photo** button (hidden unless `isAdmin()`), backed by a new
+  `uploadPlayerPhoto` write action on the Apps Script side. 2MB max, enforced both client- and
+  server-side. On success, updates `DATA.playerPhotos` and patches the popup's avatar plus any
+  already-rendered Dashboard card for that player directly, rather than a full reload. See that
+  changelog for full detail.
 - **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: New & Returning Players'
   chevron moved into its tinted names box (matching New/Departed, which already had it there
   instead of in the untinted title row), and `.balance-chevron` now always reserves its 18px
