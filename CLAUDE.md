@@ -142,6 +142,11 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: New & Returning Players'
+  chevron moved into its tinted names box (matching New/Departed, which already had it there
+  instead of in the untinted title row), and `.balance-chevron` now always reserves its 18px
+  even on a dead-link row, so Outstanding/Credits/Monthly Records' amount column no longer
+  jumps out of alignment when a row isn't a link.
 - **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: `loadData()` and
   `fetchLeagues_()` now retry (up to 3 attempts, 900ms/1800ms backoff) via a shared
   `fetchJsonWithRetry_()` before showing the fatal-error screen, since `script.google.com`'s
