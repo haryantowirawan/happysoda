@@ -142,6 +142,36 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-19** — Mirrored from `../app-script-backend/ui.html` (see that repo's CLAUDE.md
+  for the full reasoning behind each):
+  - **Name chips**: the four places that rendered a list of players as one comma-joined
+    paragraph — the Dashboard's New & Returning / New / Departed boxes, League Draft's
+    "N players loaded" box, and each Internal Leagues team card — now share one
+    `nameChips_()` helper and a `.name-grid` / `.name-chip` component: an auto-filling grid
+    of equal-width 12.5px cells, with a muted position suffix on the IL cards. The 104px
+    column minimum was picked by measurement (92px/84px truncate real names on the live
+    roster; 104px truncates none at 1280/900/390px). Also gave `.il-team-card-main` the
+    `flex: 1; min-width: 0` it never had — it shrink-wrapped, which inline text hid but a
+    grid did not, collapsing the cards to a single column.
+  - **Copy / Export buttons** no longer destroy their own markup: they set `btn.textContent`
+    for the transient "Copied!"/"Generating…" label, which flattened the icon and the
+    two-line `.btn-label` into one text node and left the button reading "CopyMembership
+    list" in the wrong font afterwards. New `btnLabel_()`/`setBtnLabel_()` swap only the
+    label text.
+  - **Outstanding / Player Credits** `.balance-name`/`.balance-amount` 16px → 15px (14px
+    under 520px). The type was never bigger than the Dashboard's `.card-name` (also 16px) —
+    it read that way because a balance row has nothing smaller in it to size against.
+  - **Internal Leagues game forms** gained a calendar popover on the Date field and a
+    30-minute-slot popover on Time (replacing the native `<input type="time">`), both
+    `position: fixed` because `.il-table-wrap`'s `overflow-x: auto` would otherwise clip
+    them, plus `isValidHM_` validation now that Time is a text field.
+  Verified in headless Chrome against live data alongside `ui.html`, with identical results
+  in both files: 0 truncated chips and no horizontal overflow at 1280/900/390px, the delta
+  chip click still filtering All Players to "David, Hery, Kevin", the Copy button restoring
+  to "Copy"/"Membership list" at 14px/11.5px, and both pickers opening inside the viewport
+  and outside the table wrapper's box. No page errors. Deployment is separate — this repo has
+  its own deploy step.
+
 - **2026-09-19** — Mirrored from `../app-script-backend/ui.html`: both month pickers (Dashboard
   "as of" date, Monthly Records) replaced the native `<select>` — which still opened the
   browser's own unstyleable dropdown to actually pick a month — with a custom calendar-style

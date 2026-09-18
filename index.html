@@ -2020,6 +2020,119 @@
     .month-picker-cell.selected { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
     .month-picker-cell:disabled { opacity: 0.3; cursor: default; background: transparent; }
 
+    /* ---- Internal Leagues date/time picker ----
+       Same visual language as the month picker above, for the game forms'
+       Date and Time fields. Both fields stay plain text inputs that can be
+       typed into (the date deliberately so — see isValidDMY_); this is the
+       picker beside them, opened by the button in the field.
+       position: fixed, not absolute: the edit form sits in a row inside
+       .il-table-wrap, which is overflow-x:auto — and a computed overflow-x
+       of auto forces overflow-y to auto as well, so an absolutely positioned
+       popover in there would be clipped by the table wrapper. Fixed takes it
+       out of that clipping context entirely; ilPositionPicker_ places it. */
+    .il-field { position: relative; display: flex; align-items: center; }
+    .il-field input { flex: 1; min-width: 0; padding-right: 30px; }
+    .il-field-btn {
+      position: absolute;
+      right: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--muted);
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .il-field-btn:hover { color: var(--accent); }
+    .il-picker {
+      position: fixed;
+      z-index: 60;
+      width: 252px;
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+      padding: 12px;
+    }
+    .il-picker[hidden] { display: none; }
+    .il-picker-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .il-picker-label { font-size: 14px; font-weight: 800; color: var(--text); }
+    .il-picker-dow {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .il-picker-dow span {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .il-picker-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .il-picker-cell {
+      padding: 6px 0;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: var(--panel-2);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    .il-picker-cell.empty { background: transparent; cursor: default; }
+    .il-picker-cell:hover:not(.empty) { border-color: var(--accent); }
+    .il-picker-cell.today:not(.selected) { border-color: var(--border); color: var(--accent); }
+    .il-picker-cell.selected { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+    /* Time slots: a two-column list tall enough to show the playable part of
+       the day without the popover running off a phone screen. */
+    .il-picker-times {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 4px;
+      max-height: 232px;
+      overflow-y: auto;
+    }
+    .il-picker-foot {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .il-picker-foot button {
+      flex: 1;
+      padding: 6px 0;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .il-picker-foot button:hover { border-color: var(--accent); color: var(--accent); }
+
     /* ---- Tier/records tab strip ----
        The strip was var(--panel-2), barely distinguishable from the page, so
        the white inactive tabs had nothing to sit on. */
@@ -2187,6 +2300,56 @@
     .delta-box.newcomer .delta-label { color: var(--info); }
     /* Monthly Records' picker sits left, like the Dashboard's. */
     #page-records .controls-row { justify-content: flex-start; }
+
+    /* ---- Name chips (shared) ----
+       Every run of player names in the app — New & Returning / New /
+       Departed, a League Draft roster, an Internal Leagues team — used to
+       render as one comma-joined paragraph, which stops being scannable
+       past a handful of names. Each name now gets its own equal-width cell
+       in an auto-filling grid, so they line up in columns and read as a
+       list. The type is a little smaller than the prose it replaces (12.5px
+       vs 13-15px), which is what buys the room for the boxes.
+       A name too long for its cell ellipsizes rather than wrapping, so the
+       rows stay one line tall and the grid keeps its even shape — the full
+       name is on the chip's title tooltip. */
+    .name-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+      gap: 6px;
+    }
+    .name-chip {
+      display: block;
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--panel-solid);
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .name-chip-sub { font-weight: 500; color: var(--muted); }
+    .name-none { font-size: 13px; color: var(--muted); }
+    /* The New & Returning box is a flex row (names + chevron) whose names
+       sit in an inline <span>. That span has to become a block-level flex
+       item, or the grid inside it has no width to fill. */
+    .delta-names-box .delta-names-text { display: block; flex: 1; min-width: 0; }
+    /* These three sit on tinted backgrounds, where the chips' own border
+       adds a third line of colour for no gain — the tint already separates
+       them from the panel behind. */
+    .delta-names-box .name-chip,
+    .delta-subbox .name-chip { border-color: transparent; }
+    /* "N players loaded" is now a heading over its grid, not a run-in label. */
+    .ld-roster-summary strong { display: block; margin-bottom: 8px; }
+    .il-team-card-name { margin-bottom: 7px; }
+    /* The team card is a flex row (jersey + this column) and this column had
+       no width rule — it shrink-wrapped, which a run of inline text hid but a
+       grid does not: auto-fill would collapse to a single minimum column
+       however wide the card actually is. */
+    .il-team-card-main { flex: 1; min-width: 0; }
 
     /* ===================== ABOUT US PAGE =====================
        Rebuilt to the mockup: full-bleed artwork, an oversized headline with
@@ -2629,8 +2792,14 @@
       font-size: 13px;
       font-weight: 700;
     }
-    .balance-name { flex: 1; min-width: 0; font-size: 16px; font-weight: 700; }
-    .balance-amount { font-size: 16px; font-weight: 800; white-space: nowrap; }
+    /* These were 16px — the same as the Dashboard's .card-name, so the type
+       was never actually bigger, but it read that way: a player card pairs
+       that 16px name with a 40px avatar and a 13px reason line under it,
+       while a balance row is one bare line of 16px/700 with a 16px/800 amount
+       opposite, and nothing smaller anywhere in the row to size it against.
+       Dropping both to 15px settles it without touching the Dashboard. */
+    .balance-name { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; }
+    .balance-amount { font-size: 15px; font-weight: 800; white-space: nowrap; }
     .balance-amount.amount-owed { color: var(--red); }
     .balance-amount.amount-credit { color: var(--green); }
     /* Always reserves 18px, whether or not it holds an icon — a dead-link
@@ -2655,7 +2824,7 @@
     }
     @media (max-width: 520px) {
       .finance-toolbar { flex-direction: column; }
-      .balance-name, .balance-amount { font-size: 15px; }
+      .balance-name, .balance-amount { font-size: 14px; }
     }
 
     /* ---- Closing note shared by the balance and records pages ---- */
@@ -4029,8 +4198,10 @@
       if (ldMatched.length === 0) {
         summaryBox.innerHTML = '';
       } else {
-        const names = ldMatched.map(function (p) { return esc(p.name); }).join(', ');
-        summaryBox.innerHTML = '<div class="ld-roster-summary"><strong>' + ldMatched.length + ' players loaded:</strong> ' + names + '</div>';
+        summaryBox.innerHTML = '<div class="ld-roster-summary">' +
+          '<strong>' + ldMatched.length + ' players loaded</strong>' +
+          nameChips_(ldMatched.map(function (p) { return p.name; })) +
+          '</div>';
       }
     }
 
@@ -4395,6 +4566,202 @@
       return day >= 1 && day <= daysInMonth;
     }
 
+    // 24-hour HH:MM. The Time field used to be <input type="time">, which
+    // validated itself but rendered as native OS chrome (and showed 12h or
+    // 24h depending on the viewer's locale, so two admins could disagree
+    // about what "6:00" meant). It's a plain text field now, in 24h, so it
+    // needs the same kind of check the date field already had.
+    function isValidHM_(s) {
+      const m = /^(\d{1,2}):(\d{2})$/.exec(s);
+      if (!m) return false;
+      return parseInt(m[1], 10) <= 23 && parseInt(m[2], 10) <= 59;
+    }
+    function padTwo_(n) { return (n < 10 ? '0' : '') + n; }
+
+    // ---- Internal Leagues date/time picker ----
+    // One popover element, reused by every Date and Time field on the page
+    // (the forms are re-rendered wholesale after each league write, so
+    // per-field wiring would have to be redone every time — this is opened
+    // by a delegated click instead, and only ever needs positioning).
+    var ilPickerInput_ = null;     // the input being edited
+    var ilPickerKind_ = null;      // 'date' | 'time'
+    var ilPickerYear_ = 0, ilPickerMonth_ = 0;   // month on show in the calendar
+
+    function ilPickerEl_() {
+      var el = document.getElementById('ilPicker');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'ilPicker';
+        el.className = 'il-picker';
+        el.hidden = true;
+        document.body.appendChild(el);
+      }
+      return el;
+    }
+
+    function ilParseDMY_(s) {
+      const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(s || '').trim());
+      if (!m || !isValidDMY_(s.trim())) return null;
+      return { d: +m[1], m: +m[2], y: +m[3] };
+    }
+
+    function ilRenderDatePicker_() {
+      const el = ilPickerEl_();
+      const cur = ilParseDMY_(ilPickerInput_.value);
+      const today = new Date();
+      const first = new Date(ilPickerYear_, ilPickerMonth_ - 1, 1);
+      // Monday-first, matching how the community reads a week.
+      const lead = (first.getDay() + 6) % 7;
+      const days = new Date(ilPickerYear_, ilPickerMonth_, 0).getDate();
+      let cells = '';
+      for (let i = 0; i < lead; i++) cells += '<div class="il-picker-cell empty"></div>';
+      for (let d = 1; d <= days; d++) {
+        const isSel = cur && cur.d === d && cur.m === ilPickerMonth_ && cur.y === ilPickerYear_;
+        const isToday = d === today.getDate() && ilPickerMonth_ === today.getMonth() + 1 && ilPickerYear_ === today.getFullYear();
+        cells += '<button type="button" class="il-picker-cell' + (isSel ? ' selected' : '') + (isToday ? ' today' : '') +
+          '" data-day="' + d + '">' + d + '</button>';
+      }
+      el.innerHTML =
+        '<div class="il-picker-nav">' +
+          '<button type="button" class="month-picker-year-btn" data-step="-1">‹</button>' +
+          '<span class="il-picker-label">' + MONTH_PICKER_ABBR_[ilPickerMonth_ - 1] + ' ' + ilPickerYear_ + '</span>' +
+          '<button type="button" class="month-picker-year-btn" data-step="1">›</button>' +
+        '</div>' +
+        '<div class="il-picker-dow"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>' +
+        '<div class="il-picker-grid">' + cells + '</div>' +
+        '<div class="il-picker-foot">' +
+          '<button type="button" data-pick-today="1">Today</button>' +
+          '<button type="button" data-clear="1">Clear</button>' +
+        '</div>';
+    }
+
+    function ilRenderTimePicker_() {
+      const el = ilPickerEl_();
+      const cur = String(ilPickerInput_.value || '').trim();
+      let slots = '';
+      // 06:00–22:30 in 30-minute steps covers every realistic tip-off; a rare
+      // odd time can still be typed straight into the field.
+      for (let mins = 6 * 60; mins <= 22 * 60 + 30; mins += 30) {
+        const t = padTwo_(Math.floor(mins / 60)) + ':' + padTwo_(mins % 60);
+        slots += '<button type="button" class="il-picker-cell' + (t === cur ? ' selected' : '') +
+          '" data-time="' + t + '">' + t + '</button>';
+      }
+      el.innerHTML =
+        '<div class="il-picker-nav"><span class="il-picker-label">Tip-off time</span></div>' +
+        '<div class="il-picker-times">' + slots + '</div>' +
+        '<div class="il-picker-foot"><button type="button" data-clear="1">Clear</button></div>';
+    }
+
+    function ilPositionPicker_(anchor) {
+      const el = ilPickerEl_();
+      el.hidden = false;
+      const a = anchor.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const margin = 8;
+      let top = a.bottom + 6;
+      // Prefer below the field, flip above when it wouldn't fit.
+      if (top + r.height > window.innerHeight - margin) top = a.top - r.height - 6;
+      // Then clamp into the viewport regardless. Flipping alone isn't enough:
+      // the anchor itself can be off-screen (the game forms sit low in a long
+      // league page), and a popover positioned off a field that isn't visible
+      // would open off-screen too.
+      top = Math.max(margin, Math.min(top, window.innerHeight - r.height - margin));
+      let left = Math.max(margin, Math.min(a.left, window.innerWidth - r.width - margin));
+      el.style.top = Math.round(top) + 'px';
+      el.style.left = Math.round(left) + 'px';
+    }
+
+    function ilOpenPicker_(input, kind) {
+      ilPickerInput_ = input;
+      ilPickerKind_ = kind;
+      if (kind === 'date') {
+        const cur = ilParseDMY_(input.value) || (function () {
+          const n = new Date();
+          return { d: n.getDate(), m: n.getMonth() + 1, y: n.getFullYear() };
+        })();
+        ilPickerYear_ = cur.y;
+        ilPickerMonth_ = cur.m;
+        ilRenderDatePicker_();
+      } else {
+        ilRenderTimePicker_();
+      }
+      ilPositionPicker_(input.closest('.il-field') || input);
+      if (kind === 'time') {
+        const sel = ilPickerEl_().querySelector('.il-picker-cell.selected');
+        // 'nearest' so this only ever scrolls the slot list itself — 'center'
+        // also asks ancestors (and the window) to scroll, which is pointless
+        // for a position:fixed popover.
+        if (sel) sel.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    function ilClosePicker_() {
+      const el = document.getElementById('ilPicker');
+      if (el) el.hidden = true;
+      ilPickerInput_ = null;
+      ilPickerKind_ = null;
+    }
+
+    function ilSetPickerValue_(value) {
+      ilPickerInput_.value = value;
+      ilPickerInput_.dispatchEvent(new Event('input', { bubbles: true }));
+      ilClosePicker_();
+    }
+
+    document.addEventListener('click', function (e) {
+      const trigger = e.target.closest('.il-field-btn');
+      if (trigger) {
+        const input = trigger.closest('.il-field').querySelector('input');
+        const kind = trigger.dataset.picker;
+        // A second click on the same field's button closes it again.
+        if (ilPickerInput_ === input && ilPickerKind_ === kind) ilClosePicker_();
+        else ilOpenPicker_(input, kind);
+        return;
+      }
+      const el = document.getElementById('ilPicker');
+      if (!el || el.hidden) return;
+      if (!e.target.closest('#ilPicker')) { ilClosePicker_(); return; }
+
+      const step = e.target.closest('[data-step]');
+      if (step) {
+        ilPickerMonth_ += parseInt(step.dataset.step, 10);
+        if (ilPickerMonth_ < 1) { ilPickerMonth_ = 12; ilPickerYear_--; }
+        else if (ilPickerMonth_ > 12) { ilPickerMonth_ = 1; ilPickerYear_++; }
+        ilRenderDatePicker_();
+        return;
+      }
+      if (e.target.closest('[data-clear]')) { ilSetPickerValue_(''); return; }
+      if (e.target.closest('[data-pick-today]')) {
+        const n = new Date();
+        ilSetPickerValue_(padTwo_(n.getDate()) + '/' + padTwo_(n.getMonth() + 1) + '/' + n.getFullYear());
+        return;
+      }
+      const day = e.target.closest('[data-day]');
+      if (day) {
+        ilSetPickerValue_(padTwo_(+day.dataset.day) + '/' + padTwo_(ilPickerMonth_) + '/' + ilPickerYear_);
+        return;
+      }
+      const time = e.target.closest('[data-time]');
+      if (time) ilSetPickerValue_(time.dataset.time);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && ilPickerInput_) ilClosePicker_();
+    });
+    // The popover is position:fixed, so it doesn't travel with the field it
+    // belongs to — close it rather than let it sit somewhere wrong.
+    window.addEventListener('resize', ilClosePicker_);
+    // Capture-phase, so it sees scrolls in any container, not just the window
+    // — but the time picker's own slot list is a scroller, and scrolling the
+    // selected slot into view on open would otherwise close the picker the
+    // moment it opened. Scrolls from inside the popover aren't the page
+    // moving out from under it, so they don't count.
+    window.addEventListener('scroll', function (e) {
+      const t = e.target;
+      if (t && t.nodeType === 1 && t.closest && t.closest('#ilPicker')) return;
+      ilClosePicker_();
+    }, true);
+
     function renderGameEditForm_(league, game) {
       const teamNames = league.teams.map(function (t) { return t.teamName; });
       const winnerOptions =
@@ -4406,8 +4773,8 @@
           '<td colspan="8">' +
             '<div class="il-form-grid">' +
               '<label>Stage<input type="text" class="il-f-stage" value="' + esc(game.stage || '') + '"></label>' +
-              '<label>Date<input type="text" class="il-f-date" placeholder="dd/mm/yyyy" value="' + esc(game.date || '') + '"></label>' +
-              '<label>Time<input type="time" class="il-f-time" value="' + esc(game.time || '') + '"></label>' +
+              '<label>Date<span class="il-field"><input type="text" class="il-f-date" placeholder="dd/mm/yyyy" value="' + esc(game.date || '') + '"><button type="button" class="il-field-btn" data-picker="date" aria-label="Pick a date">' + icon_('calendar') + '</button></span></label>' +
+              '<label>Time<span class="il-field"><input type="text" class="il-f-time" placeholder="hh:mm" value="' + esc(game.time || '') + '"><button type="button" class="il-field-btn" data-picker="time" aria-label="Pick a time">' + icon_('history') + '</button></span></label>' +
               '<label>Home<select class="il-f-home">' + teamOptions_(teamNames, game.homeTeam) + '</select></label>' +
               '<label>Away<select class="il-f-away">' + teamOptions_(teamNames, game.awayTeam) + '</select></label>' +
               '<label>Home score<input type="number" class="il-f-homescore" value="' + esc(game.homeScore != null ? game.homeScore : '') + '"></label>' +
@@ -4458,8 +4825,8 @@
       return '' +
         '<div class="il-form-grid" data-league="' + esc(league.leagueId) + '">' +
           '<label>Stage<input type="text" class="il-f-stage" placeholder="e.g. Semifinal"></label>' +
-          '<label>Date<input type="text" class="il-f-date" placeholder="dd/mm/yyyy"></label>' +
-          '<label>Time<input type="time" class="il-f-time"></label>' +
+          '<label>Date<span class="il-field"><input type="text" class="il-f-date" placeholder="dd/mm/yyyy"><button type="button" class="il-field-btn" data-picker="date" aria-label="Pick a date">' + icon_('calendar') + '</button></span></label>' +
+          '<label>Time<span class="il-field"><input type="text" class="il-f-time" placeholder="hh:mm"><button type="button" class="il-field-btn" data-picker="time" aria-label="Pick a time">' + icon_('history') + '</button></span></label>' +
           '<label>Home<select class="il-f-home">' + teamOptions_(teamNames) + '</select></label>' +
           '<label>Away<select class="il-f-away">' + teamOptions_(teamNames) + '</select></label>' +
           '<label>Referee<input type="text" class="il-f-referee"></label>' +
@@ -4606,7 +4973,7 @@
 
     function renderLeagueDetail_(league, editable) {
       const teamsHtml = '<div class="il-teams-grid">' + league.teams.map(function (t, i) {
-        const players = t.players.map(function (p) { return esc(p.name) + (p.position ? ' (' + esc(p.position) + ')' : ''); }).join(', ');
+        const players = nameChips_(t.players, function (p) { return p.position || ''; });
         return '' +
           '<div class="il-team-card tone-' + ((i % 4) + 1) + '">' +
             teamJersey_((i % 4) + 1, teamJerseyLabel_(t.teamName, i)) +
@@ -4773,6 +5140,11 @@
           alert('Date must be in dd/mm/yyyy format (e.g. 15/09/2026).');
           return;
         }
+        const timeVal = row.querySelector('.il-f-time').value.trim();
+        if (timeVal && !isValidHM_(timeVal)) {
+          alert('Time must be in 24-hour hh:mm format (e.g. 18:00).');
+          return;
+        }
         const leagueId = row.dataset.league;
         const gameId = row.dataset.game;
         const winnerVal = row.querySelector('.il-f-winner').value;
@@ -4781,7 +5153,7 @@
           gameId: gameId,
           stage: row.querySelector('.il-f-stage').value,
           date: dateVal,
-          time: row.querySelector('.il-f-time').value,
+          time: timeVal,
           homeTeam: row.querySelector('.il-f-home').value,
           awayTeam: row.querySelector('.il-f-away').value,
           homeScore: row.querySelector('.il-f-homescore').value,
@@ -4818,12 +5190,17 @@
           alert('Date must be in dd/mm/yyyy format (e.g. 15/09/2026).');
           return;
         }
+        const addTimeVal = box.querySelector('.il-f-time').value.trim();
+        if (addTimeVal && !isValidHM_(addTimeVal)) {
+          alert('Time must be in 24-hour hh:mm format (e.g. 18:00).');
+          return;
+        }
         const leagueId = saveAddGameBtn.dataset.league;
         callLeagueApi_('addGame', {
           leagueId: leagueId,
           stage: box.querySelector('.il-f-stage').value,
           date: addDateVal,
-          time: box.querySelector('.il-f-time').value,
+          time: addTimeVal,
           homeTeam: box.querySelector('.il-f-home').value,
           awayTeam: box.querySelector('.il-f-away').value,
           referee: box.querySelector('.il-f-referee').value,
@@ -4907,9 +5284,9 @@
       const text = lines.join('\n').trim();
 
       const showCopied = function () {
-        const original = btn.textContent;
-        btn.textContent = '✅ Copied!';
-        setTimeout(function () { btn.textContent = original; }, 1500);
+        const original = btnLabel_(btn);
+        setBtnLabel_(btn, { main: 'Copied!', sub: original.sub });
+        setTimeout(function () { setBtnLabel_(btn, original); }, 1500);
       };
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -4986,9 +5363,26 @@
         '</div>';
     }
 
+    // Renders a run of player names as a grid of equal-width chips (see the
+    // .name-grid CSS). Shared by the Dashboard's delta boxes, League Draft's
+    // loaded-roster box and Internal Leagues' team cards, which all used to
+    // join their names into one comma-separated string. `sub` optionally
+    // pulls a muted suffix (e.g. a position) off each entry.
+    function nameChips_(names, sub) {
+      if (!names || !names.length) return '';
+      return '<div class="name-grid">' + names.map(function (n) {
+        const suffix = sub ? sub(n) : '';
+        const label = String(n && n.name !== undefined ? n.name : n);
+        return '<span class="name-chip" title="' + esc(label + (suffix ? ' (' + suffix + ')' : '')) + '">' +
+          esc(label) +
+          (suffix ? ' <span class="name-chip-sub">' + esc(suffix) + '</span>' : '') +
+          '</span>';
+      }).join('') + '</div>';
+    }
+
     function renderDeltaRow() {
       const listOrNone = function (arr) {
-        return (arr && arr.length) ? arr.map(esc).join(', ') : 'None';
+        return (arr && arr.length) ? nameChips_(arr) : '<span class="name-none">None</span>';
       };
       const newcomers = DATA.newcomers || [];
       const comeback = DATA.comebackPlayers || [];
@@ -5701,9 +6095,9 @@
       const text = lines.join('\n');
 
       const showCopied = function () {
-        const original = btn.textContent;
-        btn.textContent = '✅ Copied!';
-        setTimeout(function () { btn.textContent = original; }, 1500);
+        const original = btnLabel_(btn);
+        setBtnLabel_(btn, { main: 'Copied!', sub: original.sub });
+        setTimeout(function () { setBtnLabel_(btn, original); }, 1500);
       };
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -5715,6 +6109,29 @@
         if (fallbackCopy(text)) showCopied();
         else alert('Could not copy automatically. Here is the list:\n\n' + text);
       }
+    }
+
+    // ---- Transient button labels ----
+    // These buttons are markup, not text: an icon <span> plus a two-line
+    // <span class="btn-label"> (main + sub). Assigning btn.textContent to
+    // show "Copied!"/"Generating…" flattened all of that into a single text
+    // node, and restoring the saved textContent afterwards left the button
+    // reading "CopyMembership list" in the button's own font, with the icon
+    // and both label sizes gone for good. Swap only the label's text and the
+    // structure survives. Plain-text buttons (the Dashboard's own export)
+    // have no .btn-label and still fall back to textContent.
+    function btnLabel_(btn) {
+      const main = btn.querySelector('.btn-label-main');
+      if (!main) return { main: btn.textContent, sub: null };
+      const sub = btn.querySelector('.btn-label-sub');
+      return { main: main.textContent, sub: sub ? sub.textContent : null };
+    }
+    function setBtnLabel_(btn, label) {
+      const main = btn.querySelector('.btn-label-main');
+      if (!main) { btn.textContent = label.main; return; }
+      main.textContent = label.main;
+      const sub = btn.querySelector('.btn-label-sub');
+      if (sub && label.sub !== null) sub.textContent = label.sub;
     }
 
     function copyMembershipList(btn) {
@@ -5737,9 +6154,9 @@
       const text = lines.join('\n');
 
       const showCopied = function () {
-        const original = btn.textContent;
-        btn.textContent = '✅ Copied!';
-        setTimeout(function () { btn.textContent = original; }, 1500);
+        const original = btnLabel_(btn);
+        setBtnLabel_(btn, { main: 'Copied!', sub: original.sub });
+        setTimeout(function () { setBtnLabel_(btn, original); }, 1500);
       };
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -5758,8 +6175,8 @@
         alert('Image export library failed to load — check your internet connection and try again.');
         return;
       }
-      const original = btn.textContent;
-      btn.textContent = '⏳ Generating…';
+      const original = btnLabel_(btn);
+      setBtnLabel_(btn, { main: 'Generating…', sub: original.sub });
       btn.disabled = true;
       document.body.classList.add('exporting-records');
       const target = document.getElementById(elementId);
@@ -5790,7 +6207,7 @@
           document.body.classList.remove('exporting-records');
           if (needsForceShow) target.style.display = 'none';
           if (needsWiden) target.style.width = '';
-          btn.textContent = original;
+          setBtnLabel_(btn, original);
           btn.disabled = false;
           const link = document.createElement('a');
           link.download = filenamePrefix + '-' + (DATA.recordsMonth || DATA.currentYear || 'export') + '.png';
@@ -5800,7 +6217,7 @@
           document.body.classList.remove('exporting-records');
           if (needsForceShow) target.style.display = 'none';
           if (needsWiden) target.style.width = '';
-          btn.textContent = original;
+          setBtnLabel_(btn, original);
           btn.disabled = false;
           alert('Could not generate image: ' + err.message);
         });
