@@ -142,6 +142,19 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Four requests: the mobile hero banner's padding/logo size trimmed (was
+  taking up roughly a third of the screen at phone width); the browser-tab favicon replaced
+  with the actual "HS" rail-logo artwork (`--hs-mask`, decoded, tinted the dark-mode accent
+  green, and re-encoded as a 64×64 PNG data URI) — **this one is `web-frontend`-only**, since
+  Apps Script's iframe wrapper means `ui.html` can't control its own favicon (see the
+  2026-08-30 entry below); Internal League cards now show a start–finish date range derived
+  from the games' own dates (`computeLeagueDateRange_`), next to the existing team/game
+  counts; and the player photo upload flow now resizes/recompresses the image client-side via
+  `<canvas>` (capped at 400px on the longer side, re-encoded as JPEG) before upload, rather
+  than relying solely on the 2MB size-limit backstop. The "no permission to call
+  DriveApp.Folder.createFile" upload error some uploads hit is fixed on the
+  `app-script-backend` side only (an authorization/scope issue, not app code) — see that
+  repo's changelog for the fix and the one-time re-authorization step it still needs.
 - **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: three follow-up fixes —
   New & Returning Players' hover/click area is now scoped to just its tinted names box (not
   the whole outer card), matching New/Departed; the player list's scrollbar thumb fades in
