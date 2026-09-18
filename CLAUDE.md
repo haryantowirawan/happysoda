@@ -142,6 +142,24 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-19** — Mirrored from `../app-script-backend/ui.html`: the tier tabs and Monthly
+  Records' week tabs can be **swiped** left/right on the tab body, not only tapped. The two
+  duplicated tab click handlers collapsed into one `TAB_GROUPS_` description plus a shared
+  `activateTab_()`, and `initTabSwipe_()` adds passive touch listeners to `#playersScroll`
+  and `#recordsExportCapture` (`touch-action: pan-y`). Guards: the axis is locked on the
+  first 10px and held for the gesture, a swipe needs 55px of predominantly horizontal travel
+  inside 800ms, and `horizontalScrollerInPath_()` yields to any `overflow-x` ancestor that
+  can still scroll that way — handing the gesture back to the tabs once it's at its edge.
+  Movement is clamped rather than wrapped, and the incoming panel slides in from the side the
+  finger came from (disabled under `prefers-reduced-motion`). See that repo's CLAUDE.md for
+  the full reasoning.
+  Note this file's copy lives inside `buildDashboard()`, which re-runs on every `loadData()`
+  — verified under iPhone emulation with real `TouchEvent`s that the listeners **don't stack**
+  (3 forced rebuilds, then one swipe still moves exactly one tab), alongside the same
+  behavioural checks run against `ui.html`: full forward/backward walks with clamping at both
+  ends, vertical/short/diagonal drags ignored, records weeks stepping, and a scroller
+  consuming then releasing the gesture. No page errors.
+
 - **2026-09-19** — Mirrored from `../app-script-backend/ui.html` (see that repo's CLAUDE.md
   for the full reasoning behind each):
   - **Name chips**: the four places that rendered a list of players as one comma-joined

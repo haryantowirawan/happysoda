@@ -2301,6 +2301,34 @@
     /* Monthly Records' picker sits left, like the Dashboard's. */
     #page-records .controls-row { justify-content: flex-start; }
 
+    /* ---- Swipe between tabs ----
+       The tier and Monthly Records tab bodies can be swiped left/right to
+       move to the next/previous tab (initTabSwipe_). The incoming panel
+       slides in from the side the finger came from, so the direction of
+       travel is legible — otherwise the content just changes and a swipe
+       feels indistinguishable from a mis-tap. Only the swipe path adds
+       these classes; a tab tap keeps the plain fadeIn it always had. */
+    @keyframes tabSlideFromRight {
+      from { opacity: 0; transform: translateX(16px); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes tabSlideFromLeft {
+      from { opacity: 0; transform: translateX(-16px); }
+      to { opacity: 1; transform: none; }
+    }
+    .panel.active.swipe-from-right,
+    .records-panel.active.swipe-from-right { animation: tabSlideFromRight 0.22s ease; }
+    .panel.active.swipe-from-left,
+    .records-panel.active.swipe-from-left { animation: tabSlideFromLeft 0.22s ease; }
+    /* A swipeable body shouldn't let the browser claim the horizontal
+       gesture first (pull-to-refresh sideways / overscroll back-navigation)
+       while still scrolling vertically as normal. */
+    .tab-swipe-body { touch-action: pan-y; }
+    @media (prefers-reduced-motion: reduce) {
+      .panel.active.swipe-from-right, .records-panel.active.swipe-from-right,
+      .panel.active.swipe-from-left, .records-panel.active.swipe-from-left { animation: none; }
+    }
+
     /* ---- Name chips (shared) ----
        Every run of player names in the app — New & Returning / New /
        Departed, a League Draft roster, an Internal Leagues team — used to
@@ -5766,24 +5794,116 @@
       updateLeagueDraftValidation();
       renderLeagueTeamResults(ldLastResult);
 
-      document.querySelectorAll('#tierTabs .tab').forEach(function (tab) {
-        tab.addEventListener('click', function () {
-          document.querySelectorAll('#tierTabs .tab').forEach(function (t) { t.classList.remove('active'); });
-          document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
-          tab.classList.add('active');
-          document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
-          setListHeading_(tab);
+      // ---- Tab groups ----
+      // The two tab strips behave identically apart from which attribute names
+      // their panels; describing them once lets the click handler and the
+      // swipe handler below share one activation path instead of each group
+      // keeping its own copy (they already had two near-identical copies).
+      const TAB_GROUPS_ = [
+        { strip: 'tierTabs', body: 'playersScroll', panelClass: 'panel', prefix: 'panel-', key: 'panel' },
+        { strip: 'recordsTabs', body: 'recordsExportCapture', panelClass: 'records-panel', prefix: 'recordspanel-', key: 'recordspanel' }
+      ];
+
+      // `direction` is only passed by a swipe: -1 came from the right (moving
+      // forward), 1 from the left. A tab tap passes nothing and keeps fadeIn.
+      function activateTab_(group, tab, direction) {
+        const strip = document.getElementById(group.strip);
+        strip.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+        document.querySelectorAll('.' + group.panelClass).forEach(function (p) {
+          p.classList.remove('active', 'swipe-from-left', 'swipe-from-right');
+        });
+        tab.classList.add('active');
+        const panel = document.getElementById(group.prefix + tab.dataset[group.key]);
+        if (direction) panel.classList.add(direction < 0 ? 'swipe-from-right' : 'swipe-from-left');
+        panel.classList.add('active');
+        if (group.strip === 'tierTabs') setListHeading_(tab);
+        // The strip scrolls horizontally on a phone, so a tab reached by
+        // swiping can be off-screen. Nudge it into view without touching the
+        // page's own scroll position (scrollIntoView would move the page too).
+        const sr = strip.getBoundingClientRect(), tr = tab.getBoundingClientRect();
+        if (tr.left < sr.left) strip.scrollLeft -= (sr.left - tr.left) + 12;
+        else if (tr.right > sr.right) strip.scrollLeft += (tr.right - sr.right) + 12;
+      }
+
+      TAB_GROUPS_.forEach(function (group) {
+        document.querySelectorAll('#' + group.strip + ' .tab').forEach(function (tab) {
+          tab.addEventListener('click', function () { activateTab_(group, tab); });
         });
       });
 
-      document.querySelectorAll('#recordsTabs .tab').forEach(function (tab) {
-        tab.addEventListener('click', function () {
-          document.querySelectorAll('#recordsTabs .tab').forEach(function (t) { t.classList.remove('active'); });
-          document.querySelectorAll('.records-panel').forEach(function (p) { p.classList.remove('active'); });
-          tab.classList.add('active');
-          document.getElementById('recordspanel-' + tab.dataset.recordspanel).classList.add('active');
-        });
-      });
+      // ---- Swipe between tabs ----
+      // Walks up from the touched node looking for something that wants the
+      // horizontal gesture for itself — the All Players table inside
+      // .players-scroll, or a .table-scroll in a records panel. Only counts if
+      // that element can actually still scroll the way the finger is going,
+      // so a table already at its right edge hands the swipe on to the tabs
+      // rather than swallowing it.
+      function horizontalScrollerInPath_(node, root, dx) {
+        let el = node;
+        while (el && el.nodeType === 1) {
+          const ox = getComputedStyle(el).overflowX;
+          if ((ox === 'auto' || ox === 'scroll') && el.scrollWidth > el.clientWidth + 1) {
+            if (dx < 0 && el.scrollLeft < el.scrollWidth - el.clientWidth - 1) return true;
+            if (dx > 0 && el.scrollLeft > 0) return true;
+          }
+          if (el === root) break;
+          el = el.parentElement;
+        }
+        return false;
+      }
+
+      function initTabSwipe_(group) {
+        const body = document.getElementById(group.body);
+        const strip = document.getElementById(group.strip);
+        if (!body || !strip) return;
+        body.classList.add('tab-swipe-body');
+
+        let startX = 0, startY = 0, startT = 0, tracking = false, axis = '';
+        // Listeners are passive: the gesture is only acted on at touchend, so
+        // there's never anything to preventDefault, and vertical scrolling
+        // stays on the browser's fast path.
+        body.addEventListener('touchstart', function (e) {
+          if (e.touches.length !== 1) { tracking = false; return; }
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          startT = Date.now();
+          tracking = true;
+          axis = '';
+        }, { passive: true });
+
+        body.addEventListener('touchmove', function (e) {
+          if (!tracking || axis) return;
+          const dx = e.touches[0].clientX - startX;
+          const dy = e.touches[0].clientY - startY;
+          // Lock the axis on the first decisive movement. A gesture that starts
+          // vertical stays a scroll for its whole life, so drifting sideways
+          // part-way through a scroll can't flip the tab out from under it.
+          if (Math.abs(dx) > 10 || Math.abs(dy) > 10) axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+        }, { passive: true });
+
+        body.addEventListener('touchend', function (e) {
+          if (!tracking) return;
+          tracking = false;
+          if (axis !== 'x') return;
+          const t = e.changedTouches[0];
+          const dx = t.clientX - startX;
+          const dy = t.clientY - startY;
+          if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+          if (Date.now() - startT > 800) return;      // a slow drag isn't a swipe
+          if (horizontalScrollerInPath_(e.target, body, dx)) return;
+          const tabs = [].slice.call(strip.querySelectorAll('.tab'));
+          const i = tabs.findIndex(function (x) { return x.classList.contains('active'); });
+          // Clamped, not wrapped — running off the end of the tiers and
+          // reappearing at Members reads as a glitch rather than a move.
+          const next = i + (dx < 0 ? 1 : -1);
+          if (i < 0 || next < 0 || next >= tabs.length) return;
+          activateTab_(group, tabs[next], dx < 0 ? -1 : 1);
+        }, { passive: true });
+
+        body.addEventListener('touchcancel', function () { tracking = false; }, { passive: true });
+      }
+
+      TAB_GROUPS_.forEach(initTabSwipe_);
 
       const menuToggle = document.getElementById('menuToggle');
       const sideMenu = document.getElementById('sideMenu');
