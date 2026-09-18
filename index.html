@@ -3931,6 +3931,33 @@
       document.getElementById('loadingOverlay').classList.toggle('show', show);
     }
 
+    // script.google.com's /exec URLs occasionally bounce a request with a
+    // plain Google-branded 404 ("Halaman Tidak Ditemukan") before it even
+    // reaches the Apps Script runtime — a known intermittent flakiness in
+    // Google's own edge/serving layer for web app deployments, seen most
+    // reliably for a few seconds right after a new version is deployed
+    // (propagation delay) but reported happening at other times too.
+    // There's nothing to fix on the Apps Script side for this — it never
+    // runs the script at all — so read requests retry here instead of
+    // failing straight to the fatal-error screen. GET-only: retrying a
+    // write (callLeagueApi_) risks double-submitting if the first attempt
+    // actually landed and only the response was lost, so those aren't
+    // wrapped in this.
+    function fetchJsonWithRetry_(url, attemptsLeft, delayMs) {
+      if (attemptsLeft === undefined) attemptsLeft = 3;
+      if (delayMs === undefined) delayMs = 900;
+      return fetch(url)
+        .then(function (res) {
+          if (!res.ok) throw new Error('Server responded with status ' + res.status);
+          return res.json();
+        })
+        .catch(function (err) {
+          if (attemptsLeft <= 1) throw err;
+          return new Promise(function (resolve) { setTimeout(resolve, delayMs); })
+            .then(function () { return fetchJsonWithRetry_(url, attemptsLeft - 1, delayMs * 2); });
+        });
+    }
+
     // Internal Leagues is fetched as its own separate, always-fresh request
     // (?format=json&part=leagues) rather than being part of the main
     // dashboard payload — see app-script-backend's CLAUDE.md, 2026-09-17
@@ -3939,8 +3966,7 @@
     // write instead of a full loadData() (a league write never touches
     // dashboard/tier/outstanding data).
     function fetchLeagues_() {
-      return fetch(APPS_SCRIPT_URL + (APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&') + 'format=json&part=leagues')
-        .then(function (r) { return r.json(); })
+      return fetchJsonWithRetry_(APPS_SCRIPT_URL + (APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&') + 'format=json&part=leagues')
         .then(function (json) {
           DATA.leagues = json.leagues;
           DATA.warnings = (DATA.warnings || []).concat(json.warnings || []);
@@ -5230,11 +5256,7 @@
       if (effectiveMonth) url += '&month=' + encodeURIComponent(effectiveMonth);
       if (effectiveRecordsMonth) url += '&recordsMonth=' + encodeURIComponent(effectiveRecordsMonth);
 
-      fetch(url)
-        .then(function (res) {
-          if (!res.ok) throw new Error('Server responded with status ' + res.status);
-          return res.json();
-        })
+      fetchJsonWithRetry_(url)
         .then(function (json) {
           DATA = json;
           currentMonthParam = effectiveMonth || null;

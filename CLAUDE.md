@@ -142,6 +142,12 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: `loadData()` and
+  `fetchLeagues_()` now retry (up to 3 attempts, 900ms/1800ms backoff) via a shared
+  `fetchJsonWithRetry_()` before showing the fatal-error screen, since `script.google.com`'s
+  `/exec` URLs occasionally bounce a request with a plain Google 404 page before the Apps
+  Script backend ever runs — reported by the user as an occasional error, reproduced directly
+  against the live URL. GET-only; write requests aren't retried. See that changelog for detail.
 - **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: seven fixes/features —
   search-clear (×) button no longer stuck hidden after a delta-box link, the "Updated" status
   dot restyled so it reads as an indicator instead of stray misalignment, Monthly Records
