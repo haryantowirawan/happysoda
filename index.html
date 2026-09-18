@@ -2092,10 +2092,18 @@
 
     /* ---- New & Returning names get the same tinted box as New/Departed ---- */
     .delta-names-box {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
       padding: 10px 12px;
       border-radius: var(--radius-sm);
       background: var(--accent-soft);
     }
+    /* Matches New/Departed's chevron, which sits inside their tinted box
+       rather than in the (untinted) title above — see boxAttrs/chevron in
+       renderDeltaRow. */
+    .delta-names-box .delta-chevron { margin-top: 2px; }
     /* People icon beside "Member/Regular Changes", matching the chart header's
        icon treatment. */
     .delta-group-title { display: flex; align-items: center; gap: 8px; }
@@ -2554,7 +2562,10 @@
     .balance-amount { font-size: 16px; font-weight: 800; white-space: nowrap; }
     .balance-amount.amount-owed { color: var(--red); }
     .balance-amount.amount-credit { color: var(--green); }
-    .balance-chevron { display: flex; font-size: 18px; color: var(--muted); }
+    /* Always reserves 18px, whether or not it holds an icon — a dead-link
+       row would otherwise have no chevron at all, shifting its amount out
+       of alignment with the linkable rows above/below it. */
+    .balance-chevron { display: flex; width: 18px; height: 18px; flex-shrink: 0; font-size: 18px; color: var(--muted); }
     .balance-row-plain { cursor: default; }
     .balance-row-plain:hover { border-color: var(--border); }
     .balance-total-row {
@@ -3100,7 +3111,7 @@
             '<span class="balance-rank">' + (i + 1) + '</span>' +
             '<span class="balance-name">' + esc(item.name) + '</span>' +
             '<span class="balance-amount ' + esc(amountClass || '') + '">' + formatIDR(item.amount) + '</span>' +
-            (linkable ? '<span class="balance-chevron">' + icon_('chevronRight') + '</span>' : '') +
+            '<span class="balance-chevron">' + (linkable ? icon_('chevronRight') : '') + '</span>' +
           '</div>';
       }).join('');
       const totalCard =
@@ -3219,7 +3230,7 @@
             '<span class="balance-rank">' + (i + 1) + '</span>' +
             '<span class="balance-name">' + esc(entry.name) + '</span>' +
             amountHtml +
-            (linkable ? '<span class="balance-chevron">' + icon_('chevronRight') + '</span>' : '') +
+            '<span class="balance-chevron">' + (linkable ? icon_('chevronRight') : '') + '</span>' +
           '</div>';
       }).join('');
     }
@@ -4764,8 +4775,11 @@
       return '' +
         '<div class="delta-row">' +
           '<div' + boxAttrs('delta-box newcomer', newcomers) + '>' +
-            '<div class="delta-label">🌱 New &amp; Returning Players (' + newcomers.length + ')' + chevron(newcomers) + '</div>' +
-            '<div class="delta-names delta-names-box">' + listOrNone(newcomers) + '</div>' +
+            '<div class="delta-label">🌱 New &amp; Returning Players (' + newcomers.length + ')</div>' +
+            '<div class="delta-names delta-names-box">' +
+              '<span class="delta-names-text">' + listOrNone(newcomers) + '</span>' +
+              chevron(newcomers) +
+            '</div>' +
           '</div>' +
           '<div class="delta-group">' +
             '<div class="delta-group-title"><span class="delta-title-icon">' + icon_('users') + '</span>Member/Regular Changes</div>' +
