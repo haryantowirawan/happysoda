@@ -142,6 +142,14 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: three follow-up fixes —
+  New & Returning Players' hover/click area is now scoped to just its tinted names box (not
+  the whole outer card), matching New/Departed; the player list's scrollbar thumb fades in
+  only while actively scrolling instead of staying permanently visible; and `callLeagueApi_`
+  (every admin write, including photo uploads) now shows "Could not reach the server — please
+  try again." instead of a raw `Unexpected token '<' ... is not valid JSON` error when a write
+  hits the same occasional Google-edge 404 that reads already retry around. See that changelog
+  for full detail.
 - **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: the player profile popup
   gained an admin-only **Upload Photo** button (hidden unless `isAdmin()`), backed by a new
   `uploadPlayerPhoto` write action on the Apps Script side. 2MB max, enforced both client- and

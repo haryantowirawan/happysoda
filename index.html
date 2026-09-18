@@ -1939,9 +1939,15 @@
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(2px); }
     }
-    .players-scroll { scrollbar-width: thin; scrollbar-color: var(--bar) transparent; }
+    /* Thumb stays transparent at rest and only fades in while
+       .is-scrolling is set (added/removed in updatePlayersScrollCue_'s
+       scroll handler) — a permanently-visible thin scrollbar here read as
+       less polished than one that only shows up while actually scrolling. */
+    .players-scroll { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+    .players-scroll.is-scrolling { scrollbar-color: var(--bar) transparent; }
     .players-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-    .players-scroll::-webkit-scrollbar-thumb { background: var(--bar); border-radius: 4px; }
+    .players-scroll::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; transition: background-color 0.2s ease; }
+    .players-scroll.is-scrolling::-webkit-scrollbar-thumb { background: var(--bar); }
 
     /* ---- Month pickers ----
        <select>s rather than <input type="month">: the native control renders
@@ -1985,8 +1991,14 @@
     .delta-link { cursor: pointer; }
     .delta-link:hover .delta-chevron,
     .delta-link:focus-visible .delta-chevron { transform: translateX(2px); }
-    .delta-box.delta-link:hover, .delta-group .delta-link:hover { border-color: var(--accent); }
-    .delta-subbox.delta-link { border: 1px solid transparent; }
+    /* Hover/focus highlights only the inner tinted box that's actually the
+       link (.delta-names-box for New & Returning, .delta-subbox for New/
+       Departed) — not the whole outer .delta-box, whose untinted title row
+       was never part of the clickable area. */
+    .delta-group .delta-link:hover,
+    .delta-names-box.delta-link:hover { border-color: var(--accent); }
+    .delta-subbox.delta-link,
+    .delta-names-box.delta-link { border: 1px solid transparent; }
     .delta-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
     /* ---- Side rail placement ----
@@ -2816,10 +2828,21 @@
       const more = el.scrollHeight - el.scrollTop - el.clientHeight > 4;
       el.parentNode.classList.toggle('has-more', more);
     }
+    // Shows the scrollbar thumb (see .players-scroll.is-scrolling) only
+    // while a scroll is actually happening, fading it back out ~1s after
+    // it stops, rather than leaving it permanently visible.
+    let playersScrollHideTimer_ = null;
+    function handlePlayersScroll_() {
+      const el = document.getElementById('playersScroll');
+      el.classList.add('is-scrolling');
+      clearTimeout(playersScrollHideTimer_);
+      playersScrollHideTimer_ = setTimeout(function () { el.classList.remove('is-scrolling'); }, 1000);
+      updatePlayersScrollCue_();
+    }
     let playersScrollResizeBound_ = false;
     function initPlayersScrollCue_() {
       const el = document.getElementById('playersScroll');
-      el.addEventListener('scroll', updatePlayersScrollCue_, { passive: true });
+      el.addEventListener('scroll', handlePlayersScroll_, { passive: true });
       document.getElementById('scrollMoreBtn').addEventListener('click', function () {
         el.scrollBy({ top: Math.round(el.clientHeight * 0.8), behavior: 'smooth' });
       });
@@ -4034,7 +4057,22 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(body),
       })
-        .then(function (r) { return r.json(); })
+        // Not r.json() directly: on the same occasional Google-edge 404 that
+        // fetchJsonWithRetry_ works around for reads (see its comment), the
+        // body here is a plain HTML error page, and r.json()'s own
+        // "Unexpected token '<' ... is not valid JSON" is meaningless to a
+        // user. Writes aren't retried (risk of double-submitting a request
+        // that actually landed), so this can still happen — just with a
+        // clear message instead, prompting a manual retry.
+        .then(function (r) {
+          return r.text().then(function (text) {
+            try {
+              return JSON.parse(text);
+            } catch (e) {
+              throw new Error('Could not reach the server — please try again.');
+            }
+          });
+        })
         .then(function (json) {
           if (!json.ok) {
             // A remembered passcode that the server no longer accepts
@@ -4800,9 +4838,9 @@
       };
       return '' +
         '<div class="delta-row">' +
-          '<div' + boxAttrs('delta-box newcomer', newcomers) + '>' +
+          '<div class="delta-box newcomer">' +
             '<div class="delta-label">🌱 New &amp; Returning Players (' + newcomers.length + ')</div>' +
-            '<div class="delta-names delta-names-box">' +
+            '<div' + boxAttrs('delta-names delta-names-box', newcomers) + '>' +
               '<span class="delta-names-text">' + listOrNone(newcomers) + '</span>' +
               chevron(newcomers) +
             '</div>' +
