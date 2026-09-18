@@ -336,6 +336,91 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Player profile popup — opened from any player row on the Dashboard
+       only (Top Members/Regular/Semi-Regular/Perks Eligible/All Players).
+       Position/skill stats come from DATA.playerProfiles (the Team Manager
+       roster) when that player has an entry there; loyalty stats always
+       come from DATA.allPlayers, since every Dashboard row has one. */
+    .player-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 20px;
+    }
+    .player-modal-overlay.show { display: flex; }
+    .player-modal {
+      position: relative;
+      width: 100%;
+      max-width: 340px;
+      max-height: 88vh;
+      overflow-y: auto;
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      padding: 26px 20px 20px;
+    }
+    .player-modal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--panel-2);
+      color: var(--muted);
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .player-modal-close:hover { color: var(--text); }
+    .player-modal-header { text-align: center; margin-bottom: 6px; }
+    .player-modal-photo { margin: 0 auto 12px; width: 88px; }
+    .player-modal-name { font-size: 19px; font-weight: 800; }
+    .player-modal-position {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 2px;
+    }
+    .player-modal-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 18px 0 8px;
+    }
+    .player-modal-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .player-modal-stat {
+      background: var(--panel-2);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      text-align: center;
+    }
+    .player-modal-stat-value { font-size: 17px; font-weight: 800; color: var(--accent); }
+    .player-modal-stat-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-top: 2px;
+    }
+
     .tm-section { margin-bottom: 16px; }
     .tm-label {
       display: block;
@@ -482,15 +567,25 @@
     .tm-team-card {
       background: var(--panel-solid);
       border: 1px solid var(--border);
+      border-top: 3px solid var(--accent);
       border-radius: var(--radius);
       padding: 14px;
       margin-bottom: 12px;
+      box-shadow: var(--shadow);
     }
+    .tm-team-card.tone-1 { border-top-color: #2f8f5b; }
+    .tm-team-card.tone-2 { border-top-color: #c9a227; }
+    .tm-team-card.tone-3 { border-top-color: #2f6f9e; }
+    .tm-team-card.tone-4 { border-top-color: #a2542a; }
     .tm-team-title {
       font-size: 15px;
       font-weight: 700;
       margin-bottom: 4px;
     }
+    .tm-team-card.tone-1 .tm-team-title { color: #2f8f5b; }
+    .tm-team-card.tone-2 .tm-team-title { color: #c9a227; }
+    .tm-team-card.tone-3 .tm-team-title { color: #2f6f9e; }
+    .tm-team-card.tone-4 .tm-team-title { color: #a2542a; }
     .tm-team-rating {
       font-size: 12px;
       color: var(--muted);
@@ -498,13 +593,28 @@
     }
     .tm-team-player {
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      padding: 7px 0;
+      padding: 8px 4px;
       border-top: 1px solid var(--border);
       font-size: 13.5px;
     }
-    .tm-team-player:first-child { border-top: none; }
-    .tm-team-player-pos { color: var(--muted); font-size: 12px; }
+    .tm-team-players > .tm-team-player:first-child { border-top: none; }
+    .tm-team-players > .tm-team-player:nth-child(even) { background: var(--panel-2); }
+    .tm-team-player > span:first-child { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .tm-team-player-pos {
+      flex-shrink: 0;
+      color: var(--muted);
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      background: var(--panel-2);
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+    .tm-team-players > .tm-team-player:nth-child(even) .tm-team-player-pos,
+    .tm-team-players > .tm-team-player:nth-child(even) .ld-jersey { background: var(--panel-solid); }
     .tm-fairness-note {
       text-align: center;
       font-size: 12px;
@@ -569,8 +679,6 @@
     }
     .records-panel { display: none; }
     .records-panel.active { display: block; }
-    .paid-fee { color: var(--green); font-weight: 700; }
-    .unpaid-fee { color: #e0715c; font-weight: 700; }
     /* Every export image is a bordered, rounded card sitting on an opaque
        gutter. html2canvas crops to the captured element's exact border box,
        so a border on the capture root itself lands in the image's outermost
@@ -671,39 +779,40 @@
     body.exporting-records #ldExportCapture .records-export-title { font-size: 23px; }
 
     .ld-jersey {
-      display: inline-block;
-      min-width: 26px;
-      font-size: 11px;
-      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: var(--panel-2);
       color: var(--muted);
-      margin-right: 6px;
+      font-size: 10.5px;
+      font-weight: 800;
+      flex-shrink: 0;
     }
 
-    /* Fixed column widths so Name/Fee line up identically across every
-       tab — without this, each table's columns auto-size to their own
-       content, making the Fee column visibly jump left/right when
-       switching tabs. */
-    .records-data-table { table-layout: fixed; width: 100%; }
-    .records-data-table th:nth-child(1), .records-data-table td:nth-child(1) { width: 10%; }
-    .records-data-table th:nth-child(2), .records-data-table td:nth-child(2) { width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .records-data-table th:nth-child(3), .records-data-table td:nth-child(3) { width: 48%; text-align: right; white-space: nowrap; }
     /* Sizing for the exported image's 3 columns — narrower than the
-       on-screen tab, so the padding tightens and the Name column gives up
-       its ellipsis and wraps instead: a truncated "Teman Na…" in a saved
-       image can't be expanded the way an on-screen one could be. */
-    body.exporting-records .records-data-table { font-size: 13.5px; }
-    body.exporting-records .records-data-table th,
-    body.exporting-records .records-data-table td { padding: 7px 5px; }
-    body.exporting-records .records-data-table th:nth-child(1),
-    body.exporting-records .records-data-table td:nth-child(1) { width: 9%; }
-    body.exporting-records .records-data-table th:nth-child(2),
-    body.exporting-records .records-data-table td:nth-child(2) {
-      width: 49%;
-      white-space: normal;
-      overflow: visible;
+       on-screen tab, so the .balance-row cards (shared with Outstanding/
+       Player Credits — see renderRecordsList) shrink their padding/font
+       and let the name wrap instead of relying on space that isn't there. */
+    body.exporting-records #recordsExportCapture .balance-row {
+      padding: 7px 8px;
+      gap: 8px;
+      margin-bottom: 6px;
     }
-    body.exporting-records .records-data-table th:nth-child(3),
-    body.exporting-records .records-data-table td:nth-child(3) { width: 42%; }
+    body.exporting-records #recordsExportCapture .balance-rank {
+      width: 22px;
+      height: 22px;
+      font-size: 11px;
+    }
+    body.exporting-records #recordsExportCapture .balance-name {
+      font-size: 13.5px;
+      white-space: normal;
+    }
+    body.exporting-records #recordsExportCapture .balance-amount { font-size: 13px; }
+    body.exporting-records #recordsExportCapture .balance-chevron { display: none; }
 
     .finance-table { width: 100%; border-collapse: collapse; font-size: 16px; }
     .finance-table th {
@@ -1143,6 +1252,11 @@
       transition: border-color 0.15s ease;
     }
     .card:hover { border-color: #5c4620; }
+    .player-card { cursor: pointer; }
+    .player-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .clickable-row { cursor: pointer; }
+    .clickable-row:hover { background: var(--panel-2); }
+    .clickable-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
     .rank {
       width: 28px;
@@ -1685,6 +1799,10 @@
       transform: translateX(-50%);
     }
     .avatar-crown .icon { fill: currentColor; stroke: none; }
+    .avatar.avatar-photo { overflow: hidden; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .avatar.avatar-lg { width: 88px; height: 88px; font-size: 28px; margin-top: 0; }
+    .avatar.avatar-lg .avatar-crown { top: -16px; font-size: 26px; }
     .avatar.tone-0 { background: #1d3b2c; color: #8fe0b4; }
     .avatar.tone-1 { background: #1d3040; color: #9cc8ef; }
     .avatar.tone-2 { background: #3d2a1f; color: #f3b58f; }
@@ -2060,8 +2178,13 @@
       margin: 24px 0;
       text-align: center;
     }
-    .about-value { padding: 0 6px; border-left: 1px solid var(--border); }
-    .about-value:first-child { border-left: none; }
+    .about-value {
+      padding: 20px 14px;
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow);
+    }
     .about-value-icon {
       display: inline-flex;
       align-items: center;
@@ -2083,36 +2206,21 @@
       margin-bottom: 4px;
     }
     .about-value-text { font-size: 13px; color: var(--muted); line-height: 1.45; }
-    /* Script tiles. The mockup has photographs here; until there are real
-       ones to use, these are tinted panels carrying the same three lines. */
-    .about-tiles {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .about-tile {
-      display: flex;
-      align-items: flex-end;
-      min-height: 120px;
-      padding: 14px;
-      border-radius: var(--radius-sm);
-      background: linear-gradient(150deg, #14452f 0%, #0b2c1e 100%);
-      font-family: "Kaushan Script", cursive;
-      font-size: 21px;
-      line-height: 1.15;
-      color: #f3e7cf;
-    }
     .about-info-panel {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-      padding: 16px;
+      gap: 16px;
       margin-bottom: 20px;
-      border-radius: var(--radius-sm);
-      background: var(--panel-2);
     }
-    .about-info-item { display: flex; align-items: flex-start; gap: 10px; }
+    .about-info-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 14px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
     .about-info-icon { display: flex; font-size: 22px; color: var(--accent); }
     .about-info-label {
       font-size: 10.5px;
@@ -2180,10 +2288,6 @@
       .about-head-row { flex-direction: column; gap: 10px; }
       .about-script { text-align: left; transform: rotate(-4deg); }
       .about-values-row, .about-info-panel { grid-template-columns: 1fr; gap: 14px; }
-      .about-value { border-left: none; border-top: 1px solid var(--border); padding-top: 14px; }
-      .about-value:first-child { border-top: none; padding-top: 0; }
-      .about-tiles { grid-template-columns: 1fr; }
-      .about-tile { min-height: 86px; }
       .about-foot { flex-direction: column; align-items: flex-start; }
       .about-foot-links { text-align: left; }
     }
@@ -2378,7 +2482,12 @@
       margin-top: 5px;
       font-size: 12px;
     }
-    .page-head .dot { width: 7px; height: 7px; }
+    .page-head .dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+    .page-head .dot.error { background: var(--red); box-shadow: 0 0 6px var(--red); }
     @media (max-width: 520px) {
       .page-head-icon { width: 44px; height: 44px; font-size: 21px; }
       .page-head h1 { font-size: 20px; }
@@ -2519,6 +2628,17 @@
   <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-spinner"></div>
     <div id="loadingOverlayText">Loading…</div>
+  </div>
+  <div id="playerModalOverlay" class="player-modal-overlay">
+    <div class="player-modal" role="dialog" aria-modal="true" aria-labelledby="playerModalName">
+      <button class="player-modal-close" id="playerModalClose" type="button" aria-label="Close">&times;</button>
+      <div class="player-modal-header">
+        <div class="player-modal-photo" id="playerModalPhoto"></div>
+        <div class="player-modal-name" id="playerModalName"></div>
+        <div class="player-modal-position" id="playerModalPosition" hidden></div>
+      </div>
+      <div id="playerModalStats"></div>
+    </div>
   </div>
   <header class="hero">
     <div class="hero-left">Play<br>Connect<br>Improve<br>Together</div>
@@ -2784,20 +2904,38 @@
       return 'rank';
     }
 
-    // Dashboard player rows: an initials avatar (tone picked by a stable
-    // name hash, so a player keeps their color across reloads), a crown for
-    // Member-tier players, and a two-line summary pulled out of the
-    // backend's long points-formula reason string — the full string stays
-    // available as the row's tooltip.
-    function playerAvatar_(name, crowned) {
+    // Player photos live in the same Drive folder as the yearly cash-record
+    // sheets (see app-script-backend's discoverSources_/CLAUDE.md) — the
+    // backend maps a lowercased/trimmed name to a Drive file ID whenever a
+    // same-named image file is found there. No photo folder is populated
+    // yet, so this normally falls through to the initials avatar below.
+    function playerPhotoUrl_(name, px) {
+      const key = String(name || '').trim().toLowerCase();
+      const id = DATA.playerPhotos && DATA.playerPhotos[key];
+      return id ? 'https://drive.google.com/thumbnail?id=' + id + '&sz=w' + (px || 120) : null;
+    }
+
+    // Dashboard player rows: a photo when one's on file, otherwise an
+    // initials avatar (tone picked by a stable name hash, so a player keeps
+    // their color across reloads), a crown for Member-tier players, and a
+    // two-line summary pulled out of the backend's long points-formula
+    // reason string — the full string stays available as the row's
+    // tooltip. `large` sizes it up for the player profile popup instead of
+    // a Dashboard row.
+    function playerAvatar_(name, crowned, large) {
       const trimmed = String(name).trim();
       const words = trimmed.split(/\s+/).filter(Boolean);
       const initials = words.length > 1 ? words[0][0] + words[1][0] : trimmed.slice(0, 2);
       let hash = 0;
       for (let i = 0; i < trimmed.length; i++) hash = (hash * 31 + trimmed.charCodeAt(i)) >>> 0;
-      return '<div class="avatar tone-' + (hash % 6) + '">' +
+      const photoUrl = playerPhotoUrl_(trimmed, large ? 240 : 100);
+      const inner = photoUrl
+        ? '<img src="' + esc(photoUrl) + '" alt="" loading="lazy">'
+        : esc(initials.toUpperCase());
+      const classes = 'avatar tone-' + (hash % 6) + (large ? ' avatar-lg' : '') + (photoUrl ? ' avatar-photo' : '');
+      return '<div class="' + classes + '">' +
         (crowned ? '<span class="avatar-crown">' + icon_('crown') + '</span>' : '') +
-        esc(initials.toUpperCase()) +
+        inner +
       '</div>';
     }
 
@@ -2811,7 +2949,7 @@
 
     function playerCard_(index, name, badgeHtml, reason, points, crowned) {
       return '' +
-        '<div class="card player-card" title="' + esc(reason || '') + '">' +
+        '<div class="card player-card" title="' + esc(reason || '') + '" data-player-name="' + esc(name) + '" role="button" tabindex="0">' +
           '<div class="' + rankClass(index) + '">' + (index + 1) + '</div>' +
           playerAvatar_(name, crowned) +
           '<div class="card-main">' +
@@ -2820,6 +2958,72 @@
           '</div>' +
           '<div class="card-points"><div class="num">' + points + '</div><div class="label">points</div></div>' +
         '</div>';
+    }
+
+    // ===================== Player profile popup =====================
+    // Opened only from the Dashboard (Top Members/Regular/Semi-Regular/
+    // Perks Eligible/All Players — every row there has a data-player-name
+    // set by playerCard_/renderAll above). Outstanding/Credits/Monthly
+    // Records keep their existing "link into All Players" behavior instead
+    // of opening this directly.
+    function findPlayerProfile_(name) {
+      const key = String(name || '').trim().toLowerCase();
+      return (DATA.playerProfiles || []).find(function (p) { return p.name.trim().toLowerCase() === key; }) || null;
+    }
+    function findPlayerLoyalty_(name) {
+      const key = String(name || '').trim().toLowerCase();
+      return (DATA.allPlayers || []).find(function (p) { return p.name.trim().toLowerCase() === key; }) || null;
+    }
+    function statTile_(value, label) {
+      const shown = (value === undefined || value === null || value === '') ? '—' : value;
+      return '<div class="player-modal-stat"><div class="player-modal-stat-value">' + esc(shown) +
+        '</div><div class="player-modal-stat-label">' + esc(label) + '</div></div>';
+    }
+    function openPlayerProfile_(name) {
+      const profile = findPlayerProfile_(name);
+      const loyalty = findPlayerLoyalty_(name);
+      const crowned = (DATA.members || []).some(function (m) { return m.name.trim().toLowerCase() === name.trim().toLowerCase(); });
+
+      document.getElementById('playerModalPhoto').innerHTML = playerAvatar_(name, crowned, true);
+      document.getElementById('playerModalName').textContent = name;
+
+      const posEl = document.getElementById('playerModalPosition');
+      if (profile && profile.position) {
+        posEl.textContent = profile.position + (profile.primaryRole ? ' · ' + profile.primaryRole : '');
+        posEl.hidden = false;
+      } else {
+        posEl.hidden = true;
+      }
+
+      let statsHtml = '';
+      // Position/skill stats only show up when the player has a Team
+      // Manager roster entry — plenty of Dashboard names don't (a fine
+      // outcome per feedback: loyalty stats alone are enough there).
+      if (profile) {
+        statsHtml += '<div class="player-modal-section-title">Player Stats</div>' +
+          '<div class="player-modal-stat-grid">' +
+            statTile_(profile.skillLevel, 'Skill') +
+            statTile_(profile.athleticism, 'Athleticism') +
+            statTile_(profile.defense, 'Defense') +
+            statTile_(profile.impact, 'Impact') +
+          '</div>';
+      }
+      if (loyalty) {
+        statsHtml += '<div class="player-modal-section-title">Loyalty (last 12 months)</div>' +
+          '<div class="player-modal-stat-grid">' +
+            statTile_(loyalty.activeMonths, 'Active Months') +
+            statTile_(loyalty.weeklyEquivalentVisits, 'Wkly-Equiv. Visits') +
+            statTile_(loyalty.paidMemberMonths, 'Member Months') +
+            statTile_(loyalty.recentActivity === 'YES' ? 'Yes' : 'No', 'Recently Active') +
+          '</div>';
+      }
+      if (!statsHtml) statsHtml = '<div class="empty">No profile data yet for this player.</div>';
+      document.getElementById('playerModalStats').innerHTML = statsHtml;
+
+      document.getElementById('playerModalOverlay').classList.add('show');
+    }
+    function closePlayerProfile_() {
+      document.getElementById('playerModalOverlay').classList.remove('show');
     }
 
     function renderMembers(list, filter) {
@@ -2853,7 +3057,7 @@
         return v === 'YES' ? '<span class="yes">YES</span>' : '<span class="no">NO</span>';
       };
       const body = rows.map(function (p) {
-        return '<tr>' +
+        return '<tr class="clickable-row" data-player-name="' + esc(p.name) + '" tabindex="0">' +
           '<td>' + esc(p.name) + '</td>' +
           '<td>' + p.paidMemberMonths + '</td>' +
           '<td>' + p.paidWeeklyVisits + '</td>' +
@@ -2997,24 +3201,27 @@
       return day + '/' + month + '/' + year + ', ' + hours + ':' + minutes + ':' + seconds + ' ' + ampm;
     }
 
-    function renderRecordsTable(entries) {
+    // Same .balance-row card look (and All-Players link/dead-link rule) as
+    // Outstanding Payments / Player Credits' renderBalanceList — Monthly
+    // Records used to be a plain table here, which read as a different
+    // page rather than part of the same app.
+    function renderRecordsList(entries) {
       if (!entries || entries.length === 0) return '<div class="empty">No entries for this month.</div>';
-      const rows = entries.map(function (entry, i) {
-        const statusCell = entry.fee !== null
-          ? '<span class="paid-fee">' + formatIDR(entry.fee) + '</span>'
-          : '<span class="unpaid-fee">Not Paid</span>';
+      const known = new Set((DATA.allPlayers || []).map(function (p) { return p.name.trim().toLowerCase(); }));
+      return entries.map(function (entry, i) {
+        const linkable = known.has(entry.name.trim().toLowerCase());
+        const amountHtml = entry.fee !== null
+          ? '<span class="balance-amount amount-credit">' + formatIDR(entry.fee) + '</span>'
+          : '<span class="balance-amount amount-owed">Not Paid</span>';
         return '' +
-          '<tr>' +
-            '<td>' + (i + 1) + '</td>' +
-            '<td>' + esc(entry.name) + '</td>' +
-            '<td>' + statusCell + '</td>' +
-          '</tr>';
+          '<div class="balance-row' + (linkable ? '' : ' balance-row-plain') + '"' +
+            (linkable ? ' data-names="' + esc(entry.name) + '" role="link" tabindex="0"' : '') + '>' +
+            '<span class="balance-rank">' + (i + 1) + '</span>' +
+            '<span class="balance-name">' + esc(entry.name) + '</span>' +
+            amountHtml +
+            (linkable ? '<span class="balance-chevron">' + icon_('chevronRight') + '</span>' : '') +
+          '</div>';
       }).join('');
-      return '' +
-        '<div class="table-scroll"><table class="records-data-table">' +
-          '<thead><tr><th>#</th><th>Name</th><th>Fee</th></tr></thead>' +
-          '<tbody>' + rows + '</tbody>' +
-        '</table></div>';
     }
 
     // data-empty marks a week with no entries at all. On screen that tab
@@ -3023,7 +3230,7 @@
     // take up a whole column of empty space.
     function fillRecordsPanel(id, entries) {
       const el = document.getElementById(id);
-      el.innerHTML = renderRecordsTable(entries);
+      el.innerHTML = renderRecordsList(entries);
       if (entries && entries.length) el.removeAttribute('data-empty');
       else el.setAttribute('data-empty', '1');
     }
@@ -3354,7 +3561,7 @@
     }
     // SHARED-LOGIC:team-manager-algorithm:END
 
-    function renderTeamCard(title, team, rating) {
+    function renderTeamCard(title, team, rating, toneIndex) {
       const avg = (rating / team.length).toFixed(1);
       const players = team.slice().sort(function (a, b) { return computeCompositeRating(b) - computeCompositeRating(a); });
       const rows = players.map(function (p) {
@@ -3365,10 +3572,10 @@
           '</div>';
       }).join('');
       return '' +
-        '<div class="tm-team-card">' +
+        '<div class="tm-team-card tone-' + (toneIndex || 1) + '">' +
           '<div class="tm-team-title">' + esc(title) + '</div>' +
           '<div class="tm-team-rating">Total rating ' + rating.toFixed(1) + ' · avg ' + avg + '</div>' +
-          rows +
+          '<div class="tm-team-players">' + rows + '</div>' +
         '</div>';
     }
 
@@ -3379,8 +3586,8 @@
       const diff = Math.abs(result.ratingA - result.ratingB).toFixed(1);
       box.innerHTML =
         '<div class="tm-fairness-note">Fairest of 126 possible splits · rating gap ' + diff + '</div>' +
-        renderTeamCard('🏀 Team A', result.teamA, result.ratingA) +
-        renderTeamCard('🏀 Team B', result.teamB, result.ratingB);
+        renderTeamCard('🏀 Team A', result.teamA, result.ratingA, 1) +
+        renderTeamCard('🏀 Team B', result.teamB, result.ratingB, 2);
     }
 
     // ===================== League Draft =====================
@@ -3653,7 +3860,7 @@
     // League Draft's own team-card renderer (separate from Team Manager's
     // shared renderTeamCard) so jersey numbers only show up here, as
     // requested — not a side effect on Team Manager's results too.
-    function renderLeagueTeamCard(title, team) {
+    function renderLeagueTeamCard(title, team, toneIndex) {
       const total = team.reduce(function (s, p) { return s + computeCompositeRating(p); }, 0);
       const avg = (total / team.length).toFixed(1);
       const players = team.slice().sort(function (a, b) { return computeCompositeRating(b) - computeCompositeRating(a); });
@@ -3666,10 +3873,10 @@
           '</div>';
       }).join('');
       return '' +
-        '<div class="tm-team-card">' +
+        '<div class="tm-team-card tone-' + (toneIndex || 1) + '">' +
           '<div class="tm-team-title">' + esc(title) + '</div>' +
           '<div class="tm-team-rating">' + team.length + ' players · Total rating ' + total.toFixed(1) + ' · avg ' + avg + '</div>' +
-          rows +
+          '<div class="tm-team-players">' + rows + '</div>' +
         '</div>';
     }
 
@@ -3680,15 +3887,21 @@
       const avgs = result.teams.map(computeTeamAvgRating);
       const spread = (Math.max.apply(null, avgs) - Math.min.apply(null, avgs)).toFixed(1);
       const teamCardsHtml = result.teams.map(function (team, i) {
-        return renderLeagueTeamCard('🏀 Team ' + (i + 1), team);
+        return renderLeagueTeamCard('🏀 Team ' + (i + 1), team, (i % 4) + 1);
       }).join('');
 
       // Export/Copy buttons only exist once there's actually a result to
       // act on — they're built fresh here, not part of the static page.
+      // Same icon+two-line-label markup as Monthly Records' Export/Copy
+      // row, for a consistent look across pages. Uses icon_() inline
+      // rather than data-icon, since this box's innerHTML is set directly
+      // and hydrateIcons_() has already run by the time this executes (see
+      // renderLeagueTeamCard's sibling note on Internal Leagues for the
+      // same pattern).
       box.innerHTML =
         '<div class="records-actions">' +
-          '<button id="ldExportImageBtn" class="export-btn" type="button">🖼️ Export as Image</button>' +
-          '<button id="ldCopyTeamListBtn" class="export-btn" type="button">📋 Copy Team List</button>' +
+          '<button id="ldExportImageBtn" class="export-btn btn-primary" type="button"><span class="btn-icon">' + icon_('download') + '</span><span class="btn-label"><span class="btn-label-main">Export</span><span class="btn-label-sub">Team list as image</span></span></button>' +
+          '<button id="ldCopyTeamListBtn" class="export-btn" type="button"><span class="btn-icon">' + icon_('copy') + '</span><span class="btn-label"><span class="btn-label-main">Copy</span><span class="btn-label-sub">Team list</span></span></button>' +
         '</div>' +
         '<div id="ldExportCapture">' +
           '<div class="export-card">' +
@@ -4696,11 +4909,6 @@
           '<div class="about-value-text">Play hard, respect everyone &mdash; no hard feelings.</div>' +
           '</div>' +
           '</div>' +
-          '<div class="about-tiles">' +
-          '<div class="about-tile">Good People</div>' +
-          '<div class="about-tile">Better Basketball</div>' +
-          '<div class="about-tile">Stronger Community</div>' +
-          '</div>' +
           '<div class="about-info-panel">' +
           '<div class="about-info-item">' +
           '<span class="about-info-icon" data-icon="calendar"></span>' +
@@ -4763,9 +4971,13 @@
         activatePage('dashboard');
         const search = document.getElementById('searchBox');
         search.value = names;
+        // Dispatching 'input' (rather than calling renderAllPanels directly)
+        // routes through initSearchBox_'s own listener, so the clear (×)
+        // button's has-text state stays in sync — setting .value alone
+        // bypasses that listener and left the button stuck hidden.
+        search.dispatchEvent(new Event('input'));
         const allTab = document.querySelector('#tierTabs .tab[data-panel="all"]');
         if (allTab) allTab.click();
-        renderAllPanels(names.trim().toLowerCase());
         document.querySelector('.players-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
@@ -4821,6 +5033,38 @@
         DATA.outstanding || [], DATA.outstandingTotal || 0,
         DATA.credits || [], DATA.creditsTotal || 0
       );
+      // Same All-Players link delegation as Outstanding/Credits above, for
+      // Monthly Records' own renderRecordsList rows.
+      (function () {
+        const box = document.getElementById('recordsExportCapture');
+        box.addEventListener('click', function (e) {
+          const row = e.target.closest('.balance-row[data-names]');
+          if (row) showPlayersFiltered_(row.dataset.names);
+        });
+        box.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          const row = e.target.closest('.balance-row[data-names]');
+          if (row) { e.preventDefault(); showPlayersFiltered_(row.dataset.names); }
+        });
+      })();
+      // Player profile popup — every player row on the Dashboard
+      // (playerCard_/renderAll above set data-player-name), delegated off
+      // .players-section since its panels are rebuilt on every filter/tab
+      // switch. This is the only place the popup can be opened from —
+      // Outstanding/Credits/Monthly Records keep linking into All Players
+      // instead (see those blocks above).
+      (function () {
+        const box = document.querySelector('.players-section');
+        box.addEventListener('click', function (e) {
+          const row = e.target.closest('[data-player-name]');
+          if (row) openPlayerProfile_(row.dataset.playerName);
+        });
+        box.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          const row = e.target.closest('[data-player-name]');
+          if (row) { e.preventDefault(); openPlayerProfile_(row.dataset.playerName); }
+        });
+      })();
       renderRecordsPage();
       renderTeamManagerLists();
       renderTeamResults(tmLastResult);
@@ -5030,6 +5274,19 @@
           );
         });
     }
+
+    // Player profile popup controls live in the static shell (outside
+    // #content), so they're wired once here rather than inside
+    // buildDashboard(), which only ever replaces #content's own markup.
+    document.getElementById('playerModalClose').addEventListener('click', closePlayerProfile_);
+    document.getElementById('playerModalOverlay').addEventListener('click', function (e) {
+      if (e.target === e.currentTarget) closePlayerProfile_();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && document.getElementById('playerModalOverlay').classList.contains('show')) {
+        closePlayerProfile_();
+      }
+    });
 
     startFirstLoadProgress();
     loadData();

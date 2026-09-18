@@ -142,6 +142,17 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: seven fixes/features —
+  search-clear (×) button no longer stuck hidden after a delta-box link, the "Updated" status
+  dot restyled so it reads as an indicator instead of stray misalignment, Monthly Records
+  rebuilt as `.balance-row` cards (same All-Players link/dead-link rule as Outstanding/
+  Credits) in place of a plain table, League Draft's Export/Copy buttons restyled to match
+  Monthly Records, League Draft/Team Manager team cards given tone-colored borders/zebra rows/
+  jersey badges, About Us's "Good People/Better Basketball/Stronger Community" tiles removed
+  with real card depth added to the value and info boxes instead, and a new player profile
+  popup (photo/position/stats, openable only from the Dashboard) backed by player photos now
+  read from the same Drive folder as the yearly cash-record sheets. See that changelog for
+  full detail.
 - **2026-09-18** — Mirrored from `../app-script-backend/ui.html`: shared page headers (icon
   badge + title + subtitle + updated stamp) on every page, Outstanding/Player Credits
   rebuilt with a search + Export toolbar, chevron rows that link into All Players where the
