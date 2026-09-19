@@ -2339,11 +2339,28 @@
        vs 13-15px), which is what buys the room for the boxes.
        A name too long for its cell ellipsizes rather than wrapping, so the
        rows stay one line tall and the grid keeps its even shape — the full
-       name is on the chip's title tooltip. */
+       name is on the chip's title tooltip.
+       The 88px column minimum is measured, not chosen by eye: the widest
+       plain name in the live data ("Andrew DH") needs 87px of column at
+       12.5px/600 once the 8px side padding and 1px borders are counted, and
+       the next few ("Chongsing" 84, "Kayata DH" 82) sit comfortably under
+       it. Names are shorter than they used to be — the sheets were cleaned
+       up on 2026-09-19 ("X SDH" -> "X DH", "Teman X" -> "T.X"), which is
+       what let this come down from 104px. */
     .name-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
       gap: 6px;
+    }
+    /* An Internal Leagues team card is the one place a chip carries a
+       position suffix as well as a name, so its longest chip is a good
+       20px wider than any bare name ("Andrew DH SF" needs 106px, vs 87px
+       for "Andrew DH"). It gets its own, wider minimum rather than dragging
+       the default up: the card is a narrow flex item (see
+       .il-team-card-main) that resolves to 1-2 columns either way, so the
+       extra width costs it nothing and keeps the positions readable. */
+    .il-team-card-players .name-grid {
+      grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
     }
     .name-chip {
       display: block;

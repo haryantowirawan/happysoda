@@ -142,6 +142,17 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-19** — Mirrored from `../app-script-backend/ui.html`: the name-chip grid's column
+  minimum drops from 104px to **88px**, and Internal Leagues team cards get their own **108px**
+  minimum (`.il-team-card-players .name-grid`). CSS only, identical diff in both files.
+  The 88px is measured, not picked — the player names in the source sheets were shortened on
+  this date (`X SDH` → `X DH`, `Teman X` → `T.X`), which brings the widest plain name down to
+  `Andrew DH` at 87px. IL team cards need their own rule because theirs is the only chip
+  carrying a position suffix as well as a name (`Andrew DH SF`, 106px). See that repo's
+  changelog for the full measurement, the roster-rows-not-renamed issue it surfaced, and the
+  verification — which covered this file at 1280×900 / 900×800 / 390×844 in light and dark
+  with 0 truncated chips, no overflow and no page errors.
+
 - **2026-09-19** — Mirrored from `../app-script-backend/ui.html`: the tier tabs and Monthly
   Records' week tabs can be **swiped** left/right on the tab body, not only tapped. The two
   duplicated tab click handlers collapsed into one `TAB_GROUPS_` description plus a shared
