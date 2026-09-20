@@ -608,30 +608,40 @@
       color: var(--muted);
       margin-bottom: 10px;
     }
+    /* Each player is a chip, like every other run of names on the site
+       (the Dashboard's delta boxes, League Draft's roster, Internal Leagues'
+       team cards). This replaces zebra striping on alternating rows, which
+       was the one place a list of players was separated by tinting every
+       other row instead of by boxing each name. */
+    .tm-team-players { display: flex; flex-direction: column; gap: 6px; }
     .tm-team-player {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 4px;
-      border-top: 1px solid var(--border);
+      gap: 8px;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--chip-plate);
       font-size: 13.5px;
     }
-    .tm-team-players > .tm-team-player:first-child { border-top: none; }
-    .tm-team-players > .tm-team-player:nth-child(even) { background: var(--panel-2); }
     .tm-team-player > span:first-child { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    /* The row used to be the card's own surface with a --panel-2 badge on
+       it; now the row is the plate, so the badge inverts to --panel-solid to
+       stay visible. --chip-sub-ink rather than --muted for the same reason it
+       is used on the Internal Leagues chips: --muted is under AA at this size
+       against a plate. */
     .tm-team-player-pos {
       flex-shrink: 0;
-      color: var(--muted);
+      color: var(--chip-sub-ink);
       font-size: 10.5px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.03em;
-      background: var(--panel-2);
+      background: var(--panel-solid);
       padding: 3px 8px;
       border-radius: 999px;
     }
-    .tm-team-players > .tm-team-player:nth-child(even) .tm-team-player-pos,
-    .tm-team-players > .tm-team-player:nth-child(even) .ld-jersey { background: var(--panel-solid); }
     .tm-fairness-note {
       text-align: center;
       font-size: 12px;
@@ -786,7 +796,7 @@
        starts wrapping in a half-width card past this. */
     body.exporting-records #ldExportCapture .tm-team-player {
       font-size: 23px;
-      padding: 9px 0;
+      padding: 9px 12px;
     }
     body.exporting-records #ldExportCapture .ld-jersey { font-size: 16px; min-width: 32px; }
     body.exporting-records #ldExportCapture .tm-team-player-pos { font-size: 19px; }
@@ -803,8 +813,8 @@
       height: 22px;
       padding: 0 4px;
       border-radius: 999px;
-      background: var(--panel-2);
-      color: var(--muted);
+      background: var(--panel-solid);
+      color: var(--chip-sub-ink);
       font-size: 10.5px;
       font-weight: 800;
       flex-shrink: 0;
@@ -2385,7 +2395,8 @@
        --chip-plate is the step away from a panel that the tab strip and the
        status badge already take. The position suffix goes to --chip-sub-ink
        rather than --muted, which is just under AA on that plate at 12.5px. */
-    .il-team-card-players .name-chip { background: var(--chip-plate); }
+    .il-team-card-players .name-chip,
+    .ld-roster-summary .name-chip { background: var(--chip-plate); }
     .il-team-card-players .name-chip-sub { color: var(--chip-sub-ink); }
     .name-chip {
       display: block;

@@ -142,6 +142,16 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-20** — Mirrored from `../app-script-backend/ui.html`: League Draft's roster chips
+  join the `--chip-plate` rule (its `.ld-roster-summary` was `--panel-solid`, the same colour
+  as the default chip, so they had no plate), and the assembled team lists in both League
+  Draft and Team Manager drop zebra striping in favour of one chip per player — the last
+  place on the site where a run of players was separated by tinting alternate rows instead of
+  boxing each name. The position and jersey badges invert to `--panel-solid`/`--chip-sub-ink`,
+  since the row is the plate now and a `--panel-2` badge would vanish into it. The export
+  row's padding goes `9px 0` → `9px 12px` so a bordered chip's text clears its edge. CSS only;
+  see that repo's changelog for the measurements and the html2canvas export check.
+
 - **2026-09-20** — Mirrored from `../app-script-backend/ui.html`: Internal Leagues team-card
   player chips get a real plate (`--chip-plate`) and a `--chip-sub-ink` position suffix — the
   card and the default chip were both `--panel-solid`, the same colour, so only the 1px border
