@@ -91,8 +91,8 @@
       --radius-sm: 7px;
       /* Chips inside the Dashboard's tinted delta boxes — see the
          .delta-names-box .name-chip rule for why they're dimmed. */
-      --chip-quiet-bg: rgba(255, 255, 255, 0.04);
-      --chip-quiet-ink: #a6b8ad;
+      --chip-quiet-bg: rgba(255, 255, 255, 0.06);
+      --chip-quiet-ink: #d5e0da;
     }
     * { box-sizing: border-box; }
     body {
@@ -197,8 +197,8 @@
       --orange-soft: #fdebd3;
       --yellow-soft: #fdf6d3;
       --yellow-ink: #8a6d00;
-      --chip-quiet-bg: rgba(255, 255, 255, 0.5);
-      --chip-quiet-ink: #5b6a60;
+      --chip-quiet-bg: rgba(255, 255, 255, 0.62);
+      --chip-quiet-ink: #2e3d34;
       --shadow: 0 1px 2px rgba(16, 40, 28, 0.05), 0 6px 18px rgba(16, 40, 28, 0.06);
       background: var(--bg);
     }
@@ -2394,8 +2394,12 @@
        an opaque --panel-solid chip carrying 600-weight --text reads as a run
        of solid buttons on top of the tint, which pulls the eye away from the
        Dashboard's actual lists. A translucent wash over the tint plus a
-       dimmed ink at 500 keeps them legible (>= 5:1 on all three tints, in
-       both themes) while letting the box read as one block again. */
+       dimmed ink at 500 lets the box read as one block again.
+       The two levers are deliberately set differently. The PLATE is what made
+       these read as buttons, so it stays soft — a wash, not the opaque
+       --panel-solid. The INK only ever had to stop competing, so it sits
+       between the two extremes (~9-10:1, against 15-16:1 for --text on white
+       and ~5:1 for the first attempt at this, which read as washed out). */
     .delta-names-box .name-chip,
     .delta-subbox .name-chip {
       border-color: transparent;

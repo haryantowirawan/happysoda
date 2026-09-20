@@ -142,6 +142,14 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-20** — Mirrored from `../app-script-backend/ui.html`: the chip dimming below went
+  too far and read as washed out, so `--chip-quiet-bg`/`--chip-quiet-ink` move up to
+  `rgba(255,255,255,0.62)`/`#2e3d34` (light) and `rgba(255,255,255,0.06)`/`#d5e0da` (dark).
+  The plate stays soft — that was what made the chips read as buttons — while the ink comes
+  back to roughly the midpoint between the original white chips and the first attempt
+  (light 15.92 → 5.21 → 10.65, dark 14.20 → 5.33 → 7.70+). Vars only; the rule, its scoping
+  and the 500 weight are unchanged. See that repo's changelog for the three-way measurement.
+
 - **2026-09-20** — Mirrored from `../app-script-backend/ui.html`: the name chips in the
   Dashboard's New & Returning / New / Departed boxes are dimmed — a translucent
   `--chip-quiet-bg` wash over the box's tint plus a `--chip-quiet-ink` at weight 500, in
