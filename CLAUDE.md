@@ -142,6 +142,15 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-20** — Mirrored from `../app-script-backend/ui.html`: Internal Leagues team-card
+  player chips get a real plate (`--chip-plate`) and a `--chip-sub-ink` position suffix — the
+  card and the default chip were both `--panel-solid`, the same colour, so only the 1px border
+  separated them. `--chip-plate` differs per theme on purpose: light uses `--panel-2` (a 14%
+  luminance step from white), dark uses `rgba(255,255,255,0.10)` because its `--panel-2` is
+  only 0.8% off `--panel-solid`. The Games table's Stage column is now a chip too
+  (`.il-stage-chip`), since "Round 1 / Round 1 / Round 2 / ..." repeats down the column and
+  reads better grouped. See that repo's changelog for the measurements.
+
 - **2026-09-20** — Mirrored from `../app-script-backend/ui.html`: the chip dimming below went
   too far and read as washed out, so `--chip-quiet-bg`/`--chip-quiet-ink` move up to
   `rgba(255,255,255,0.62)`/`#2e3d34` (light) and `rgba(255,255,255,0.06)`/`#d5e0da` (dark).

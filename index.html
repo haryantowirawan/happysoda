@@ -93,6 +93,13 @@
          .delta-names-box .name-chip rule for why they're dimmed. */
       --chip-quiet-bg: rgba(255, 255, 255, 0.06);
       --chip-quiet-ink: #d5e0da;
+      /* Plate for a chip sitting ON a --panel-solid surface (an Internal
+         Leagues team card, a Games row). --panel-2 is only a 0.8% luminance
+         step from --panel-solid in this theme — near-invisible — so dark
+         uses a light wash instead of the theme's own second panel tone.
+         --chip-sub-ink is a muted that still clears AA on that plate. */
+      --chip-plate: rgba(255, 255, 255, 0.10);
+      --chip-sub-ink: #9fb2a7;
     }
     * { box-sizing: border-box; }
     body {
@@ -199,6 +206,10 @@
       --yellow-ink: #8a6d00;
       --chip-quiet-bg: rgba(255, 255, 255, 0.62);
       --chip-quiet-ink: #2e3d34;
+      /* Light's --panel-2 is already a clear 14% step from white, so the
+         plate is just that; only dark needs its own value. */
+      --chip-plate: #eaf0eb;
+      --chip-sub-ink: #5a685f;
       --shadow: 0 1px 2px rgba(16, 40, 28, 0.05), 0 6px 18px rgba(16, 40, 28, 0.06);
       background: var(--bg);
     }
@@ -2368,6 +2379,14 @@
     .il-team-card-players .name-grid {
       grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
     }
+    /* The card itself is --panel-solid, and so was the default chip — the
+       same colour, so these chips had no plate at all and only their 1px
+       border separated them from the card, which is why they read as flat.
+       --chip-plate is the step away from a panel that the tab strip and the
+       status badge already take. The position suffix goes to --chip-sub-ink
+       rather than --muted, which is just under AA on that plate at 12.5px. */
+    .il-team-card-players .name-chip { background: var(--chip-plate); }
+    .il-team-card-players .name-chip-sub { color: var(--chip-sub-ink); }
     .name-chip {
       display: block;
       padding: 5px 8px;
@@ -2722,6 +2741,21 @@
       background: var(--panel-2);
     }
     .il-table td { font-size: 13px; }
+    /* Stage repeats down the column ("Round 1", "Round 1", "Round 2", ...),
+       so boxing it lets the eye group the rounds instead of re-reading the
+       words. Same plate/radius as the other small chips on this page; it
+       stays quieter than the matchup and score beside it on purpose. */
+    .il-stage-chip {
+      display: inline-block;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--chip-plate);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.3;
+      white-space: nowrap;
+    }
     .il-table tbody tr.il-leader { background: var(--accent-soft); }
     .il-table tbody tr.il-leader td { font-weight: 700; }
     .il-team-cell { display: flex; align-items: center; gap: 8px; font-weight: 700; }
@@ -4876,7 +4910,7 @@
         : '—';
       return '' +
         '<tr>' +
-          '<td>' + esc(game.stage || '') + '</td>' +
+          '<td>' + (game.stage ? '<span class="il-stage-chip">' + esc(game.stage) + '</span>' : '') + '</td>' +
           '<td>' + esc(when || '—') + '</td>' +
           '<td class="il-matchup">' + esc(game.homeTeam) + ' <span class="il-vs">vs</span> ' + esc(game.awayTeam) + '</td>' +
           '<td>' + score + '</td>' +
