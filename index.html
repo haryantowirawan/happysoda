@@ -1706,6 +1706,32 @@
     @media (max-width: 720px) {
       .delta-row { grid-template-columns: 1fr; }
     }
+    /* The two subboxes stack whenever they'd be too narrow to hold their
+       own label on one line — "Dropped Off" with a 2-digit count needs
+       about 172px of box, and below that it wrapped with the count orphaned
+       on its own line, which also pushed the two name lists out of vertical
+       alignment with each other.
+       This is deliberately flex-wrap against a flex-basis rather than a
+       viewport media query: the squeeze comes from the width of the group
+       CARD, not the page. A phone squeezes it (the card is full width but
+       the page is 390px), and so does a ~768px tablet, where the page is
+       wide enough that .delta-row is still two columns and hands this card
+       only half of it. A max-width query catches the first and misses the
+       second. With a basis, the row simply breaks whenever two boxes no
+       longer fit, at any width. Stacked, each box is full width and its
+       name grid gets 2-3 columns, like the New & Returning box above it. */
+    .delta-group-row { flex-wrap: wrap; }
+    /* 176px basis: measured, not picked. The label holds one line at a
+       172px box and wraps at 167px (checked with a 2-digit count, the
+       widest it realistically gets), so the basis is that threshold plus a
+       few px of slack — the emoji measures wider on some platforms than it
+       does here, and that slack is the only defence against it. Two columns
+       therefore need 2*176 + 10px gap = 362px of card, which means they
+       stack below roughly a 960px page as well as on a phone. Erring that
+       way is deliberate: stacking early just gives each box the full width
+       and reads fine, while being a few px short wraps the label and
+       orphans the count on its own line. */
+    .delta-group-row > .delta-subbox { flex: 1 1 176px; }
     .delta-box, .delta-group { padding: 16px 18px; }
     .delta-box.newcomer .delta-label,
     .delta-group-title {
@@ -2183,8 +2209,8 @@
     .delta-link:hover .delta-chevron,
     .delta-link:focus-visible .delta-chevron { transform: translateX(2px); }
     /* Hover/focus highlights only the inner tinted box that's actually the
-       link (.delta-names-box for New & Returning, .delta-subbox for New/
-       Departed) — not the whole outer .delta-box, whose untinted title row
+       link (.delta-names-box for New & Returning, .delta-subbox for Moved
+       Up/Dropped Off) — not the whole outer .delta-box, whose untinted title row
        was never part of the clickable area. */
     .delta-group .delta-link:hover,
     .delta-names-box.delta-link:hover { border-color: var(--accent); }
@@ -2234,7 +2260,7 @@
 
     /* ---- Search clear button ----
        Shown only while the box has text (.search-wrap.has-text). Matters most
-       for the New/Departed box links, which fill the box with several names at
+       for the Moved Up/Dropped Off box links, which fill the box with several names at
        once — clearing that by hand is tedious. Escape clears it too. */
     .search-wrap .search { padding-right: 46px; }
     .search-clear {
@@ -2301,7 +2327,7 @@
     .period-chip-label { color: var(--accent); opacity: 0.85; }
     .dash-toolbar .dashboard-period { color: var(--accent); font-weight: 700; }
 
-    /* ---- New & Returning names get the same tinted box as New/Departed ---- */
+    /* ---- New & Returning names get the same tinted box as Moved Up/Dropped Off ---- */
     .delta-names-box {
       display: flex;
       align-items: flex-start;
@@ -2311,11 +2337,11 @@
       border-radius: var(--radius-sm);
       background: var(--accent-soft);
     }
-    /* Matches New/Departed's chevron, which sits inside their tinted box
+    /* Matches Moved Up/Dropped Off's chevron, which sits inside their tinted box
        rather than in the (untinted) title above — see boxAttrs/chevron in
        renderDeltaRow. */
     .delta-names-box .delta-chevron { margin-top: 2px; }
-    /* People icon beside "Member/Regular Changes", matching the chart header's
+    /* People icon beside "Tier Changes", matching the chart header's
        icon treatment. */
     .delta-group-title { display: flex; align-items: center; gap: 8px; }
     .delta-title-icon { display: flex; font-size: 20px; color: var(--accent); }
@@ -2357,8 +2383,8 @@
     }
 
     /* ---- Name chips (shared) ----
-       Every run of player names in the app — New & Returning / New /
-       Departed, a League Draft roster, an Internal Leagues team — used to
+       Every run of player names in the app — New & Returning / Moved Up /
+       Dropped Off, a League Draft roster, an Internal Leagues team — used to
        render as one comma-joined paragraph, which stops being scannable
        past a handful of names. Each name now gets its own equal-width cell
        in an auto-filling grid, so they line up in columns and read as a
@@ -3562,7 +3588,7 @@
 
     // amountClass tints the fee column: 'amount-owed' (red) or 'amount-credit' (green).
     // Each row links into All Players filtered to that player, like the
-    // Dashboard's New/Departed boxes do.
+    // Dashboard's Moved Up/Dropped Off boxes do.
     function renderBalanceList(list, total, totalLabel, filter, amountClass) {
       const rows = list.filter(function (item) {
         return matchesFilter_(item.name, filter);
@@ -5497,6 +5523,10 @@
         return (arr && arr.length) ? nameChips_(arr) : '<span class="name-none">None</span>';
       };
       const newcomers = DATA.newcomers || [];
+      // comebackPlayers/departedPlayers keep their original field names
+      // (../web-frontend and this file both read them off the JSON); the
+      // labels below are "Moved Up"/"Dropped Off". See the note in
+      // Main.js's getComputedData_ for why the labels changed.
       const comeback = DATA.comebackPlayers || [];
       const departed = DATA.departedPlayers || [];
       // Each box with names in it doubles as a link into All Players,
@@ -5519,14 +5549,14 @@
             '</div>' +
           '</div>' +
           '<div class="delta-group">' +
-            '<div class="delta-group-title"><span class="delta-title-icon">' + icon_('users') + '</span>Member/Regular Changes</div>' +
+            '<div class="delta-group-title"><span class="delta-title-icon">' + icon_('users') + '</span>Tier Changes</div>' +
             '<div class="delta-group-row">' +
               '<div' + boxAttrs('delta-subbox comeback', comeback) + '>' +
-                '<div class="delta-label">🆕 New (' + comeback.length + ')' + chevron(comeback) + '</div>' +
+                '<div class="delta-label">⬆️ Moved Up (' + comeback.length + ')' + chevron(comeback) + '</div>' +
                 '<div class="delta-names">' + listOrNone(comeback) + '</div>' +
               '</div>' +
               '<div' + boxAttrs('delta-subbox departed', departed) + '>' +
-                '<div class="delta-label">👋 Departed (' + departed.length + ')' + chevron(departed) + '</div>' +
+                '<div class="delta-label">⬇️ Dropped Off (' + departed.length + ')' + chevron(departed) + '</div>' +
                 '<div class="delta-names">' + listOrNone(departed) + '</div>' +
               '</div>' +
             '</div>' +

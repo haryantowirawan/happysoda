@@ -59,8 +59,9 @@ backend deployment is recreated instead of updated in place), it must be updated
 All loyalty-tier/points logic, sheet-parsing, and business rules live in
 `../app-script-backend/Main.js` — this repo has **no business logic of its own** for tiers,
 points, or eligibility; it only renders whatever JSON the backend computes. See
-`../app-script-backend/CLAUDE.md` for the full rules (tier thresholds, New Comers, Comeback/
-Departed, Outstanding/Credits, etc.).
+`../app-script-backend/CLAUDE.md` for the full rules (tier thresholds, New Comers, Tier
+Changes — the "Moved Up"/"Dropped Off" boxes, still `comebackPlayers`/`departedPlayers` in
+the JSON — Outstanding/Credits, etc.).
 
 Client-side logic that lives only in this file, NOT shared with `ui.html`: rendering/
 formatting helpers, search/filtering, CSV-less table building, image export
@@ -141,6 +142,18 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 ## Changelog
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
+
+- **2026-09-20** — Mirrored from `../app-script-backend/ui.html`: the Dashboard's tier-change
+  boxes are renamed **"New" → "Moved Up"** and **"Departed" → "Dropped Off"**, under a group
+  title of **"Tier Changes"** (was "Member/Regular Changes", which omitted Semi-Regular).
+  Both old labels misdescribed the data — qualifying for any tier needs ≥5 active months, so
+  nobody in the "New" box was new, and a player enters the other box by falling under the
+  threshold rather than by leaving the community. The JSON fields stay
+  `comebackPlayers`/`departedPlayers`, with a note at the read site in `renderDeltaRow`.
+  Also here: `.delta-group-row` now wraps against a 176px flex-basis rather than being a
+  fixed 2-up row, because the longer labels wrapped and orphaned the count in a half-width
+  box. See that repo's changelog for the measurement and for why a viewport media query was
+  the wrong tool.
 
 - **2026-09-20** — Mirrored from `../app-script-backend/ui.html`: League Draft's roster chips
   join the `--chip-plate` rule (its `.ld-roster-summary` was `--panel-solid`, the same colour
