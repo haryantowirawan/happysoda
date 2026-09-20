@@ -142,6 +142,17 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-09-20** — Mirrored from `../app-script-backend/ui.html`: the name chips in the
+  Dashboard's New & Returning / New / Departed boxes are dimmed — a translucent
+  `--chip-quiet-bg` wash over the box's tint plus a `--chip-quiet-ink` at weight 500, in
+  place of the opaque `--panel-solid` fill and 600-weight `--text` they shared with every
+  other chip. Requested because a run of white bold chips on a tinted box read as a row of
+  buttons and pulled the eye off the tier lists. Scoped to the existing
+  `.delta-names-box .name-chip, .delta-subbox .name-chip` rule, so League Draft and Internal
+  Leagues chips are unchanged. CSS only, identical diff in both files. See that repo's
+  changelog for the before/after contrast measurements and the verification, which covered
+  this file at 390×844 and 900×800 in light and dark.
+
 - **2026-09-19** — Mirrored from `../app-script-backend/ui.html`: the name-chip grid's column
   minimum drops from 104px to **88px**, and Internal Leagues team cards get their own **108px**
   minimum (`.il-team-card-players .name-grid`). CSS only, identical diff in both files.
