@@ -143,6 +143,16 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-07** — Mirrored from `../app-script-backend/ui.html` (see that changelog for the
+  full rationale): Player Stats in the profile popup are blurred (placeholder values, real ones
+  for admin only — cosmetic, the data is still in the JSON), and **deep links**: this page keeps
+  the URL hash in step with navigation, so e.g. `https://happysoda.pages.dev/#perks` opens
+  straight onto the Perks Eligible tab with the list scrolled into focus. Keys are page keys
+  (`outstanding`, `credits`, `records`, `teammanager`, `leaguedraft`, `internalleagues`,
+  `about`) or tier tabs (`members`, `regular`, `semi`, `perks`, `all`). A plain visit keeps a
+  clean URL; a hash pasted into an already-open tab is applied via `hashchange`. The active
+  tier tab now also survives `buildDashboard()` rebuilds (auto-refresh, month changes), which
+  it previously didn't — needed so the hash and the visible tab can't disagree.
 - **2026-09-20** — Mirrored from `../app-script-backend/ui.html`: the Dashboard's tier-change
   boxes are renamed **"New" → "Moved Up"** and **"Departed" → "Dropped Off"**, under a group
   title of **"Tier Changes"** (was "Member/Regular Changes", which omitted Semi-Regular).

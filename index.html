@@ -430,6 +430,24 @@
       text-align: center;
     }
     .player-modal-stat-value { font-size: 17px; font-weight: 800; color: var(--accent); }
+    /* Player Stats for a non-admin viewer — see openPlayerProfile_. */
+    .player-modal-stat-grid.veiled .player-modal-stat-value {
+      filter: blur(3px);
+      user-select: none;
+      pointer-events: none;
+    }
+    /* Scrolling the player list into focus (a deep link to a tier tab, or a
+       New/Moved Up box link) leaves room above it — on a phone the fixed
+       hamburger would otherwise sit on top of the search box. */
+    .players-section { scroll-margin-top: 12px; }
+    @media (max-width: 720px) { .players-section { scroll-margin-top: 68px; } }
+    .player-modal-veil-note {
+      margin-left: 6px;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+      opacity: 0.8;
+    }
     .player-modal-stat-label {
       font-size: 10px;
       color: var(--muted);
@@ -3105,7 +3123,64 @@
       document.getElementById('pageTitle').textContent = PAGE_TITLES[pageKey] || 'Loyalty Board';
       setPageHead_(pageKey);
       currentPage = pageKey;
+      syncViewHash_();
     }
+
+    // ---- Deep links ----
+    // One flat key names a view: either a page key, or one of the
+    // Dashboard's tier tabs (which implies the Dashboard). The two sets
+    // don't overlap, so a shared link stays short — e.g.
+    // happysoda.pages.dev/#perks opens straight onto Perks Eligible. The
+    // hash is kept in step with navigation (syncViewHash_), so whatever is
+    // in the address bar can be copied and shared as-is.
+    const TIER_TAB_KEYS_ = ['members', 'regular', 'semi', 'perks', 'all'];
+    let currentTierTab = 'members';
+
+    function parseViewKey_(key) {
+      key = String(key || '').trim().toLowerCase();
+      if (TIER_TAB_KEYS_.indexOf(key) !== -1) return { page: 'dashboard', tab: key };
+      if (PAGE_TITLES[key]) return { page: key, tab: null };
+      return null;
+    }
+
+    function syncViewHash_() {
+      const key = currentPage === 'dashboard' ? currentTierTab : currentPage;
+      // A plain visit (no hash, default view) stays a clean URL.
+      if (!window.location.hash && key === 'members') return;
+      if (window.location.hash.slice(1) === key) return;
+      history.replaceState(null, '', window.location.pathname + window.location.search + '#' + key);
+    }
+
+    // Switches to a view. `focus` scrolls a tier tab's list into view, so a
+    // shared tab link lands on the list itself rather than the banner.
+    function applyView_(view, focus) {
+      activatePage(view.page);
+      if (!view.tab) {
+        if (focus) window.scrollTo(0, 0);
+        return;
+      }
+      const tab = document.querySelector('#tierTabs .tab[data-panel="' + view.tab + '"]');
+      if (tab && !tab.classList.contains('active')) tab.click();
+      if (focus && view.page === 'dashboard') {
+        const section = document.querySelector('.players-section');
+        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Read once at startup; the first buildDashboard() applies it (with
+    // focus), later rebuilds just restore whatever view is current.
+    let pendingLinkedView = parseViewKey_(window.location.hash.slice(1));
+    if (pendingLinkedView) {
+      currentPage = pendingLinkedView.page;
+      if (pendingLinkedView.tab) currentTierTab = pendingLinkedView.tab;
+    }
+
+    // A link opened while the page is already loaded (pasted into the
+    // address bar, or tapped from elsewhere on the same tab).
+    window.addEventListener('hashchange', function () {
+      const view = parseViewKey_(window.location.hash.slice(1));
+      if (view && document.getElementById('tierTabs')) applyView_(view, true);
+    });
 
     // Team Manager state — kept at top level (not reset by buildDashboard)
     // so an in-progress team-picking session survives the 15-minute
@@ -3505,13 +3580,23 @@
       // Position/skill stats only show up when the player has a Team
       // Manager roster entry — plenty of Dashboard names don't (a fine
       // outcome per feedback: loyalty stats alone are enough there).
+      //
+      // Blurred for everyone but admin for now, so nobody gets discouraged
+      // by their own numbers — the tiles stay so it's clear the stats
+      // exist. A public viewer's tiles carry a placeholder, not the real
+      // value, so the blur can't be read through (a single blurred digit
+      // is often still recognisable). This is a display choice, not a
+      // secret: the real values are still in the ?format=json payload.
       if (profile) {
-        statsHtml += '<div class="player-modal-section-title">Player Stats</div>' +
-          '<div class="player-modal-stat-grid">' +
-            statTile_(profile.skillLevel, 'Skill') +
-            statTile_(profile.athleticism, 'Athleticism') +
-            statTile_(profile.defense, 'Defense') +
-            statTile_(profile.impact, 'Impact') +
+        const veiled = !isAdmin();
+        const statVal = function (v) { return veiled ? '88' : v; };
+        statsHtml += '<div class="player-modal-section-title">Player Stats' +
+            (veiled ? ' <span class="player-modal-veil-note">Hidden for now</span>' : '') + '</div>' +
+          '<div class="player-modal-stat-grid' + (veiled ? ' veiled' : '') + '">' +
+            statTile_(statVal(profile.skillLevel), 'Skill') +
+            statTile_(statVal(profile.athleticism), 'Athleticism') +
+            statTile_(statVal(profile.defense), 'Defense') +
+            statTile_(statVal(profile.impact), 'Impact') +
           '</div>';
       }
       if (loyalty) {
@@ -5930,7 +6015,11 @@
         const panel = document.getElementById(group.prefix + tab.dataset[group.key]);
         if (direction) panel.classList.add(direction < 0 ? 'swipe-from-right' : 'swipe-from-left');
         panel.classList.add('active');
-        if (group.strip === 'tierTabs') setListHeading_(tab);
+        if (group.strip === 'tierTabs') {
+          setListHeading_(tab);
+          currentTierTab = tab.dataset.panel;
+          syncViewHash_();
+        }
         // The strip scrolls horizontally on a phone, so a tab reached by
         // swiping can be off-screen. Nudge it into view without touching the
         // page's own scroll position (scrollIntoView would move the page too).
@@ -6088,7 +6177,10 @@
       // being active — override that here with whichever page the user
       // was actually on before this rebuild ran (e.g. after changing a
       // month picker), so they don't get bounced back to the Dashboard.
-      activatePage(currentPage);
+      // Same for the tier tab. On the very first build this is also where a
+      // shared deep link (#perks etc.) takes effect, scrolled into focus.
+      applyView_({ page: currentPage, tab: currentTierTab }, !!pendingLinkedView);
+      pendingLinkedView = null;
     }
 
     function showFatalError(message) {
