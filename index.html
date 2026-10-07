@@ -2850,6 +2850,73 @@
        names box is tinted. */
     .delta-box.newcomer .delta-label { color: var(--text); }
 
+    /* ===================== SHARE BUTTON =====================
+       Round icon button at the right of the page header, opening a small
+       menu: Copy link / Share via… (the phone's own share sheet, only where
+       the browser supports it) / WhatsApp. Styled after the month picker's
+       popover. See initShareMenu_. */
+    .page-head .share-menu { position: relative; flex-shrink: 0; align-self: center; }
+    .share-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--panel-solid);
+      color: var(--text);
+      font-size: 18px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .share-trigger:hover,
+    .share-menu.open .share-trigger { border-color: var(--accent); color: var(--accent); }
+    .share-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 40;
+      width: 230px;
+      background: var(--panel-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+      padding: 6px;
+    }
+    .share-popover-title {
+      padding: 8px 10px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .share-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px;
+      border: 0;
+      border-radius: var(--radius-sm);
+      background: none;
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+    }
+    .share-item[hidden] { display: none; }
+    .share-item:hover,
+    .share-item:focus-visible { background: var(--panel-2); }
+    .share-item-icon { display: flex; font-size: 18px; color: var(--muted); }
+    .share-item-wa .share-item-icon { color: #25d366; }
+    .share-item.done .share-item-label { color: var(--green); }
+
     /* ===================== PAGE HEADERS =====================
        Every page opens with the same block: a circular icon badge, the page
        title, a one-line description and the "Updated" stamp. */
@@ -3068,6 +3135,15 @@
         <div class="page-head-sub" id="pageSubtitle">Tiers, attendance and player activity</div>
         <div class="meta"><span class="dot" id="statusDot"></span><span id="updatedLabel"></span></div>
       </div>
+      <div class="share-menu" id="shareMenu">
+        <button type="button" class="share-trigger" id="shareTrigger" title="Share this page" aria-label="Share this page" aria-haspopup="true" aria-expanded="false"><span data-icon="share"></span></button>
+        <div class="share-popover" id="sharePopover" hidden>
+          <div class="share-popover-title" id="sharePopoverTitle">Share this page</div>
+          <button type="button" class="share-item" data-share="copy"><span class="share-item-icon" data-icon="link"></span><span class="share-item-label">Copy link</span></button>
+          <button type="button" class="share-item" data-share="native" hidden><span class="share-item-icon" data-icon="share"></span><span class="share-item-label">Share via&hellip;</span></button>
+          <button type="button" class="share-item share-item-wa" data-share="whatsapp"><span class="share-item-icon" data-icon="whatsapp"></span><span class="share-item-label">WhatsApp</span></button>
+        </div>
+      </div>
     </div>
 
     <div id="warningsBox"></div>
@@ -3175,6 +3251,86 @@
       if (pendingLinkedView.tab) currentTierTab = pendingLinkedView.tab;
     }
 
+    // ---- Share button (page header) ----
+    // getInfo() returns { title, url } for whatever is on screen right now,
+    // read at click time so it always follows the current page/tab.
+    // allowNative: whether to offer "Share via…" (the phone's share sheet)
+    // at all — it's also hidden wherever the browser lacks navigator.share
+    // (most desktop browsers on Linux, Firefox desktop).
+    function initShareMenu_(getInfo, allowNative) {
+      const root = document.getElementById('shareMenu');
+      if (!root) return;
+      const trigger = document.getElementById('shareTrigger');
+      const popover = document.getElementById('sharePopover');
+      hydrateIcons_(root);
+      popover.querySelector('[data-share="native"]').hidden =
+        !(allowNative && typeof navigator.share === 'function');
+
+      function close() {
+        popover.hidden = true;
+        root.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+      function open() {
+        document.getElementById('sharePopoverTitle').textContent = 'Share \u201c' + getInfo().title + '\u201d';
+        popover.hidden = false;
+        root.classList.add('open');
+        trigger.setAttribute('aria-expanded', 'true');
+      }
+      // Confirms on the item itself, then closes the menu.
+      function flash(item, text) {
+        const label = item.querySelector('.share-item-label');
+        const original = label.innerHTML;
+        label.textContent = text;
+        item.classList.add('done');
+        setTimeout(function () {
+          label.innerHTML = original;
+          item.classList.remove('done');
+          close();
+        }, 1200);
+      }
+      function copy(item, text) {
+        const done = function (ok) { flash(item, ok ? 'Link copied \u2713' : 'Could not copy'); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(fallbackCopy(text)); });
+        } else {
+          done(fallbackCopy(text));
+        }
+      }
+
+      trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (popover.hidden) open(); else close();
+      });
+      popover.addEventListener('click', function (e) {
+        const item = e.target.closest('[data-share]');
+        if (!item) return;
+        const info = getInfo();
+        // A short label goes with the link, since WhatsApp's preview card
+        // is the same for every page (it ignores the #/?page= part).
+        const message = 'Happy Soda \u2013 ' + info.title;
+        if (item.dataset.share === 'copy') {
+          copy(item, info.url);
+        } else if (item.dataset.share === 'native') {
+          close();
+          navigator.share({ title: message, text: message, url: info.url }).catch(function () {});
+        } else {
+          // Same wa.me hand-off as the league Share button: the app on a
+          // phone, WhatsApp Web on desktop, message already typed. Opened
+          // synchronously from the click so popup blockers allow it.
+          let win = null;
+          try { win = window.open('https://wa.me/?text=' + encodeURIComponent(message + ': ' + info.url), '_blank'); } catch (err) { win = null; }
+          if (win) close(); else copy(item, info.url); // blocked — copy instead
+        }
+      });
+      document.addEventListener('click', function (e) {
+        if (!popover.hidden && !root.contains(e.target)) close();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !popover.hidden) close();
+      });
+    }
+
     // A link opened while the page is already loaded (pasted into the
     // address bar, or tapped from elsewhere on the same tab).
     window.addEventListener('hashchange', function () {
@@ -3231,6 +3387,9 @@
       wallet: '<path d="M3 7a2 2 0 0 1 2-2h11v3"/><rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="17" cy="13" r="1.3"/>',
       download: '<path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/>',
       copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+      share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
+      link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+      whatsapp: '<path fill="currentColor" stroke="none" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>',
       history: '<path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><path d="M3 3v5h5"/>',
     };
     function icon_(name) {
@@ -3246,6 +3405,16 @@
       btn.innerHTML = '<span class="smi-icon">' + icon_(iconName) + '</span><span class="smi-label">' + label + '</span>';
       btn.title = label;
     }
+    // Wired here, not with the other share code above, because it needs
+    // ICON_PATHS (declared just above) to exist already.
+    initShareMenu_(function () {
+      const tab = document.querySelector('#tierTabs .tab.active');
+      const onDashboard = currentPage === 'dashboard';
+      return {
+        title: onDashboard && tab ? tab.dataset.title : (PAGE_TITLES[currentPage] || 'Dashboard'),
+        url: window.location.origin + window.location.pathname + '#' + (onDashboard ? currentTierTab : currentPage)
+      };
+    }, true);
     // The Dashboard list heading follows whichever tier tab is active.
     function setListHeading_(tab) {
       document.getElementById('listTitle').textContent = tab.dataset.title || '';
