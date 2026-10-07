@@ -3254,17 +3254,36 @@
     // ---- Share button (page header) ----
     // getInfo() returns { title, url } for whatever is on screen right now,
     // read at click time so it always follows the current page/tab.
-    // allowNative: whether to offer "Share via…" (the phone's share sheet)
-    // at all — it's also hidden wherever the browser lacks navigator.share
-    // (most desktop browsers on Linux, Firefox desktop).
-    function initShareMenu_(getInfo, allowNative) {
+    // appHandoff: whether this page may hand off to phone apps directly —
+    // "Share via…" (navigator.share) and the Android WhatsApp intent below.
+    // False inside Apps Script's sandboxed iframe (ui.html). "Share via…" is
+    // also hidden wherever the browser lacks navigator.share (most desktop
+    // browsers on Linux, Firefox desktop).
+    // Where the WhatsApp option sends the message. wa.me is claimed by both
+    // WhatsApp and WhatsApp Business, so on a phone with both, the OS's
+    // default handler wins — often Business. On Android (when the page may
+    // hand off to apps at all) an intent: URL names personal WhatsApp's
+    // package (com.whatsapp) explicitly instead, with wa.me as the browser
+    // fallback for anyone who doesn't have it (e.g. Business only). iOS
+    // offers no equivalent, so it keeps wa.me.
+    function whatsAppLaunch_(text, appHandoff, userAgent) {
+      const waUrl = 'https://wa.me/?text=' + encodeURIComponent(text);
+      if (!appHandoff || !/Android/i.test(userAgent || '')) return { url: waUrl, viaIntent: false };
+      return {
+        url: 'intent://send?text=' + encodeURIComponent(text) +
+          '#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=' + encodeURIComponent(waUrl) + ';end',
+        viaIntent: true
+      };
+    }
+
+    function initShareMenu_(getInfo, appHandoff) {
       const root = document.getElementById('shareMenu');
       if (!root) return;
       const trigger = document.getElementById('shareTrigger');
       const popover = document.getElementById('sharePopover');
       hydrateIcons_(root);
       popover.querySelector('[data-share="native"]').hidden =
-        !(allowNative && typeof navigator.share === 'function');
+        !(appHandoff && typeof navigator.share === 'function');
 
       function close() {
         popover.hidden = true;
@@ -3315,11 +3334,17 @@
           close();
           navigator.share({ title: message, text: message, url: info.url }).catch(function () {});
         } else {
+          const launch = whatsAppLaunch_(message + ': ' + info.url, appHandoff, navigator.userAgent);
+          if (launch.viaIntent) {
+            close();
+            window.location.href = launch.url;
+            return;
+          }
           // Same wa.me hand-off as the league Share button: the app on a
           // phone, WhatsApp Web on desktop, message already typed. Opened
           // synchronously from the click so popup blockers allow it.
           let win = null;
-          try { win = window.open('https://wa.me/?text=' + encodeURIComponent(message + ': ' + info.url), '_blank'); } catch (err) { win = null; }
+          try { win = window.open(launch.url, '_blank'); } catch (err) { win = null; }
           if (win) close(); else copy(item, info.url); // blocked — copy instead
         }
       });

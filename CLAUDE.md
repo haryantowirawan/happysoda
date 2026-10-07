@@ -143,6 +143,10 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-07** — Mirrored from `../app-script-backend/ui.html` (see that changelog): the
+  Share menu's WhatsApp option uses an Android `intent:` URL naming `com.whatsapp`, so it
+  prefers personal WhatsApp over WhatsApp Business, with `wa.me` as the fallback. Active here
+  (`initShareMenu_(..., true)`); iOS unchanged.
 - **2026-10-07** — Mirrored from `../app-script-backend/ui.html` (see that changelog for the
   full rationale): a **Share button** in the page header that opens a menu with Copy link /
   Share via… (`navigator.share`, only shown where the browser supports it) / WhatsApp. It
