@@ -143,6 +143,10 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-08** — Mirrored from `../app-script-backend/ui.html` (see that changelog): the
+  Outstanding Payments / Player Credits total row now renders an empty `.balance-chevron`
+  like every other balance row, so its amount lines up with the column above it instead of
+  sitting 32px further right.
 - **2026-10-07** — Mirrored from `../app-script-backend/ui.html` (see that changelog): the
   Share menu's WhatsApp option uses an Android `intent:` URL naming `com.whatsapp`, so it
   prefers personal WhatsApp over WhatsApp Business, with `wa.me` as the fallback. Active here
