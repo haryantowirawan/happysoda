@@ -143,6 +143,13 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-08** — Monthly Records tabs got their own links (`#records-week1` …
+  `#records-week5`; plain `#records` is Monthly Membership), and on phones every Export now
+  opens a share sheet (image preview, **Share** via the OS share sheet with the PNG attached,
+  so WhatsApp is one tap from there, plus **Save**). Desktop browsers without file sharing
+  still download directly. The share sheet is in this file only, because `ui.html` runs in
+  Apps Script's iframe, where `navigator.share` always rejects. The full rationale and
+  verification are in `../app-script-backend/CLAUDE.md`'s 2026-10-08 entry.
 - **2026-10-08** — Mirrored from `../app-script-backend/ui.html` (see that changelog): the
   Outstanding Payments / Player Credits total row now renders an empty `.balance-chevron`
   like every other balance row, so its amount lines up with the column above it instead of

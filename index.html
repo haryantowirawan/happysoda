@@ -410,6 +410,23 @@
     .player-modal-upload-status { font-size: 12px; color: var(--muted); margin-top: 6px; }
     .player-modal-upload-status.error { color: var(--red); }
     .player-modal-upload-status.success { color: var(--green); }
+    /* Export share sheet: opens after an Export on a phone so the image can
+       go straight to WhatsApp (or anywhere else) via the OS share sheet,
+       instead of being saved and attached by hand. Reuses the player
+       modal's overlay/card. */
+    .export-share { max-width: 380px; }
+    .export-share-title { font-size: 17px; font-weight: 800; margin: 0 34px 12px 0; }
+    .export-share-preview {
+      display: block;
+      width: 100%;
+      max-height: 52vh;
+      object-fit: contain;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 14px;
+    }
+    .export-share .records-actions { margin: 0; }
     .player-modal-section-title {
       font-size: 11px;
       font-weight: 700;
@@ -3119,6 +3136,17 @@
       <div id="playerModalStats"></div>
     </div>
   </div>
+  <div id="exportShareOverlay" class="player-modal-overlay">
+    <div class="player-modal export-share" role="dialog" aria-modal="true" aria-labelledby="exportShareTitle">
+      <button class="player-modal-close" id="exportShareClose" type="button" aria-label="Close">&times;</button>
+      <div class="export-share-title" id="exportShareTitle">Image ready</div>
+      <img class="export-share-preview" id="exportSharePreview" alt="Exported image preview">
+      <div class="records-actions">
+        <button id="exportShareBtn" class="export-btn btn-primary" type="button"><span class="btn-icon" data-icon="whatsapp"></span><span class="btn-label"><span class="btn-label-main">Share</span><span class="btn-label-sub">WhatsApp &amp; more</span></span></button>
+        <button id="exportSaveBtn" class="export-btn" type="button"><span class="btn-icon" data-icon="download"></span><span class="btn-label"><span class="btn-label-main">Save</span><span class="btn-label-sub">To this device</span></span></button>
+      </div>
+    </div>
+  </div>
   <header class="hero">
     <div class="hero-left">Play<br>Connect<br>Improve<br>Together</div>
     <div class="hero-center">
@@ -3206,21 +3234,50 @@
     // One flat key names a view: either a page key, or one of the
     // Dashboard's tier tabs (which implies the Dashboard). The two sets
     // don't overlap, so a shared link stays short — e.g.
-    // happysoda.pages.dev/#perks opens straight onto Perks Eligible. The
-    // hash is kept in step with navigation (syncViewHash_), so whatever is
-    // in the address bar can be copied and shared as-is.
+    // happysoda.pages.dev/#perks opens straight onto Perks Eligible.
+    // Monthly Records' tabs are records-<tab> (#records-week2); its first
+    // tab, Monthly Membership, is plain #records. The hash is kept in step
+    // with navigation (syncViewHash_), so whatever is in the address bar
+    // can be copied and shared as-is.
     const TIER_TAB_KEYS_ = ['members', 'regular', 'semi', 'perks', 'all'];
+    const RECORDS_TAB_KEYS_ = ['membership', 'week1', 'week2', 'week3', 'week4', 'week5'];
     let currentTierTab = 'members';
+    let currentRecordsTab = 'membership';
 
     function parseViewKey_(key) {
       key = String(key || '').trim().toLowerCase();
       if (TIER_TAB_KEYS_.indexOf(key) !== -1) return { page: 'dashboard', tab: key };
+      if (key === 'records') return { page: 'records', tab: null, recordsTab: 'membership' };
+      const records = /^records-(.+)$/.exec(key);
+      if (records && RECORDS_TAB_KEYS_.indexOf(records[1]) !== -1) {
+        return { page: 'records', tab: null, recordsTab: records[1] };
+      }
       if (PAGE_TITLES[key]) return { page: key, tab: null };
       return null;
     }
 
+    function currentViewKey_() {
+      if (currentPage === 'dashboard') return currentTierTab;
+      if (currentPage === 'records' && currentRecordsTab !== 'membership') return 'records-' + currentRecordsTab;
+      return currentPage;
+    }
+
+    // Share title for the current view: the tier tab's own title on the
+    // Dashboard, "Monthly Records – Week 2" on a records tab.
+    function currentViewTitle_() {
+      if (currentPage === 'dashboard') {
+        const tab = document.querySelector('#tierTabs .tab.active');
+        if (tab) return tab.dataset.title;
+      }
+      if (currentPage === 'records' && currentRecordsTab !== 'membership') {
+        const tab = document.querySelector('#recordsTabs .tab[data-recordspanel="' + currentRecordsTab + '"]');
+        if (tab) return PAGE_TITLES.records + ' \u2013 ' + tab.textContent;
+      }
+      return PAGE_TITLES[currentPage] || 'Dashboard';
+    }
+
     function syncViewHash_() {
-      const key = currentPage === 'dashboard' ? currentTierTab : currentPage;
+      const key = currentViewKey_();
       // A plain visit (no hash, default view) stays a clean URL.
       if (!window.location.hash && key === 'members') return;
       if (window.location.hash.slice(1) === key) return;
@@ -3231,6 +3288,10 @@
     // shared tab link lands on the list itself rather than the banner.
     function applyView_(view, focus) {
       activatePage(view.page);
+      if (view.recordsTab) {
+        const rtab = document.querySelector('#recordsTabs .tab[data-recordspanel="' + view.recordsTab + '"]');
+        if (rtab && !rtab.classList.contains('active')) rtab.click();
+      }
       if (!view.tab) {
         if (focus) window.scrollTo(0, 0);
         return;
@@ -3249,6 +3310,7 @@
     if (pendingLinkedView) {
       currentPage = pendingLinkedView.page;
       if (pendingLinkedView.tab) currentTierTab = pendingLinkedView.tab;
+      if (pendingLinkedView.recordsTab) currentRecordsTab = pendingLinkedView.recordsTab;
     }
 
     // ---- Share button (page header) ----
@@ -3433,11 +3495,9 @@
     // Wired here, not with the other share code above, because it needs
     // ICON_PATHS (declared just above) to exist already.
     initShareMenu_(function () {
-      const tab = document.querySelector('#tierTabs .tab.active');
-      const onDashboard = currentPage === 'dashboard';
       return {
-        title: onDashboard && tab ? tab.dataset.title : (PAGE_TITLES[currentPage] || 'Dashboard'),
-        url: window.location.origin + window.location.pathname + '#' + (onDashboard ? currentTierTab : currentPage)
+        title: currentViewTitle_(),
+        url: window.location.origin + window.location.pathname + '#' + currentViewKey_()
       };
     }, true);
     // The Dashboard list heading follows whichever tier tab is active.
@@ -6213,8 +6273,10 @@
         if (group.strip === 'tierTabs') {
           setListHeading_(tab);
           currentTierTab = tab.dataset.panel;
-          syncViewHash_();
+        } else {
+          currentRecordsTab = tab.dataset.recordspanel;
         }
+        syncViewHash_();
         // The strip scrolls horizontally on a phone, so a tab reached by
         // swiping can be off-screen. Nudge it into view without touching the
         // page's own scroll position (scrollIntoView would move the page too).
@@ -6372,9 +6434,10 @@
       // being active — override that here with whichever page the user
       // was actually on before this rebuild ran (e.g. after changing a
       // month picker), so they don't get bounced back to the Dashboard.
-      // Same for the tier tab. On the very first build this is also where a
-      // shared deep link (#perks etc.) takes effect, scrolled into focus.
-      applyView_({ page: currentPage, tab: currentTierTab }, !!pendingLinkedView);
+      // Same for the tier tab and the Monthly Records tab. On the very first
+      // build this is also where a shared deep link (#perks etc.) takes
+      // effect, scrolled into focus.
+      applyView_({ page: currentPage, tab: currentTierTab, recordsTab: currentRecordsTab }, !!pendingLinkedView);
       pendingLinkedView = null;
     }
 
@@ -6730,10 +6793,20 @@
           if (needsWiden) target.style.width = '';
           setBtnLabel_(btn, original);
           btn.disabled = false;
-          const link = document.createElement('a');
-          link.download = filenamePrefix + '-' + (DATA.recordsMonth || DATA.currentYear || 'export') + '.png';
-          link.href = canvas.toDataURL('image/png');
-          link.click();
+          const filename = filenamePrefix + '-' + (DATA.recordsMonth || DATA.currentYear || 'export') + '.png';
+          canvas.toBlob(function (blob) {
+            if (!blob) {
+              alert('Could not generate image.');
+              return;
+            }
+            const file = typeof File === 'function' ? new File([blob], filename, { type: 'image/png' }) : null;
+            let canShareFile = false;
+            try {
+              canShareFile = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
+            } catch (err) { canShareFile = false; }
+            if (canShareFile) openExportShare_(file, blob);
+            else downloadBlob_(blob, filename);
+          }, 'image/png');
         }).catch(function (err) {
           document.body.classList.remove('exporting-records');
           if (needsForceShow) target.style.display = 'none';
@@ -6744,6 +6817,67 @@
         });
       }, 50);
     }
+
+    function downloadBlob_(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+    }
+
+    // ---- Export share sheet ----
+    // Where the browser can share files (phones: Chrome on Android, Safari
+    // on iOS), an Export opens this sheet instead of downloading straight
+    // away: Share hands the PNG to the OS share sheet, where WhatsApp is
+    // one tap; Save keeps the old download. It's a sheet rather than
+    // calling navigator.share() as soon as the image is ready because the
+    // share call has to come from a fresh tap — html2canvas can take long
+    // enough that the Export tap no longer counts (Safari in particular
+    // rejects it). Desktop browsers without file sharing never see it.
+    // wa.me can't carry an image, so there is no way to target WhatsApp
+    // itself here; the share sheet is as direct as the web allows.
+    let exportShareState_ = null;
+    function openExportShare_(file, blob) {
+      const overlay = document.getElementById('exportShareOverlay');
+      closeExportShare_();
+      exportShareState_ = { file: file, blob: blob, previewUrl: URL.createObjectURL(blob) };
+      hydrateIcons_(overlay);
+      document.getElementById('exportSharePreview').src = exportShareState_.previewUrl;
+      overlay.classList.add('show');
+    }
+    function closeExportShare_() {
+      document.getElementById('exportShareOverlay').classList.remove('show');
+      if (exportShareState_) URL.revokeObjectURL(exportShareState_.previewUrl);
+      exportShareState_ = null;
+      document.getElementById('exportSharePreview').removeAttribute('src');
+    }
+    document.getElementById('exportShareClose').addEventListener('click', closeExportShare_);
+    document.getElementById('exportShareOverlay').addEventListener('click', function (e) {
+      if (e.target === e.currentTarget) closeExportShare_();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && exportShareState_) closeExportShare_();
+    });
+    document.getElementById('exportShareBtn').addEventListener('click', function () {
+      if (!exportShareState_) return;
+      const state = exportShareState_;
+      navigator.share({ files: [state.file], title: 'Happy Soda' }).then(closeExportShare_).catch(function (err) {
+        // Cancelling the share sheet is an AbortError — leave the sheet up
+        // so Save is still one tap away. Anything else: save instead.
+        if (err && err.name === 'AbortError') return;
+        downloadBlob_(state.blob, state.file.name);
+        closeExportShare_();
+      });
+    });
+    document.getElementById('exportSaveBtn').addEventListener('click', function () {
+      if (!exportShareState_) return;
+      downloadBlob_(exportShareState_.blob, exportShareState_.file.name);
+      closeExportShare_();
+    });
 
     // Event delegation: works regardless of how many times these buttons
     // get recreated by buildDashboard() on every refresh.
