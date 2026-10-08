@@ -143,6 +143,10 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-08** — Mirrored from `../app-script-backend/ui.html` (see that changelog): a
+  **Refresh Data** side-menu item. Here it re-fetches in place with `&refresh=1`
+  (`loadData`'s new `forceFresh` argument), so the server re-reads the Google Sheets and
+  re-caches them. The current page and tab are kept.
 - **2026-10-08** — Mirrored from `../app-script-backend/ui.html` (see that changelog): Perks
   Eligible's Copy List and Monthly Records' Copy Membership list are now **Export** buttons
   opening a menu with Copy to clipboard or WhatsApp (the list pre-typed as the message; the
