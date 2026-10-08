@@ -143,6 +143,11 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-08** — Mirrored from `../app-script-backend` (see that changelog): **Refresh Data
+  is admin-only**. The item is only shown in Admin mode. A tap POSTs the backend's new
+  `refreshData` action with the admin passcode, then calls a plain `loadData()`; `loadData`'s
+  `forceFresh` argument is gone. The backend now ignores a public `?refresh=1`. **Push this only
+  after the backend is deployed**, otherwise the button gets "Unknown action".
 - **2026-10-08** — Mirrored from `../app-script-backend/ui.html` (see that changelog): a
   **Refresh Data** side-menu item. Here it re-fetches in place with `&refresh=1`
   (`loadData`'s new `forceFresh` argument), so the server re-reads the Google Sheets and

@@ -4929,6 +4929,9 @@
     function updateAdminToggleLabel() {
       const btn = document.getElementById('adminToggle');
       if (btn) setMenuItemLabel_(btn, isAdmin() ? 'unlock' : 'lock', 'Admin');
+      // Refresh Data is admin-only (the server checks the passcode too).
+      const refreshBtn = document.getElementById('refreshDataBtn');
+      if (refreshBtn) refreshBtn.style.display = isAdmin() ? '' : 'none';
     }
 
     // Shown next to League Draft's Assemble Teams button, only once teams
@@ -5934,7 +5937,7 @@
           '<button class="side-menu-item" data-page="internalleagues" title="Internal Leagues"><span class="smi-icon" data-icon="trophy"></span><span class="smi-label">Internal Leagues</span></button>' +
           '<button class="side-menu-item" data-page="about" title="About Us"><span class="smi-icon" data-icon="info"></span><span class="smi-label">About Us</span></button>' +
           '<div class="side-menu-divider"></div>' +
-          '<button id="refreshDataBtn" class="side-menu-item" type="button" title="Refresh Data – fetch the latest data"><span class="smi-icon" data-icon="refresh"></span><span class="smi-label">Refresh Data</span></button>' +
+          '<button id="refreshDataBtn" class="side-menu-item" type="button" style="display:none" title="Refresh Data – fetch the latest data"><span class="smi-icon" data-icon="refresh"></span><span class="smi-label">Refresh Data</span></button>' +
           '<button id="adminToggle" class="side-menu-item" type="button" title="Admin"><span class="smi-icon" data-icon="lock"></span><span class="smi-label">Admin</span></button>' +
           '<button id="themeToggle" class="side-menu-item" type="button" title="Dark Mode"><span class="smi-icon" data-icon="moon"></span><span class="smi-label">Dark Mode</span></button>' +
         '</nav>' +
@@ -6429,12 +6432,15 @@
         }
       });
 
-      // Refresh Data: re-fetch in place with the server cache bypassed. The
-      // rebuild restores the current page/tab like any other loadData().
+      // Refresh Data (admin-only): doPost's refreshData re-reads everything
+      // for this view and re-caches it, then a normal loadData() picks the
+      // fresh result up. The rebuild keeps the current page/tab.
       document.getElementById('refreshDataBtn').addEventListener('click', function () {
         closeSideMenu();
+        callLeagueApi_('refreshData', { month: currentMonthParam, recordsMonth: currentRecordsMonthParam })
+          .then(function () { loadData(); })
+          .catch(function (err) { alert('Could not refresh: ' + err.message); });
         setLoadingOverlay_(true, 'Fetching data…');
-        loadData(undefined, undefined, true);
       });
 
       // Dark/light toggle — now lives in the side menu as a settings-style
@@ -6502,10 +6508,7 @@
       }
     }
 
-    // forceFresh adds &refresh=1, so the server skips every cache layer and
-    // re-reads the Google Sheets (the side menu's Refresh Data). Its result
-    // is re-cached server-side, so later plain loads see the new data too.
-    function loadData(monthParam, recordsMonthParam, forceFresh) {
+    function loadData(monthParam, recordsMonthParam) {
       if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_') === 0) {
         finishFirstLoadProgress();
         document.getElementById('loadingOverlay').classList.remove('show');
@@ -6521,7 +6524,6 @@
       let url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&') + 'format=json';
       if (effectiveMonth) url += '&month=' + encodeURIComponent(effectiveMonth);
       if (effectiveRecordsMonth) url += '&recordsMonth=' + encodeURIComponent(effectiveRecordsMonth);
-      if (forceFresh) url += '&refresh=1';
 
       fetchJsonWithRetry_(url)
         .then(function (json) {
