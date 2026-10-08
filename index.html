@@ -5934,7 +5934,7 @@
           '<button class="side-menu-item" data-page="internalleagues" title="Internal Leagues"><span class="smi-icon" data-icon="trophy"></span><span class="smi-label">Internal Leagues</span></button>' +
           '<button class="side-menu-item" data-page="about" title="About Us"><span class="smi-icon" data-icon="info"></span><span class="smi-label">About Us</span></button>' +
           '<div class="side-menu-divider"></div>' +
-          '<button id="refreshDataBtn" class="side-menu-item" type="button" title="Refresh Data – re-read the Google Sheets now"><span class="smi-icon" data-icon="refresh"></span><span class="smi-label">Refresh Data</span></button>' +
+          '<button id="refreshDataBtn" class="side-menu-item" type="button" title="Refresh Data – fetch the latest data"><span class="smi-icon" data-icon="refresh"></span><span class="smi-label">Refresh Data</span></button>' +
           '<button id="adminToggle" class="side-menu-item" type="button" title="Admin"><span class="smi-icon" data-icon="lock"></span><span class="smi-label">Admin</span></button>' +
           '<button id="themeToggle" class="side-menu-item" type="button" title="Dark Mode"><span class="smi-icon" data-icon="moon"></span><span class="smi-label">Dark Mode</span></button>' +
         '</nav>' +
@@ -6433,7 +6433,7 @@
       // rebuild restores the current page/tab like any other loadData().
       document.getElementById('refreshDataBtn').addEventListener('click', function () {
         closeSideMenu();
-        setLoadingOverlay_(true, 'Reading the sheets…');
+        setLoadingOverlay_(true, 'Fetching data…');
         loadData(undefined, undefined, true);
       });
 
