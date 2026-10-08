@@ -2933,6 +2933,11 @@
     .share-item-icon { display: flex; font-size: 18px; color: var(--muted); }
     .share-item-wa .share-item-icon { color: #25d366; }
     .share-item.done .share-item-label { color: var(--green); }
+    /* The Perks / Membership list Export menu reuses the header menu's look,
+       but sits at body level and is placed with position: fixed by
+       positionListShareMenu_ — the Perks button lives inside the scrolling
+       player list, which would clip an absolutely positioned popover. */
+    .share-popover.list-share-popover { position: fixed; top: 0; left: 0; right: auto; z-index: 150; }
 
     /* ===================== PAGE HEADERS =====================
        Every page opens with the same block: a circular icon badge, the page
@@ -3119,6 +3124,11 @@
   <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-spinner"></div>
     <div id="loadingOverlayText">Loading…</div>
+  </div>
+  <div class="share-popover list-share-popover" id="listShareMenu" role="menu" hidden>
+    <div class="share-popover-title" id="listShareTitle">Export list</div>
+    <button type="button" class="share-item" data-list-action="copy"><span class="share-item-icon" data-icon="copy"></span><span class="share-item-label">Copy to clipboard</span></button>
+    <button type="button" class="share-item share-item-wa" data-list-action="whatsapp"><span class="share-item-icon" data-icon="whatsapp"></span><span class="share-item-label">WhatsApp</span></button>
   </div>
   <div id="playerModalOverlay" class="player-modal-overlay">
     <div class="player-modal" role="dialog" aria-modal="true" aria-labelledby="playerModalName">
@@ -4005,7 +4015,9 @@
       const rows = list.filter(function (item) {
         return matchesFilter_(item.name, filter);
       });
-      const exportBtn = '<button id="exportPerksBtn" class="export-btn" type="button">📋 Copy List</button>';
+      const exportBtn = '<button id="exportPerksBtn" class="export-btn" type="button" data-list-share="perks" aria-haspopup="true" aria-expanded="false">' +
+        '<span class="btn-icon">' + icon_('share') + '</span><span class="btn-label"><span class="btn-label-main">Export</span>' +
+        '<span class="btn-label-sub">Perks list</span></span></button>';
       if (rows.length === 0) return exportBtn + '<div class="empty">No one is eligible yet.</div>';
       const cards = rows.map(function (item, i) {
         const badge = item.tier === 'Member'
@@ -5996,7 +6008,7 @@
               '</div>' +
             '</div>' +
           '</div>' +
-          '<div class="records-actions"><button id="exportRecordsImageBtn" class="export-btn btn-primary" type="button"><span class="btn-icon" data-icon="download"></span><span class="btn-label"><span class="btn-label-main">Export</span><span class="btn-label-sub">All as image</span></span></button><button id="copyMembershipListBtn" class="export-btn" type="button"><span class="btn-icon" data-icon="copy"></span><span class="btn-label"><span class="btn-label-main">Copy</span><span class="btn-label-sub">Membership list</span></span></button></div>' +
+          '<div class="records-actions"><button id="exportRecordsImageBtn" class="export-btn btn-primary" type="button"><span class="btn-icon" data-icon="download"></span><span class="btn-label"><span class="btn-label-main">Export</span><span class="btn-label-sub">All as image</span></span></button><button id="exportMembershipListBtn" class="export-btn" type="button" data-list-share="membership" aria-haspopup="true" aria-expanded="false"><span class="btn-icon" data-icon="share"></span><span class="btn-label"><span class="btn-label-main">Export</span><span class="btn-label-sub">Membership list</span></span></button></div>' +
           '<div class="tabs" id="recordsTabs">' +
             '<button class="tab active" data-recordspanel="membership">Monthly Membership</button>' +
             '<button class="tab" data-recordspanel="week1">Week 1</button>' +
@@ -6662,38 +6674,146 @@
       return ok;
     }
 
-    function copyPerksList(btn) {
+    // ---- List export menu (Perks list, Membership list) ----
+    // Each list's Export button opens one shared menu: Copy to clipboard, or
+    // WhatsApp with the list already typed as the message (whatsAppLaunch_,
+    // so on Android it prefers personal WhatsApp, as the header Share does).
+    // Buttons are matched by delegation on data-list-share, since
+    // renderPerks() recreates its button on every search keystroke. Each
+    // source returns the text, or null after telling the user why not.
+    function perksListText_() {
       const filterValue = document.getElementById('searchBox')
         ? document.getElementById('searchBox').value.trim().toLowerCase() : '';
       const list = computePerksEligible()
-        .filter(function (item) { return !filterValue || item.name.toLowerCase().includes(filterValue); })
+        .filter(function (item) { return matchesFilter_(item.name, filterValue); })
         .sort(function (a, b) { return b.points - a.points; });
 
       if (list.length === 0) {
         alert('No one is currently eligible to export.');
-        return;
+        return null;
       }
 
       const lines = ['Perks Eligible members/regulars:', ''];
       list.forEach(function (item, i) { lines.push((i + 1) + '. ' + item.name); });
-      const text = lines.join('\n');
+      return lines.join('\n');
+    }
 
-      const showCopied = function () {
-        const original = btnLabel_(btn);
-        setBtnLabel_(btn, { main: 'Copied!', sub: original.sub });
-        setTimeout(function () { setBtnLabel_(btn, original); }, 1500);
+    const LIST_SHARE_SOURCES_ = {
+      perks: { title: 'Export perks list', text: perksListText_ },
+      membership: { title: 'Export membership list', text: membershipListText_ }
+    };
+    // Whether this page may hand off to phone apps directly (see
+    // initShareMenu_'s appHandoff).
+    const LIST_SHARE_APP_HANDOFF_ = true;
+    let listShareTrigger_ = null;
+
+    function positionListShareMenu_(anchor) {
+      const menu = document.getElementById('listShareMenu');
+      const a = anchor.getBoundingClientRect();
+      const r = menu.getBoundingClientRect();
+      const margin = 8;
+      let top = a.bottom + 6;
+      // Prefer below the button, flip above when it wouldn't fit, then
+      // clamp into the viewport regardless.
+      if (top + r.height > window.innerHeight - margin) top = a.top - r.height - 6;
+      top = Math.max(margin, Math.min(top, window.innerHeight - r.height - margin));
+      const left = Math.max(margin, Math.min(a.left, window.innerWidth - r.width - margin));
+      menu.style.top = Math.round(top) + 'px';
+      menu.style.left = Math.round(left) + 'px';
+    }
+    function openListShareMenu_(btn) {
+      const source = LIST_SHARE_SOURCES_[btn.dataset.listShare];
+      if (!source) return;
+      closeListShareMenu_();
+      const menu = document.getElementById('listShareMenu');
+      hydrateIcons_(menu);
+      document.getElementById('listShareTitle').textContent = source.title;
+      menu.dataset.source = btn.dataset.listShare;
+      menu.hidden = false;
+      positionListShareMenu_(btn);
+      btn.setAttribute('aria-expanded', 'true');
+      listShareTrigger_ = btn;
+    }
+    function closeListShareMenu_() {
+      const menu = document.getElementById('listShareMenu');
+      menu.hidden = true;
+      if (listShareTrigger_) listShareTrigger_.setAttribute('aria-expanded', 'false');
+      listShareTrigger_ = null;
+    }
+    // Confirms on the menu item itself, then closes.
+    function flashListShareItem_(item, text) {
+      const label = item.querySelector('.share-item-label');
+      const original = label.textContent;
+      label.textContent = text;
+      item.classList.add('done');
+      setTimeout(function () {
+        label.textContent = original;
+        item.classList.remove('done');
+        closeListShareMenu_();
+      }, 1200);
+    }
+    function copyListText_(item, text, doneLabel) {
+      const done = function () { flashListShareItem_(item, doneLabel || 'Copied \u2713'); };
+      const fail = function () {
+        if (fallbackCopy(text)) { done(); return; }
+        closeListShareMenu_();
+        alert('Could not copy automatically. Here is the list:\n\n' + text);
       };
-
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(showCopied).catch(function () {
-          if (fallbackCopy(text)) showCopied();
-          else alert('Could not copy automatically. Here is the list:\n\n' + text);
-        });
+        navigator.clipboard.writeText(text).then(done).catch(fail);
       } else {
-        if (fallbackCopy(text)) showCopied();
-        else alert('Could not copy automatically. Here is the list:\n\n' + text);
+        fail();
       }
     }
+
+    document.addEventListener('click', function (e) {
+      const trigger = e.target.closest('[data-list-share]');
+      if (trigger) {
+        if (listShareTrigger_ === trigger) { closeListShareMenu_(); return; }
+        // Check there's something to share before opening the menu at all.
+        if (!LIST_SHARE_SOURCES_[trigger.dataset.listShare].text()) return;
+        openListShareMenu_(trigger);
+        return;
+      }
+      const menu = document.getElementById('listShareMenu');
+      if (menu.hidden || menu.contains(e.target)) return;
+      closeListShareMenu_();
+    });
+    document.getElementById('listShareMenu').addEventListener('click', function (e) {
+      const item = e.target.closest('[data-list-action]');
+      const source = LIST_SHARE_SOURCES_[this.dataset.source];
+      if (!item || !source) return;
+      const text = source.text();
+      if (!text) { closeListShareMenu_(); return; }
+      if (item.dataset.listAction === 'copy') {
+        copyListText_(item, text);
+        return;
+      }
+      const launch = whatsAppLaunch_(text, LIST_SHARE_APP_HANDOFF_, navigator.userAgent);
+      if (launch.viaIntent) {
+        closeListShareMenu_();
+        window.location.href = launch.url;
+        return;
+      }
+      // Opened synchronously from the click so popup blockers allow it.
+      let win = null;
+      try { win = window.open(launch.url, '_blank'); } catch (err) { win = null; }
+      if (win) closeListShareMenu_();
+      else copyListText_(item, text, 'Blocked \u2013 copied instead');
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && listShareTrigger_) closeListShareMenu_();
+    });
+    // The menu is fixed to the viewport, so it would drift off its button
+    // once the page or the player list scrolls; close it instead.
+    window.addEventListener('scroll', function (e) {
+      if (!listShareTrigger_) return;
+      if (e.target && e.target.nodeType === 1 && document.getElementById('listShareMenu').contains(e.target)) return;
+      closeListShareMenu_();
+    }, true);
+    window.addEventListener('resize', function () {
+      if (listShareTrigger_) closeListShareMenu_();
+    });
 
     // ---- Transient button labels ----
     // These buttons are markup, not text: an icon <span> plus a two-line
@@ -6718,11 +6838,11 @@
       if (sub && label.sub !== null) sub.textContent = label.sub;
     }
 
-    function copyMembershipList(btn) {
+    function membershipListText_() {
       const roster = DATA.membershipRoster || [];
       if (roster.length === 0) {
         alert('No membership roster found for this month.');
-        return;
+        return null;
       }
       const community = DATA.membershipReminderCommunity || 'HS';
       const monthLabel = DATA.recordsMonthLabelSeptStyle || DATA.recordsMonth || '';
@@ -6735,23 +6855,7 @@
         const check = m.paid ? '\u2705' : '';
         lines.push(' ' + (i + 1) + '.\u2060 \u2060' + check + m.name);
       });
-      const text = lines.join('\n');
-
-      const showCopied = function () {
-        const original = btnLabel_(btn);
-        setBtnLabel_(btn, { main: 'Copied!', sub: original.sub });
-        setTimeout(function () { setBtnLabel_(btn, original); }, 1500);
-      };
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(showCopied).catch(function () {
-          if (fallbackCopy(text)) showCopied();
-          else alert('Could not copy automatically. Here is the list:\n\n' + text);
-        });
-      } else {
-        if (fallbackCopy(text)) showCopied();
-        else alert('Could not copy automatically. Here is the list:\n\n' + text);
-      }
+      return lines.join('\n');
     }
 
     function exportImageFromElement(elementId, filenamePrefix, btn) {
@@ -6882,12 +6986,6 @@
     // Event delegation: works regardless of how many times these buttons
     // get recreated by buildDashboard() on every refresh.
     document.addEventListener('click', function (e) {
-      const perksBtn = e.target.closest('#exportPerksBtn');
-      if (perksBtn) copyPerksList(perksBtn);
-
-      const copyMembershipBtn = e.target.closest('#copyMembershipListBtn');
-      if (copyMembershipBtn) copyMembershipList(copyMembershipBtn);
-
       const exportRecordsBtn = e.target.closest('#exportRecordsImageBtn');
       if (exportRecordsBtn) exportImageFromElement('recordsExportCapture', 'HS-Records', exportRecordsBtn);
 

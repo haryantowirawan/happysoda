@@ -143,6 +143,10 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-08** — Mirrored from `../app-script-backend/ui.html` (see that changelog): Perks
+  Eligible's Copy List and Monthly Records' Copy Membership list are now **Export** buttons
+  opening a menu with Copy to clipboard or WhatsApp (the list pre-typed as the message; the
+  personal-WhatsApp `intent:` on Android, since `LIST_SHARE_APP_HANDOFF_` is `true` here).
 - **2026-10-08** — Monthly Records tabs got their own links (`#records-week1` …
   `#records-week5`; plain `#records` is Monthly Membership), and on phones every Export now
   opens a share sheet (image preview, **Share** via the OS share sheet with the PNG attached,
