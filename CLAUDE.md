@@ -143,6 +143,10 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-08** — Mirrored from `../app-script-backend` (see that changelog): the player
+  profile popup shows a jersey chip ("#23 · NAME", no size), and each line of the Perks Eligible
+  export reads `Name (Jersey Name-Number-Top/Bottom)`. Uses the backend's new
+  `playerProfiles[].jerseyName`/`jerseySize`; before that's deployed, only the number appears.
 - **2026-10-08** — Mirrored from `../app-script-backend` (see that changelog): **Refresh Data
   is admin-only**. The item is only shown in Admin mode. A tap POSTs the backend's new
   `refreshData` action with the admin passcode, then calls a plain `loadData()`; `loadData`'s
