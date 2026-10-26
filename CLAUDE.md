@@ -143,6 +143,13 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-27** — Team balancing rebuilt for the new 1-5 Player Profiles columns (Stamina,
+  IQ, Offense, Playmaking, Rebounding, Interior Play, Shooting, Selfish), and the profile popup
+  now shows all ten ratings (never Selfish). Selfish is admin-only: fetched through the
+  backend's `getPrivateProfiles` action by `withPrivateFlags_` when in Admin mode. The algorithm
+  came through `shared/draft-logic.js`; the popup, `withPrivateFlags_` and assemble handlers were
+  mirrored by hand. Full details in `../app-script-backend/CLAUDE.md`'s changelog, same date.
+
 - **2026-10-08** — Mirrored from `../app-script-backend` (see that changelog): the player
   profile popup shows a jersey chip ("#23 · NAME", no size), and each line of the Perks Eligible
   export reads `Name (Jersey Name-Number-Top/Bottom)`. Uses the backend's new
