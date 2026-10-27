@@ -143,6 +143,9 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-28** — 16px gap between the team cards and the Manage Players button / panel (the
+  old margin was overridden by `.export-btn`). Same change in `../app-script-backend/ui.html`.
+
 - **2026-10-28** — Manage Players panel gained **Remove player** (confirm first), calling the
   new backend action `removeLeaguePlayer`; backend must be deployed first. Identical code in
   `../app-script-backend/ui.html`; see that repo's CLAUDE.md.

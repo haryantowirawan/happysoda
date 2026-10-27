@@ -1201,7 +1201,10 @@
       color: var(--muted);
       padding: 6px 0 10px;
     }
-    .il-open-roster-btn { margin-top: 10px; }
+    /* Two classes so this beats the later, general .export-btn margin
+       rule; the open panel gets the same gap below the team cards. */
+    .export-btn.il-open-roster-btn,
+    .il-add-game-box.il-roster-box { margin-top: 16px; }
     .il-archive-year {
       margin-bottom: 6px;
     }
