@@ -1188,6 +1188,20 @@
       padding: 8px 10px;
       margin-top: 8px;
     }
+    .il-roster-title {
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .il-roster-title + .il-form-grid { padding-top: 4px; }
+    .il-roster-box .records-actions { margin-bottom: 10px; }
+    .il-roster-box .records-actions:last-child { margin-bottom: 0; }
+    .il-roster-none {
+      font-size: 12.5px;
+      color: var(--muted);
+      padding: 6px 0 10px;
+    }
+    .il-open-roster-btn { margin-top: 10px; }
     .il-archive-year {
       margin-bottom: 6px;
     }
@@ -4963,6 +4977,7 @@
     let ilEditingGameId = null;
     let ilAddingGameForLeague = null;
     let ilRenamingLeagueId = null;
+    let ilManagingRosterForLeague = null;
 
     function computeLeagueGameCounts_(games) {
       const played = games.filter(function (g) { return g.played === true || g.played === 'TRUE'; }).length;
@@ -5458,6 +5473,51 @@
       }
     }
 
+    // Admin-only roster edits on the active league: move a player to
+    // another team, or add someone from the Player Profiles roster who isn't
+    // on any team in this league yet (the only players offered).
+    function renderRosterManager_(league) {
+      const teamNames = league.teams.map(function (t) { return t.teamName; });
+      const inLeague = new Set();
+      const playerOptions = league.teams.map(function (t) {
+        return '<optgroup label="' + esc(t.teamName) + '">' + t.players.map(function (p) {
+          inLeague.add(String(p.name).trim().toLowerCase());
+          return '<option value="' + esc(p.name) + '">' + esc(p.name) + (p.position ? ' · ' + esc(p.position) : '') + '</option>';
+        }).join('') + '</optgroup>';
+      }).join('');
+      const available = (DATA.playerProfiles || [])
+        .filter(function (p) { return !inLeague.has(String(p.name).trim().toLowerCase()); })
+        .sort(function (a, b) { return a.name.localeCompare(b.name); });
+      const availableOptions = available.map(function (p) {
+        return '<option value="' + esc(p.name) + '">' + esc(p.name) + (p.position ? ' · ' + esc(p.position) : '') + '</option>';
+      }).join('');
+
+      return '' +
+        '<div class="il-add-game-box il-roster-box" data-league="' + esc(league.leagueId) + '">' +
+          '<div class="il-roster-title">Transfer player</div>' +
+          '<div class="il-form-grid">' +
+            '<label>Player<select class="il-f-transfer-player">' + playerOptions + '</select></label>' +
+            '<label>To team<select class="il-f-transfer-team">' + teamOptions_(teamNames) + '</select></label>' +
+          '</div>' +
+          '<div class="records-actions">' +
+            '<button class="export-btn il-transfer-player-btn" type="button">Transfer</button>' +
+          '</div>' +
+          '<div class="il-roster-title">Add player</div>' +
+          (available.length
+            ? '<div class="il-form-grid">' +
+                '<label>Available player<select class="il-f-add-player">' + availableOptions + '</select></label>' +
+                '<label>To team<select class="il-f-add-team">' + teamOptions_(teamNames) + '</select></label>' +
+              '</div>' +
+              '<div class="records-actions">' +
+                '<button class="export-btn il-add-player-btn" type="button">Add to Team</button>' +
+              '</div>'
+            : '<div class="il-roster-none">Everyone on the roster is already on a team.</div>') +
+          '<div class="records-actions">' +
+            '<button class="export-btn il-close-roster-btn" type="button">Done</button>' +
+          '</div>' +
+        '</div>';
+    }
+
     function renderLeagueDetail_(league, editable) {
       const teamsHtml = '<div class="il-teams-grid">' + league.teams.map(function (t, i) {
         const players = nameChips_(t.players, function (p) { return p.position || ''; });
@@ -5470,6 +5530,12 @@
             '</div>' +
           '</div>';
       }).join('') + '</div>';
+
+      const rosterHtml = editable
+        ? (ilManagingRosterForLeague === league.leagueId
+          ? renderRosterManager_(league)
+          : '<button class="export-btn il-open-roster-btn" data-league="' + esc(league.leagueId) + '" type="button">Manage Players</button>')
+        : '';
 
       const gamesRows = league.games.map(function (g) { return renderGameRow_(league, g, editable); }).join('');
       const gamesHeader = '<th>Stage</th><th>When</th><th>Matchup</th><th>Score</th><th>Winner</th><th>Referee</th><th>Game Admin</th>' + (editable ? '<th></th>' : '');
@@ -5542,6 +5608,7 @@
               '<div class="il-section-note">' + esc(league.numTeams) + ' teams</div>' +
             '</div>' +
             teamsHtml +
+            rosterHtml +
           '</div>' +
           '<div class="il-section">' +
             '<div class="il-section-head">' +
@@ -5727,6 +5794,42 @@
       if (renameBtn) {
         ilRenamingLeagueId = renameBtn.dataset.league;
         document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+      }
+
+      const openRosterBtn = e.target.closest('.il-open-roster-btn');
+      if (openRosterBtn) {
+        ilManagingRosterForLeague = openRosterBtn.dataset.league;
+        document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+      }
+
+      const closeRosterBtn = e.target.closest('.il-close-roster-btn');
+      if (closeRosterBtn) {
+        ilManagingRosterForLeague = null;
+        document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+      }
+
+      // The panel stays open after a save, so several moves can be made in
+      // a row; fetchLeagues_ re-renders it with the updated teams/options.
+      const transferPlayerBtn = e.target.closest('.il-transfer-player-btn');
+      if (transferPlayerBtn) {
+        const box = transferPlayerBtn.closest('.il-roster-box');
+        const playerName = box.querySelector('.il-f-transfer-player').value;
+        const toTeam = box.querySelector('.il-f-transfer-team').value;
+        if (!playerName) return;
+        callLeagueApi_('transferLeaguePlayer', { leagueId: box.dataset.league, playerName: playerName, toTeam: toTeam })
+          .then(fetchLeagues_)
+          .catch(function (err) { alert('Could not transfer player: ' + err.message); });
+      }
+
+      const addPlayerBtn = e.target.closest('.il-add-player-btn');
+      if (addPlayerBtn) {
+        const box = addPlayerBtn.closest('.il-roster-box');
+        const playerName = box.querySelector('.il-f-add-player').value;
+        const teamName = box.querySelector('.il-f-add-team').value;
+        if (!playerName) return;
+        callLeagueApi_('addLeaguePlayer', { leagueId: box.dataset.league, playerName: playerName, teamName: teamName })
+          .then(fetchLeagues_)
+          .catch(function (err) { alert('Could not add player: ' + err.message); });
       }
 
       const shareLeagueBtn = e.target.closest('.il-share-btn');
