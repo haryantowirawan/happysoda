@@ -143,6 +143,10 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-28** — Manage Players panel gained **Remove player** (confirm first), calling the
+  new backend action `removeLeaguePlayer`; backend must be deployed first. Identical code in
+  `../app-script-backend/ui.html`; see that repo's CLAUDE.md.
+
 - **2026-10-27** — Internal Leagues: admin-only **Manage Players** panel on the active league
   (transfer a player to another team; add a roster player who isn't on any team yet). Calls
   the new backend actions `transferLeaguePlayer`/`addLeaguePlayer`, so the backend must be

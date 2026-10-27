@@ -5474,8 +5474,9 @@
     }
 
     // Admin-only roster edits on the active league: move a player to
-    // another team, or add someone from the Player Profiles roster who isn't
-    // on any team in this league yet (the only players offered).
+    // another team, add someone from the Player Profiles roster who isn't
+    // on any team in this league yet (the only players offered), or remove
+    // a player.
     function renderRosterManager_(league) {
       const teamNames = league.teams.map(function (t) { return t.teamName; });
       const inLeague = new Set();
@@ -5512,6 +5513,13 @@
                 '<button class="export-btn il-add-player-btn" type="button">Add to Team</button>' +
               '</div>'
             : '<div class="il-roster-none">Everyone on the roster is already on a team.</div>') +
+          '<div class="il-roster-title">Remove player</div>' +
+          '<div class="il-form-grid">' +
+            '<label>Player<select class="il-f-remove-player">' + playerOptions + '</select></label>' +
+          '</div>' +
+          '<div class="records-actions">' +
+            '<button class="export-btn il-danger-btn il-remove-player-btn" type="button">Remove from League</button>' +
+          '</div>' +
           '<div class="records-actions">' +
             '<button class="export-btn il-close-roster-btn" type="button">Done</button>' +
           '</div>' +
@@ -5830,6 +5838,17 @@
         callLeagueApi_('addLeaguePlayer', { leagueId: box.dataset.league, playerName: playerName, teamName: teamName })
           .then(fetchLeagues_)
           .catch(function (err) { alert('Could not add player: ' + err.message); });
+      }
+
+      const removePlayerBtn = e.target.closest('.il-remove-player-btn');
+      if (removePlayerBtn) {
+        const box = removePlayerBtn.closest('.il-roster-box');
+        const playerName = box.querySelector('.il-f-remove-player').value;
+        if (!playerName) return;
+        if (!confirm('Remove ' + playerName + ' from this league?')) return;
+        callLeagueApi_('removeLeaguePlayer', { leagueId: box.dataset.league, playerName: playerName })
+          .then(fetchLeagues_)
+          .catch(function (err) { alert('Could not remove player: ' + err.message); });
       }
 
       const shareLeagueBtn = e.target.closest('.il-share-btn');
