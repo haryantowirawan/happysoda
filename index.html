@@ -3901,14 +3901,14 @@
       // Manager roster entry — plenty of Dashboard names don't (a fine
       // outcome per feedback: loyalty stats alone are enough there).
       //
-      // Blurred for everyone but admin for now, so nobody gets discouraged
+      // Blurred for everyone but admin and viewer, so nobody gets discouraged
       // by their own numbers — the tiles stay so it's clear the stats
       // exist. A public viewer's tiles carry a placeholder, not the real
       // value, so the blur can't be read through (a single blurred digit
       // is often still recognisable). This is a display choice, not a
       // secret: the real values are still in the ?format=json payload.
       if (profile) {
-        const veiled = !isAdmin();
+        const veiled = !canViewStats();
         const statVal = function (v) { return veiled ? '8' : v; };
         statsHtml += '<div class="player-modal-section-title">Player Stats' +
             (veiled ? ' <span class="player-modal-veil-note">Hidden for now</span>' : '') + '</div>' +
@@ -4769,12 +4769,28 @@
     function getAdminToken() {
       try { return localStorage.getItem('hsAdminToken') || null; } catch (e) { return null; }
     }
-    function isAdmin() { return !!getAdminToken(); }
-    function setAdminToken(token) {
-      try { localStorage.setItem('hsAdminToken', token); } catch (e) { /* ignore */ }
+    function getAccessRole_() {
+      try { return localStorage.getItem('hsAccessRole') || 'admin'; } catch (e) { return 'admin'; }
+    }
+    // The same passcode prompt logs in either an admin or a viewer (the
+    // shared VIEWER_TOKEN passcode, see doPost). A viewer only unblurs the
+    // profile popup's Player Stats; every admin control, and Selfish, stays
+    // behind isAdmin(). A stored passcode with no role predates viewers, so
+    // it can only be an admin's.
+    function isAdmin() { return !!getAdminToken() && getAccessRole_() !== 'viewer'; }
+    function canViewStats() { return !!getAdminToken(); }
+    function accessLabel_() { return getAdminToken() && !isAdmin() ? 'Viewer' : 'Admin'; }
+    function setAdminToken(token, role) {
+      try {
+        localStorage.setItem('hsAdminToken', token);
+        localStorage.setItem('hsAccessRole', role === 'viewer' ? 'viewer' : 'admin');
+      } catch (e) { /* ignore */ }
     }
     function clearAdminToken() {
-      try { localStorage.removeItem('hsAdminToken'); } catch (e) { /* ignore */ }
+      try {
+        localStorage.removeItem('hsAdminToken');
+        localStorage.removeItem('hsAccessRole');
+      } catch (e) { /* ignore */ }
     }
 
     function setLoadingOverlay_(show, text) {
@@ -4902,9 +4918,10 @@
       });
     }
 
-    // Checks a passcode with the server (doPost's verifyAdmin action) before
-    // turning admin mode on. Previously whatever was typed was stored and the
-    // admin controls appeared; only the writes themselves were rejected.
+    // Checks a passcode with the server (doPost's verifyAccess action) before
+    // turning admin or viewer mode on (the server says which). Previously
+    // whatever was typed was stored and the admin controls appeared; only
+    // the writes themselves were rejected.
     // Resolves true (correct), false (rejected) or null (couldn't reach the
     // server). A stored passcode is only cleared on a definite rejection.
     // `silent` re-checks a remembered passcode without the overlay.
@@ -4913,11 +4930,11 @@
       return fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'verifyAdmin', adminToken: token }),
+        body: JSON.stringify({ action: 'verifyAccess', adminToken: token }),
       })
         .then(function (r) { return r.json(); })
         .then(function (json) {
-          if (json.ok) setAdminToken(token);
+          if (json.ok) setAdminToken(token, json.result && json.result.role);
           else if (json.error === 'Unauthorized.') clearAdminToken();
           return !!json.ok;
         })
@@ -4938,7 +4955,7 @@
 
     function updateAdminToggleLabel() {
       const btn = document.getElementById('adminToggle');
-      if (btn) setMenuItemLabel_(btn, isAdmin() ? 'unlock' : 'lock', 'Admin');
+      if (btn) setMenuItemLabel_(btn, getAdminToken() ? 'unlock' : 'lock', accessLabel_());
       // Refresh Data is admin-only (the server checks the passcode too).
       const refreshBtn = document.getElementById('refreshDataBtn');
       if (refreshBtn) refreshBtn.style.display = isAdmin() ? '' : 'none';
@@ -6253,7 +6270,7 @@
       document.getElementById('attendanceChartContainer').innerHTML = renderAttendanceChart();
       document.getElementById('deltaRowContainer').innerHTML = renderDeltaRow();
       updateAdminToggleLabel();
-      if (isAdmin() && !adminRecheckDone_) {
+      if (getAdminToken() && !adminRecheckDone_) {
         adminRecheckDone_ = true;
         verifyAdminToken_(getAdminToken(), true);
       }
@@ -6533,18 +6550,18 @@
       });
 
       document.getElementById('adminToggle').addEventListener('click', function () {
-        if (isAdmin()) {
-          if (confirm('Log out of Admin mode?')) {
+        if (getAdminToken()) {
+          if (confirm('Log out of ' + accessLabel_() + ' mode?')) {
             clearAdminToken();
             updateAdminToggleLabel();
             renderCreateLeagueSection();
             document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
           }
         } else {
-          const token = prompt('Enter admin passcode:');
+          const token = prompt('Enter passcode:');
           if (token) {
             verifyAdminToken_(token, false).then(function (ok) {
-              if (ok === false) alert('Wrong admin passcode.');
+              if (ok === false) alert('Wrong passcode.');
             });
           }
         }

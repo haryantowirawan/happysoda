@@ -143,6 +143,13 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-10-28** — **Viewer role**: the lock button also accepts the backend's shared
+  `VIEWER_TOKEN` passcode, which unblurs the profile popup's Player Stats and nothing else
+  (no admin controls, no Selfish). Logs in via the new `verifyAccess` action, which returns
+  the role; `isAdmin()` is false for a viewer, `canViewStats()` drives the blur. Backend must
+  be deployed first. Identical code in `../app-script-backend/ui.html`; see that repo's
+  CLAUDE.md for details and verification.
+
 - **2026-10-28** — 16px gap between the team cards and the Manage Players button / panel (the
   old margin was overridden by `.export-btn`). Same change in `../app-script-backend/ui.html`.
 
