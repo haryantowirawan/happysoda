@@ -4369,7 +4369,8 @@
       const counts = teams.map(function (team) { return team.filter(pred).length; });
       const total = counts.reduce(function (a, b) { return a + b; }, 0);
       const cap = Math.ceil(total / teams.length);
-      return counts.reduce(function (s, c) { return s + Math.max(0, c - cap); }, 0);
+      const floor = Math.floor(total / teams.length);
+      return counts.reduce(function (s, c) { return s + Math.max(0, c - cap, floor - c); }, 0);
     }
 
     // The hard rules. A split that breaks any of these is only ever chosen
