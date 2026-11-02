@@ -4808,10 +4808,12 @@
       const awayRoster = scoresheetRoster_(league, game.awayTeam, profiles);
       const rowCount = Math.max(SCORESHEET_MIN_PLAYER_ROWS_, homeRoster.length, awayRoster.length);
       const rosterRow = (foulsTop - 11.5 - rosterTop - headerRow) / rowCount;
-      const tableGap = 4, tableWidth = (WIDTH - tableGap) / 2;
+      const tableGap = 3, tableWidth = (WIDTH - tableGap) / 2;
+      // Notes is where each player's points get written during the game, so
+      // it takes all the width the other columns can spare.
       const columns = [
-        { title: 'No.', w: 9 }, { title: 'Player Name', w: 28 },
-        { title: 'Fouls', w: 28 }, { title: 'U+T', w: 12 }, { title: 'Notes', w: tableWidth - 77 }
+        { title: 'No.', w: 7.5 }, { title: 'Player Name', w: 22 },
+        { title: 'Fouls', w: 19 }, { title: 'U+T', w: 8.5 }, { title: 'Notes', w: tableWidth - 57 }
       ];
 
       [
@@ -4835,8 +4837,9 @@
             fitText(player.name, side.x + columns[0].w + 1.5, y + rosterRow / 2 + 1.25, columns[1].w - 3, 10);
           }
           const foulsX = side.x + columns[0].w + columns[1].w;
-          checkboxes(foulsX + 2, y + rosterRow / 2 - 1.75, 5, 3.5, 1.5);
-          checkboxes(foulsX + columns[2].w + 1.75, y + rosterRow / 2 - 1.75, 2, 3.5, 1.5);
+          const box = 2.6, boxGap = 0.9, boxY = y + rosterRow / 2 - box / 2;
+          checkboxes(foulsX + 1.2, boxY, 5, box, boxGap);
+          checkboxes(foulsX + columns[2].w + 1.2, boxY, 2, box, boxGap);
         }
       });
 

@@ -143,6 +143,9 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-11-02** — Scoresheet: wider Notes column for player points, via the shared
+  `scoresheet-pdf` section. Details in `../app-script-backend/CLAUDE.md`.
+
 - **2026-11-02** — Internal Leagues: public **Export as image** on every league (Teams, Standings,
   Games results), using the existing Share/Save sheet. Full details in
   `../app-script-backend/CLAUDE.md`.
