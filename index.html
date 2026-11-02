@@ -4712,6 +4712,7 @@
         let s = size;
         font(s, style);
         while (s > 6 && doc.getTextWidth(text) > maxWidth) { s -= 0.5; font(s, style); }
+        while (text.length > 1 && doc.getTextWidth(text) > maxWidth) text = text.slice(0, -1);
         doc.text(text, x, y, align ? { align: align } : undefined);
       }
       function cell(x, y, w, h, fill) {
@@ -4783,11 +4784,11 @@
       const homeRoster = scoresheetRoster_(league, game.homeTeam, profiles);
       const awayRoster = scoresheetRoster_(league, game.awayTeam, profiles);
       const rowCount = Math.max(SCORESHEET_MIN_PLAYER_ROWS_, homeRoster.length, awayRoster.length);
-      const rosterRow = (foulsTop - 8 - rosterTop - headerRow) / rowCount;
+      const rosterRow = (foulsTop - 11.5 - rosterTop - headerRow) / rowCount;
       const tableGap = 4, tableWidth = (WIDTH - tableGap) / 2;
       const columns = [
-        { title: 'No.', w: 10 }, { title: 'Player Name', w: 32 },
-        { title: 'Fouls', w: 29 }, { title: 'Notes', w: tableWidth - 71 }
+        { title: 'No.', w: 9 }, { title: 'Player Name', w: 28 },
+        { title: 'Fouls', w: 28 }, { title: 'U+T', w: 12 }, { title: 'Notes', w: tableWidth - 77 }
       ];
 
       [
@@ -4810,7 +4811,9 @@
             centered(String(player.number), side.x, y, columns[0].w, rosterRow, 10);
             fitText(player.name, side.x + columns[0].w + 1.5, y + rosterRow / 2 + 1.25, columns[1].w - 3, 10);
           }
-          checkboxes(side.x + columns[0].w + columns[1].w + 2.5, y + rosterRow / 2 - 1.75, 5, 3.5, 1.5);
+          const foulsX = side.x + columns[0].w + columns[1].w;
+          checkboxes(foulsX + 2, y + rosterRow / 2 - 1.75, 5, 3.5, 1.5);
+          checkboxes(foulsX + columns[2].w + 1.75, y + rosterRow / 2 - 1.75, 2, 3.5, 1.5);
         }
       });
 
@@ -4824,6 +4827,9 @@
         centered('Away', LEFT + quarterWidth + sideWidth, top, sideWidth, headerRow, 9.5);
       }
       const QUARTERS = ['1st', '2nd', '3rd', '4th'];
+
+      font(8);
+      doc.text('U+T = Unsportsmanlike + Technical fouls (maximum 2 per game)', LEFT, foulsTop - 8);
 
       sectionTitle('Team Fouls & Time Outs', foulsTop - 2);
       quarterHeader(foulsTop);
