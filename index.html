@@ -2796,6 +2796,9 @@
       text-transform: uppercase;
       color: var(--text);
     }
+    /* Scoresheet + Edit share the last Games column, on one line. */
+    .il-game-actions { display: flex; gap: 6px; }
+    .il-game-actions .export-btn { margin: 0; white-space: nowrap; }
     .il-section-note { margin-left: auto; font-size: 12.5px; color: var(--muted); }
     .il-teams-grid {
       display: grid;
@@ -4649,6 +4652,228 @@
     }
     // SHARED-LOGIC:league-draft-algorithm:END
 
+    // SHARED-LOGIC:scoresheet-pdf:START (generated from shared/draft-logic.js — do not edit here; run node scripts/sync-shared.js)
+    // Printable game scoresheets for Internal Leagues: one A4 portrait page
+    // per game, drawn as PDF vector shapes rather than a screenshot so it
+    // prints crisp and stays small. jsPDF (~350KB) only matters to whoever
+    // prints sheets, so it's fetched on first use instead of on page load.
+    const SCORESHEET_JSPDF_URL_ = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    const SCORESHEET_VENUE_ = 'SLK';
+    // Rosters run 8-9 today; the spare rows are for a late addition,
+    // written in by hand at the court.
+    const SCORESHEET_MIN_PLAYER_ROWS_ = 12;
+    let scoresheetJsPdfPromise_ = null;
+
+    function loadJsPdf_() {
+      if (window.jspdf) return Promise.resolve(window.jspdf.jsPDF);
+      if (!scoresheetJsPdfPromise_) {
+        scoresheetJsPdfPromise_ = new Promise(function (resolve, reject) {
+          const s = document.createElement('script');
+          s.src = SCORESHEET_JSPDF_URL_;
+          s.onload = function () { resolve(window.jspdf.jsPDF); };
+          s.onerror = function () {
+            scoresheetJsPdfPromise_ = null; // let the next tap retry
+            reject(new Error('Could not load the PDF library.'));
+          };
+          document.head.appendChild(s);
+        });
+      }
+      return scoresheetJsPdfPromise_;
+    }
+
+    // profiles: DATA.playerProfiles. A player with no jersey number (or no
+    // roster entry) gets '', left blank to fill in at the court.
+    function scoresheetRoster_(league, teamName, profiles) {
+      const numbers = {};
+      (profiles || []).forEach(function (p) {
+        numbers[String(p.name).trim().toLowerCase()] = p.jerseyNumber || '';
+      });
+      const team = league.teams.filter(function (t) { return t.teamName === teamName; })[0];
+      return (team ? team.players : []).map(function (p) {
+        return { name: p.name, number: numbers[String(p.name).trim().toLowerCase()] || '' };
+      });
+    }
+
+    // The sheet stores both officials in one cell ("Alfian, Aldi").
+    function scoresheetSplitPair_(value) {
+      const parts = String(value || '').split(/\s*[,/&]\s*/);
+      return [parts[0] || '', parts.slice(1).join(', ')];
+    }
+
+    function drawScoresheetPage_(doc, league, game, profiles) {
+      const LEFT = 10, WIDTH = 190, BOTTOM = 287;
+      const HEADER_FILL = 205, INFO_FILL = 243;
+
+      function font(size, style) {
+        doc.setFont('helvetica', style || 'normal');
+        doc.setFontSize(size);
+      }
+      function fitText(text, x, y, maxWidth, size, style, align) {
+        let s = size;
+        font(s, style);
+        while (s > 6 && doc.getTextWidth(text) > maxWidth) { s -= 0.5; font(s, style); }
+        doc.text(text, x, y, align ? { align: align } : undefined);
+      }
+      function cell(x, y, w, h, fill) {
+        if (fill) {
+          doc.setFillColor(fill);
+          doc.rect(x, y, w, h, 'FD');
+        } else {
+          doc.rect(x, y, w, h);
+        }
+      }
+      function centered(text, x, y, w, h, size, style) {
+        fitText(text, x + w / 2, y + h / 2 + size * 0.125, w - 2, size, style, 'center');
+      }
+      function labelled(label, value, x, y, w, h) {
+        font(10);
+        const labelText = label + ': ';
+        const labelWidth = doc.getTextWidth(labelText) + 1;
+        doc.text(labelText, x + 2, y + h / 2 + 1.25);
+        if (value) fitText(value, x + 2 + labelWidth, y + h / 2 + 1.25, w - labelWidth - 4, 10, 'bold');
+      }
+      function checkboxes(x, y, count, size, gap) {
+        for (let i = 0; i < count; i++) doc.rect(x + i * (size + gap), y, size, size);
+      }
+      function sectionTitle(text, y) {
+        font(10.5, 'bold');
+        doc.text(text, LEFT, y);
+      }
+
+      doc.setDrawColor(90);
+      doc.setLineWidth(0.25);
+      doc.setTextColor(0);
+
+      fitText('Happy Soda Game Scoresheet', 105, 16, WIDTH, 16, 'bold', 'center');
+      fitText(league.name, 105, 21.5, WIDTH, 10, 'normal', 'center');
+
+      // Info block. The sample's third column had three empty cells, so they
+      // now carry the game's time and stage, and Winning Team gets two rows
+      // of writing room.
+      const referees = scoresheetSplitPair_(game.referee);
+      const admins = scoresheetSplitPair_(game.gameAdmin);
+      const infoTop = 25, infoRow = 7.5, infoCols = [66, 66, 58];
+      const col2 = LEFT + infoCols[0], col3 = col2 + infoCols[1];
+      [
+        [['Date', game.date], ['Venue', SCORESHEET_VENUE_], ['Time', game.time]],
+        [['Home Team', game.homeTeam], ['Away Team', game.awayTeam], ['Stage', game.stage]],
+        [['Referee 1', referees[0]], ['Referee 2', referees[1]], null],
+        [['Admin 1', admins[0]], ['Admin 2', admins[1]], null]
+      ].forEach(function (row, r) {
+        const y = infoTop + r * infoRow;
+        [LEFT, col2, col3].forEach(function (x, c) {
+          if (!row[c]) return;
+          cell(x, y, infoCols[c], infoRow, INFO_FILL);
+          labelled(row[c][0], row[c][1], x, y, infoCols[c], infoRow);
+        });
+      });
+      cell(col3, infoTop + 2 * infoRow, infoCols[2], 2 * infoRow, INFO_FILL);
+      font(10);
+      doc.text('Winning Team:', col3 + 2, infoTop + 2 * infoRow + 5);
+
+      // Fixed sections are measured up from the bottom edge, so the rosters
+      // take whatever height is left and all fits on one page, however long
+      // a roster gets.
+      const headerRow = 7, quarterRow = 13, scoreRow = 7.5;
+      const scoresTop = BOTTOM - headerRow - 5 * scoreRow;
+      const foulsTop = scoresTop - 7 - headerRow - 4 * quarterRow;
+      const rosterTitleY = infoTop + 4 * infoRow + 7;
+      const rosterTop = rosterTitleY + 2;
+
+      const homeRoster = scoresheetRoster_(league, game.homeTeam, profiles);
+      const awayRoster = scoresheetRoster_(league, game.awayTeam, profiles);
+      const rowCount = Math.max(SCORESHEET_MIN_PLAYER_ROWS_, homeRoster.length, awayRoster.length);
+      const rosterRow = (foulsTop - 8 - rosterTop - headerRow) / rowCount;
+      const tableGap = 4, tableWidth = (WIDTH - tableGap) / 2;
+      const columns = [
+        { title: 'No.', w: 10 }, { title: 'Player Name', w: 32 },
+        { title: 'Fouls', w: 29 }, { title: 'Notes', w: tableWidth - 71 }
+      ];
+
+      [
+        { x: LEFT, label: 'Home Team: ' + game.homeTeam, roster: homeRoster },
+        { x: LEFT + tableWidth + tableGap, label: 'Away Team: ' + game.awayTeam, roster: awayRoster }
+      ].forEach(function (side) {
+        fitText(side.label, side.x, rosterTitleY, tableWidth, 10.5, 'bold');
+        let x = side.x;
+        columns.forEach(function (c) {
+          cell(x, rosterTop, c.w, headerRow, HEADER_FILL);
+          centered(c.title, x, rosterTop, c.w, headerRow, 9.5);
+          x += c.w;
+        });
+        for (let r = 0; r < rowCount; r++) {
+          const y = rosterTop + headerRow + r * rosterRow;
+          const player = side.roster[r];
+          x = side.x;
+          columns.forEach(function (c) { cell(x, y, c.w, rosterRow); x += c.w; });
+          if (player) {
+            centered(String(player.number), side.x, y, columns[0].w, rosterRow, 10);
+            fitText(player.name, side.x + columns[0].w + 1.5, y + rosterRow / 2 + 1.25, columns[1].w - 3, 10);
+          }
+          checkboxes(side.x + columns[0].w + columns[1].w + 2.5, y + rosterRow / 2 - 1.75, 5, 3.5, 1.5);
+        }
+      });
+
+      const quarterWidth = 30, sideWidth = (WIDTH - quarterWidth) / 2;
+      function quarterHeader(top) {
+        cell(LEFT, top, quarterWidth, headerRow, HEADER_FILL);
+        centered('Quarter', LEFT, top, quarterWidth, headerRow, 9.5);
+        cell(LEFT + quarterWidth, top, sideWidth, headerRow, HEADER_FILL);
+        centered('Home', LEFT + quarterWidth, top, sideWidth, headerRow, 9.5);
+        cell(LEFT + quarterWidth + sideWidth, top, sideWidth, headerRow, HEADER_FILL);
+        centered('Away', LEFT + quarterWidth + sideWidth, top, sideWidth, headerRow, 9.5);
+      }
+      const QUARTERS = ['1st', '2nd', '3rd', '4th'];
+
+      sectionTitle('Team Fouls & Time Outs', foulsTop - 2);
+      quarterHeader(foulsTop);
+      QUARTERS.forEach(function (q, i) {
+        const y = foulsTop + headerRow + i * quarterRow;
+        cell(LEFT, y, quarterWidth, quarterRow);
+        centered(q, LEFT, y, quarterWidth, quarterRow, 10);
+        [LEFT + quarterWidth, LEFT + quarterWidth + sideWidth].forEach(function (x) {
+          cell(x, y, sideWidth, quarterRow);
+          doc.setLineDashPattern([0.8, 0.8], 0);
+          doc.line(x, y + quarterRow / 2, x + sideWidth, y + quarterRow / 2);
+          doc.setLineDashPattern([], 0);
+          font(10);
+          doc.text('Team Foul', x + 3, y + 4.6);
+          checkboxes(x + 24, y + 1.5, 5, 3.5, 2);
+          doc.text('Time Out', x + 3, y + 11);
+          checkboxes(x + 24, y + 8, 1, 3.5, 2);
+        });
+      });
+
+      sectionTitle('Scores', scoresTop - 2);
+      quarterHeader(scoresTop);
+      QUARTERS.concat('Total').forEach(function (q, i) {
+        const y = scoresTop + headerRow + i * scoreRow;
+        const fill = q === 'Total' ? INFO_FILL : null;
+        cell(LEFT, y, quarterWidth, scoreRow, fill);
+        centered(q, LEFT, y, quarterWidth, scoreRow, 10, q === 'Total' ? 'bold' : 'normal');
+        cell(LEFT + quarterWidth, y, sideWidth, scoreRow, fill);
+        cell(LEFT + quarterWidth + sideWidth, y, sideWidth, scoreRow, fill);
+      });
+    }
+
+    // games: one or more of league.games, one page each, in the given order.
+    function buildScoresheetPdf_(JsPdf, league, games, profiles) {
+      const doc = new JsPdf({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+      games.forEach(function (game, i) {
+        if (i > 0) doc.addPage('a4', 'portrait');
+        drawScoresheetPage_(doc, league, game, profiles);
+      });
+      return doc;
+    }
+
+    function scoresheetFilename_(league, games) {
+      const safe = function (s) { return String(s).replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, ''); };
+      if (games.length > 1) return 'HS-Scoresheets-' + safe(league.name) + '.pdf';
+      const number = league.games.indexOf(games[0]) + 1;
+      return 'HS-Scoresheet-Game-' + number + '-' + safe(games[0].homeTeam) + '-vs-' + safe(games[0].awayTeam) + '.pdf';
+    }
+    // SHARED-LOGIC:scoresheet-pdf:END
+
     function renderLeagueDraftLists() {
       const unmatchedBox = document.getElementById('ldUnmatchedSection');
       if (!unmatchedBox) return;
@@ -5315,6 +5540,30 @@
         '</tr>';
     }
 
+    // data-game names one game; without it, every game in the league, as one
+    // PDF with a page per game.
+    function generateScoresheets_(btn) {
+      const league = ((DATA.leagues && DATA.leagues.list) || []).filter(function (l) {
+        return l.leagueId === btn.dataset.league;
+      })[0];
+      if (!league) return;
+      const games = league.games.filter(function (g) {
+        return !btn.dataset.game || g.gameId === btn.dataset.game;
+      });
+      if (!games.length) return;
+      const original = btnLabel_(btn);
+      btn.disabled = true;
+      setBtnLabel_(btn, { main: 'Generating…', sub: null });
+      loadJsPdf_().then(function (JsPdf) {
+        buildScoresheetPdf_(JsPdf, league, games, DATA.playerProfiles).save(scoresheetFilename_(league, games));
+      }).catch(function (err) {
+        alert('Could not generate scoresheet: ' + err.message);
+      }).then(function () {
+        setBtnLabel_(btn, original);
+        btn.disabled = false;
+      });
+    }
+
     function renderGameRow_(league, game, editable) {
       if (editable && ilEditingGameId === game.gameId) {
         return renderGameEditForm_(league, game);
@@ -5339,7 +5588,10 @@
           '<td>' + esc(displayWinner) + '</td>' +
           '<td>' + esc(game.referee || '') + '</td>' +
           '<td>' + esc(game.gameAdmin || '') + '</td>' +
-          (editable ? '<td><button class="export-btn il-edit-game-btn" data-league="' + esc(league.leagueId) + '" data-game="' + esc(game.gameId) + '" type="button">Edit</button></td>' : '') +
+          (editable ? '<td><div class="il-game-actions">' +
+            '<button class="export-btn il-scoresheet-btn" data-league="' + esc(league.leagueId) + '" data-game="' + esc(game.gameId) + '" type="button">Scoresheet</button>' +
+            '<button class="export-btn il-edit-game-btn" data-league="' + esc(league.leagueId) + '" data-game="' + esc(game.gameId) + '" type="button">Edit</button>' +
+          '</div></td>' : '') +
         '</tr>';
     }
 
@@ -5653,6 +5905,9 @@
               '<div class="il-section-note">' + computeLeagueGameCounts_(league.games) + '</div>' +
             '</div>' +
             '<div class="il-table-wrap"><table class="il-table"><thead><tr>' + gamesHeader + '</tr></thead><tbody>' + gamesRows + '</tbody></table></div>' +
+            (editable && league.games.length
+              ? '<button class="export-btn il-scoresheet-btn il-scoresheet-all-btn" data-league="' + esc(league.leagueId) + '" type="button">All Scoresheets (' + league.games.length + ')</button>'
+              : '') +
             addGameHtml +
             ((closeBtn || deleteBtn) ? '<div class="records-actions">' + closeBtn + deleteBtn + '</div>' : '') +
           '</div>' +
@@ -5871,6 +6126,9 @@
           .then(fetchLeagues_)
           .catch(function (err) { alert('Could not remove player: ' + err.message); });
       }
+
+      const scoresheetBtn = e.target.closest('.il-scoresheet-btn');
+      if (scoresheetBtn) generateScoresheets_(scoresheetBtn);
 
       const shareLeagueBtn = e.target.closest('.il-share-btn');
       if (shareLeagueBtn) shareLeague_(shareLeagueBtn.dataset.league, shareLeagueBtn);

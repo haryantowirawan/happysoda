@@ -143,6 +143,11 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-11-02** — Internal Leagues: printable game scoresheets (admin only, active league): a
+  **Scoresheet** button per game and **All Scoresheets (N)**, A4 portrait PDFs, one page per game.
+  The PDF code is the shared `scoresheet-pdf` section, stamped by `sync-shared.js`. Full details in
+  `../app-script-backend/CLAUDE.md`.
+
 - **2026-10-28** — **Viewer role**: the lock button also accepts the backend's shared
   `VIEWER_TOKEN` passcode, which unblurs the profile popup's Player Stats and nothing else
   (no admin controls, no Selfish). Logs in via the new `verifyAccess` action, which returns
