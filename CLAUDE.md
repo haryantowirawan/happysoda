@@ -143,6 +143,11 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-11-02** — Internal Leagues: public **Champion** button under Standings (Export menu:
+  Copy or WhatsApp) with the ranking rules and the numbers behind the top team. Ranking gained
+  head-to-head and total points tiebreaks on the backend. Full notes in
+  `../app-script-backend/CLAUDE.md`. Deployed after the backend's `@130`.
+
 - **2026-11-02** — Scoresheet: wider Notes column for player points, via the shared
   `scoresheet-pdf` section. Details in `../app-script-backend/CLAUDE.md`.
 

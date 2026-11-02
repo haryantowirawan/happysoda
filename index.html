@@ -4954,6 +4954,64 @@
       });
       return Object.keys(balance).some(function (team) { return Math.abs(balance[team]) > 1; });
     }
+
+    function signedDiff_(n) {
+      return (n > 0 ? '+' : '') + n;
+    }
+
+    // One sentence on why the top team is ahead of the second, from the
+    // standings' wins, diff and decidedBy.
+    function championReasonText_(standings) {
+      const a = standings[0], b = standings[1];
+      if (!b) return '';
+      if (a.wins !== b.wins) {
+        return a.team + ' has the most wins: ' + a.wins + ', against ' + b.wins + ' for ' + b.team + '.';
+      }
+      const level = a.team + ' and ' + b.team + ' both have ' + a.wins + ' win' + (a.wins === 1 ? '' : 's');
+      if (a.diff !== b.diff) {
+        return level + '. ' + a.team + ' has the better point difference: ' +
+          signedDiff_(a.diff) + ' against ' + signedDiff_(b.diff) + '.';
+      }
+      const tied = level + ' and a point difference of ' + signedDiff_(a.diff) + '. ';
+      if (b.decidedBy === 'headToHead') return tied + a.team + ' is ahead on their head-to-head result.';
+      if (b.decidedBy === 'pointsFor') {
+        return tied + 'Head-to-head is also level, so total points scored decides: ' +
+          a.pointsFor + ' for ' + a.team + ', ' + b.pointsFor + ' for ' + b.team + '.';
+      }
+      return tied + 'Head-to-head and total points scored are also level, so ' + a.team + ' is ahead on team name only.';
+    }
+
+    // WhatsApp message explaining the ranking rules and, once games have been
+    // played, the numbers behind the current champion or leader.
+    function championMessageText_(league) {
+      const lines = ['🏆 *' + league.name + ' – How the champion is decided*'];
+      const winner = leagueWinnerLabel_(league);
+      if (winner) {
+        lines.push('', '*' + (league.status === 'closed' ? 'Champion' : winner.label) + ': ' + winner.team + '*');
+      }
+      lines.push(
+        '',
+        '*Ranking rules, in order*',
+        '1. Most wins',
+        '2. Best point difference (points scored minus points conceded)',
+        '3. Head-to-head result between the tied teams',
+        '4. Total points scored',
+        '5. Team name, only if everything else is level'
+      );
+
+      const played = league.games.filter(isGamePlayed_).length;
+      if (played) {
+        const finished = played === league.games.length;
+        lines.push('', '*' + (finished ? 'Final standings' : 'Standings so far, ' + played + ' of ' + league.games.length + ' games played') + '*');
+        league.standings.forEach(function (s, i) {
+          lines.push((i + 1) + '. ' + s.team + ' — ' + s.wins + 'W ' + s.losses + 'L · ' +
+            s.pointsFor + ' scored, ' + s.pointsAgainst + ' conceded (' + signedDiff_(s.diff) + ')');
+        });
+        const reason = championReasonText_(league.standings);
+        if (reason) lines.push('', '*Why ' + league.standings[0].team + ' is first*', reason);
+      }
+      return lines.join('\n');
+    }
     // SHARED-LOGIC:league-round-text:END
 
     function renderLeagueDraftLists() {
@@ -5688,6 +5746,16 @@
       return buttons ? '<div class="il-round-messages">' + buttons + '</div>' : '';
     }
 
+    // Public, like the league Share button: it only explains results.
+    function renderChampionMessageButton_(league) {
+      return '<div class="il-round-messages">' +
+        '<button class="export-btn" type="button" data-list-share="champion" aria-haspopup="true" aria-expanded="false" ' +
+        'data-league="' + esc(league.leagueId) + '">' +
+        '<span class="btn-icon">' + icon_('share') + '</span>' +
+        '<span class="btn-label"><span class="btn-label-main">Champion</span>' +
+        '<span class="btn-label-sub">How it\'s decided</span></span></button></div>';
+    }
+
     function renderAddGameForm_(league) {
       const teamNames = league.teams.map(function (t) { return t.teamName; });
       return '' +
@@ -6013,6 +6081,7 @@
               '<div class="il-section-title">Standings</div>' +
             '</div>' +
             renderStandingsTable_(league.standings, league) +
+            (forImage ? '' : renderChampionMessageButton_(league)) +
           '</div>' +
           '<div class="il-section">' +
             '<div class="il-section-head">' +
@@ -7247,17 +7316,25 @@
       return lines.join('\n');
     }
 
-    function roundShareText_(btn) {
-      const league = ((DATA.leagues && DATA.leagues.list) || []).filter(function (l) {
+    function shareTriggerLeague_(btn) {
+      return ((DATA.leagues && DATA.leagues.list) || []).filter(function (l) {
         return l.leagueId === btn.dataset.league;
       })[0];
+    }
+    function roundShareText_(btn) {
+      const league = shareTriggerLeague_(btn);
       return league ? roundMessageText_(league, btn.dataset.round) : null;
+    }
+    function championShareText_(btn) {
+      const league = shareTriggerLeague_(btn);
+      return league ? championMessageText_(league) : null;
     }
 
     const LIST_SHARE_SOURCES_ = {
       perks: { title: 'Export perks list', text: perksListText_ },
       membership: { title: 'Export membership list', text: membershipListText_ },
-      round: { title: 'Round message', text: roundShareText_ }
+      round: { title: 'Round message', text: roundShareText_ },
+      champion: { title: 'How the champion is decided', text: championShareText_ }
     };
     // Whether this page may hand off to phone apps directly (see
     // initShareMenu_'s appHandoff).
