@@ -4772,14 +4772,14 @@
       fitText(league.name, 105, 21.5, WIDTH, 10, 'normal', 'center');
 
       // Info block. The sample's third column had three empty cells, so they
-      // now carry the game's time and stage, and Winning Team gets two rows
+      // now carry the venue and stage, and Winning Team gets two rows
       // of writing room.
       const referees = scoresheetSplitPair_(game.referee);
       const admins = scoresheetSplitPair_(game.gameAdmin);
       const infoTop = 25, infoRow = 7.5, infoCols = [66, 66, 58];
       const col2 = LEFT + infoCols[0], col3 = col2 + infoCols[1];
       [
-        [['Date', game.date], ['Venue', SCORESHEET_VENUE_], ['Time', game.time]],
+        [['Date', game.date], ['Time', game.time], ['Venue', SCORESHEET_VENUE_]],
         [['Home Team', game.homeTeam], ['Away Team', game.awayTeam], ['Stage', game.stage]],
         [['Referee 1', referees[0]], ['Referee 2', referees[1]], null],
         [['Admin 1', admins[0]], ['Admin 2', admins[1]], null]
