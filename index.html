@@ -4769,7 +4769,10 @@
       doc.setTextColor(0);
 
       fitText('Happy Soda Game Scoresheet', 105, 16, WIDTH, 16, 'bold', 'center');
-      fitText(league.name, 105, 21.5, WIDTH, 10, 'normal', 'center');
+      // Leagues are auto-named "HS League <year>"; the printed sheet spells out
+      // that it's the internal league. A league renamed to anything else prints as is.
+      const sheetTitle = String(league.name).replace(/^HS League\b/, 'HS Internal League');
+      fitText(sheetTitle, 105, 21.5, WIDTH, 10, 'normal', 'center');
 
       // Info block. The sample's third column had three empty cells, so they
       // now carry the venue and stage, and Winning Team gets two rows
