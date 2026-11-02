@@ -143,6 +143,10 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-11-02** — Internal Leagues: public **Export as image** on every league (Teams, Standings,
+  Games results), using the existing Share/Save sheet. Full details in
+  `../app-script-backend/CLAUDE.md`.
+
 - **2026-11-02** — Internal Leagues (Admin mode): a WhatsApp/copy message button per round showing
   each game's home and away team, and a Balance Home/Away button shown while the schedule is
   uneven. Matchup column renamed Home vs Away. Needs the backend `balanceHomeAway` action, so

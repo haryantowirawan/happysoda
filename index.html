@@ -2798,6 +2798,27 @@
     }
     /* Scoresheet + Edit share the last Games column, on one line. */
     .il-game-actions { display: flex; gap: 6px; }
+    /* League image export. Rendered off-screen from renderLeagueDetail_ and
+       sized for a phone: a shared image is scaled to the screen, so type is
+       set relative to the 732px capture width rather than the page. */
+    #ilExportCapture {
+      display: none;
+      position: absolute; left: -10000px; top: 0;
+      box-sizing: border-box;
+      padding: 16px;
+      background: var(--bg);
+    }
+    #ilExportCapture .il-table-wrap { overflow: visible; margin-bottom: 0; }
+    #ilExportCapture .il-games-table th:nth-child(6), #ilExportCapture .il-games-table td:nth-child(6),
+    #ilExportCapture .il-games-table th:nth-child(7), #ilExportCapture .il-games-table td:nth-child(7) { display: none; }
+    #ilExportCapture .il-table td { font-size: 17px; }
+    #ilExportCapture .il-table thead th { font-size: 13px; }
+    #ilExportCapture .il-stage-chip { font-size: 13px; white-space: nowrap; }
+    #ilExportCapture .name-chip { font-size: 16px; }
+    #ilExportCapture .il-team-card-name { font-size: 19px; }
+    #ilExportCapture .il-section-title { font-size: 17px; }
+    #ilExportCapture .il-league-foot { margin-top: 12px; }
+    .il-league-top .il-image-btn { margin: 0 0 0 auto; flex-shrink: 0; }
     .il-round-messages { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
     .il-round-messages .export-btn { margin: 0; }
     .il-game-actions .export-btn { margin: 0; white-space: nowrap; }
@@ -5865,7 +5886,24 @@
         '</div>';
     }
 
-    function renderLeagueDetail_(league, editable) {
+    // Public: every viewer can export any league. Renders the read-only view
+    // off-screen, so the image carries no admin controls whoever is logged in.
+    function exportLeagueImage_(btn) {
+      const league = ((DATA.leagues && DATA.leagues.list) || []).filter(function (l) {
+        return l.leagueId === btn.dataset.league;
+      })[0];
+      if (!league) return;
+      let capture = document.getElementById('ilExportCapture');
+      if (!capture) {
+        capture = document.createElement('div');
+        capture.id = 'ilExportCapture';
+        document.body.appendChild(capture);
+      }
+      capture.innerHTML = renderLeagueDetail_(league, false, true);
+      exportImageFromElement('ilExportCapture', String(league.name).replace(/[^A-Za-z0-9]+/g, '-'), btn);
+    }
+
+    function renderLeagueDetail_(league, editable, forImage) {
       const teamsHtml = '<div class="il-teams-grid">' + league.teams.map(function (t, i) {
         const players = nameChips_(t.players, function (p) { return p.position || ''; });
         return '' +
@@ -5917,26 +5955,31 @@
       // Deleting is available to the admin regardless of status — unlike
       // Close League it's not about locking in real results, it's for
       // purging a mistake (wrong teams, a test run) entirely. Permanent.
-      const deleteBtn = isAdmin()
+      const deleteBtn = isAdmin() && !forImage
         ? '<button class="export-btn il-danger-btn il-delete-league-btn" data-league="' + esc(league.leagueId) + '" data-name="' + esc(league.name) + '" type="button">Delete League</button>'
         : '';
 
       // Renaming is cosmetic-only (not a result), so — like Delete — it's
       // available to admin regardless of status; public always just sees
       // the plain name, active league or archived.
-      const nameHtml = (isAdmin() && ilRenamingLeagueId === league.leagueId)
+      const nameHtml = (isAdmin() && !forImage && ilRenamingLeagueId === league.leagueId)
         ? '<span class="il-rename-wrap" data-league="' + esc(league.leagueId) + '">' +
             '<input type="text" class="il-f-leaguename" value="' + esc(league.name) + '">' +
             '<button class="export-btn il-save-name-btn" type="button">Save</button>' +
             '<button class="export-btn il-cancel-name-btn" type="button">Cancel</button>' +
           '</span>'
-        : esc(league.name) + (isAdmin()
+        : esc(league.name) + (isAdmin() && !forImage
           ? ' <button class="il-rename-btn" data-league="' + esc(league.leagueId) + '" type="button" title="Rename">✏️</button>'
           : '');
 
       // Sharing is a read action, so unlike rename/close/delete this one
       // shows for every viewer, on the active league and archived ones alike.
-      const shareBtn = ' <button class="il-share-btn" data-league="' + esc(league.leagueId) + '" type="button" title="Share to WhatsApp">📤</button>';
+      const shareBtn = forImage ? '' : ' <button class="il-share-btn" data-league="' + esc(league.leagueId) + '" type="button" title="Share to WhatsApp">📤</button>';
+      const imageBtn = forImage ? '' :
+        '<button class="export-btn il-image-btn" data-league="' + esc(league.leagueId) + '" type="button">' +
+          '<span class="btn-icon">' + icon_('download') + '</span>' +
+          '<span class="btn-label"><span class="btn-label-main">Export</span><span class="btn-label-sub">As image</span></span>' +
+        '</button>';
 
       return '' +
         '<div class="il-league-block">' +
@@ -5946,6 +5989,7 @@
               '<div class="il-league-meta">' + esc(league.numTeams) + ' teams · ' + computeLeagueGameCounts_(league.games) +
                 (computeLeagueDateRange_(league.games) ? ' · ' + esc(computeLeagueDateRange_(league.games)) : '') + '</div>' +
             '</div>' +
+            imageBtn +
           '</div>' +
           winnerBanner +
           '<div class="il-section">' +
@@ -5970,7 +6014,7 @@
               '<div class="il-section-title">Games</div>' +
               '<div class="il-section-note">' + computeLeagueGameCounts_(league.games) + '</div>' +
             '</div>' +
-            '<div class="il-table-wrap"><table class="il-table"><thead><tr>' + gamesHeader + '</tr></thead><tbody>' + gamesRows + '</tbody></table></div>' +
+            '<div class="il-table-wrap"><table class="il-table il-games-table"><thead><tr>' + gamesHeader + '</tr></thead><tbody>' + gamesRows + '</tbody></table></div>' +
             (editable && league.games.length
               ? '<button class="export-btn il-scoresheet-btn il-scoresheet-all-btn" data-league="' + esc(league.leagueId) + '" type="button">All Scoresheets (' + league.games.length + ')</button>'
               : '') +
@@ -6196,6 +6240,9 @@
           .then(fetchLeagues_)
           .catch(function (err) { alert('Could not remove player: ' + err.message); });
       }
+
+      const imageBtn = e.target.closest('.il-image-btn');
+      if (imageBtn) exportLeagueImage_(imageBtn);
 
       const balanceBtn = e.target.closest('.il-balance-btn');
       if (balanceBtn) {
@@ -7378,7 +7425,7 @@
       // would override the CSS grid layout below it (inline styles beat
       // any class-based stylesheet rule), so leave its display entirely
       // to CSS, controlled purely by the "exporting-records" body class.
-      const needsForceShow = elementId === 'financeExportCapture';
+      const needsForceShow = elementId === 'financeExportCapture' || elementId === 'ilExportCapture';
       if (needsForceShow) target.style.display = 'block';
 
       // Records export uses a 2-column grid; the on-screen container is
@@ -7389,13 +7436,16 @@
       // reason: its table is 4 columns (name + fee, twice) at 16px, which
       // overflows the card on a phone-width container.
       const needsWiden = elementId === 'recordsExportCapture' || elementId === 'ldExportCapture' ||
-        elementId === 'financeExportCapture';
+        elementId === 'financeExportCapture' || elementId === 'ilExportCapture';
       // 700px of card + the 16px gutter either side the capture root
       // gets during an export.
       if (needsWiden) target.style.width = '732px';
 
       setTimeout(function () {
-        html2canvas(target, { scale: 2 }).then(function (canvas) {
+        // A league image should look the same from any device, so it always
+        // gets the wide layout rather than this phone's media queries.
+        const captureOptions = elementId === 'ilExportCapture' ? { scale: 2, windowWidth: 1100 } : { scale: 2 };
+        html2canvas(target, captureOptions).then(function (canvas) {
           document.body.classList.remove('exporting-records');
           if (needsForceShow) target.style.display = 'none';
           if (needsWiden) target.style.width = '';
