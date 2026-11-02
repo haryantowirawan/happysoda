@@ -2798,6 +2798,8 @@
     }
     /* Scoresheet + Edit share the last Games column, on one line. */
     .il-game-actions { display: flex; gap: 6px; }
+    .il-round-messages { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .il-round-messages .export-btn { margin: 0; }
     .il-game-actions .export-btn { margin: 0; white-space: nowrap; }
     .il-section-note { margin-left: auto; font-size: 12.5px; color: var(--muted); }
     .il-teams-grid {
@@ -4880,6 +4882,53 @@
     }
     // SHARED-LOGIC:scoresheet-pdf:END
 
+    // SHARED-LOGIC:league-round-text:START (generated from shared/draft-logic.js — do not edit here; run node scripts/sync-shared.js)
+    // Games grouped by Stage ("Round 1", ...), in schedule order. A round is
+    // one match day.
+    function leagueRounds_(league) {
+      const rounds = [];
+      league.games.forEach(function (game) {
+        const stage = game.stage || 'Games';
+        let round = rounds.filter(function (r) { return r.stage === stage; })[0];
+        if (!round) {
+          round = { stage: stage, games: [] };
+          rounds.push(round);
+        }
+        round.games.push(game);
+      });
+      return rounds;
+    }
+
+    // WhatsApp message for one round: who plays whom, and who is home or away
+    // so each team brings the right jersey colour. WhatsApp reads *x* as bold.
+    function roundMessageText_(league, stage) {
+      const round = leagueRounds_(league).filter(function (r) { return r.stage === stage; })[0];
+      if (!round) return '';
+      const dates = round.games.map(function (g) { return g.date; }).filter(Boolean);
+      const lines = ['🏀 *' + league.name + ' – ' + round.stage + '*'];
+      if (dates.length) lines.push('📅 ' + dates[0]);
+      round.games.forEach(function (game, i) {
+        lines.push('');
+        lines.push('*Game ' + (i + 1) + '*' + (game.time ? ' – ' + game.time : ''));
+        lines.push('Home: ' + game.homeTeam);
+        lines.push('Away: ' + game.awayTeam);
+      });
+      lines.push('');
+      lines.push('Please bring the right jersey colour for your team.');
+      return lines.join('\n');
+    }
+
+    // True when some team's home and away counts differ by more than one.
+    function homeAwayUneven_(league) {
+      const balance = {};
+      league.games.forEach(function (g) {
+        balance[g.homeTeam] = (balance[g.homeTeam] || 0) + 1;
+        balance[g.awayTeam] = (balance[g.awayTeam] || 0) - 1;
+      });
+      return Object.keys(balance).some(function (team) { return Math.abs(balance[team]) > 1; });
+    }
+    // SHARED-LOGIC:league-round-text:END
+
     function renderLeagueDraftLists() {
       const unmatchedBox = document.getElementById('ldUnmatchedSection');
       if (!unmatchedBox) return;
@@ -5601,6 +5650,17 @@
         '</tr>';
     }
 
+    function renderRoundMessageButtons_(league) {
+      const buttons = leagueRounds_(league).map(function (round) {
+        return '<button class="export-btn" type="button" data-list-share="round" aria-haspopup="true" aria-expanded="false" ' +
+          'data-league="' + esc(league.leagueId) + '" data-round="' + esc(round.stage) + '">' +
+          '<span class="btn-icon">' + icon_('share') + '</span>' +
+          '<span class="btn-label"><span class="btn-label-main">' + esc(round.stage) + '</span>' +
+          '<span class="btn-label-sub">Message</span></span></button>';
+      }).join('');
+      return buttons ? '<div class="il-round-messages">' + buttons + '</div>' : '';
+    }
+
     function renderAddGameForm_(league) {
       const teamNames = league.teams.map(function (t) { return t.teamName; });
       return '' +
@@ -5825,7 +5885,7 @@
         : '';
 
       const gamesRows = league.games.map(function (g) { return renderGameRow_(league, g, editable); }).join('');
-      const gamesHeader = '<th>Stage</th><th>When</th><th>Matchup</th><th>Score</th><th>Winner</th><th>Referee</th><th>Game Admin</th>' + (editable ? '<th></th>' : '');
+      const gamesHeader = '<th>Stage</th><th>When</th><th>Home vs Away</th><th>Score</th><th>Winner</th><th>Referee</th><th>Game Admin</th>' + (editable ? '<th></th>' : '');
 
       const addGameHtml = editable
         ? (ilAddingGameForLeague === league.leagueId
@@ -5913,6 +5973,10 @@
             '<div class="il-table-wrap"><table class="il-table"><thead><tr>' + gamesHeader + '</tr></thead><tbody>' + gamesRows + '</tbody></table></div>' +
             (editable && league.games.length
               ? '<button class="export-btn il-scoresheet-btn il-scoresheet-all-btn" data-league="' + esc(league.leagueId) + '" type="button">All Scoresheets (' + league.games.length + ')</button>'
+              : '') +
+            (editable ? renderRoundMessageButtons_(league) : '') +
+            (editable && homeAwayUneven_(league)
+              ? '<button class="export-btn il-balance-btn" data-league="' + esc(league.leagueId) + '" type="button">Balance Home/Away</button>'
               : '') +
             addGameHtml +
             ((closeBtn || deleteBtn) ? '<div class="records-actions">' + closeBtn + deleteBtn + '</div>' : '') +
@@ -6131,6 +6195,16 @@
         callLeagueApi_('removeLeaguePlayer', { leagueId: box.dataset.league, playerName: playerName })
           .then(fetchLeagues_)
           .catch(function (err) { alert('Could not remove player: ' + err.message); });
+      }
+
+      const balanceBtn = e.target.closest('.il-balance-btn');
+      if (balanceBtn) {
+        callLeagueApi_('balanceHomeAway', { leagueId: balanceBtn.dataset.league })
+          .then(function (result) {
+            if (!result.swapped) alert('Nothing to change: the unplayed games are already as even as they can be.');
+          })
+          .then(fetchLeagues_)
+          .catch(function (err) { alert('Could not balance home/away: ' + err.message); });
       }
 
       const scoresheetBtn = e.target.closest('.il-scoresheet-btn');
@@ -7120,9 +7194,17 @@
       return lines.join('\n');
     }
 
+    function roundShareText_(btn) {
+      const league = ((DATA.leagues && DATA.leagues.list) || []).filter(function (l) {
+        return l.leagueId === btn.dataset.league;
+      })[0];
+      return league ? roundMessageText_(league, btn.dataset.round) : null;
+    }
+
     const LIST_SHARE_SOURCES_ = {
       perks: { title: 'Export perks list', text: perksListText_ },
-      membership: { title: 'Export membership list', text: membershipListText_ }
+      membership: { title: 'Export membership list', text: membershipListText_ },
+      round: { title: 'Round message', text: roundShareText_ }
     };
     // Whether this page may hand off to phone apps directly (see
     // initShareMenu_'s appHandoff).
@@ -7193,7 +7275,7 @@
       if (trigger) {
         if (listShareTrigger_ === trigger) { closeListShareMenu_(); return; }
         // Check there's something to share before opening the menu at all.
-        if (!LIST_SHARE_SOURCES_[trigger.dataset.listShare].text()) return;
+        if (!LIST_SHARE_SOURCES_[trigger.dataset.listShare].text(trigger)) return;
         openListShareMenu_(trigger);
         return;
       }
@@ -7205,7 +7287,7 @@
       const item = e.target.closest('[data-list-action]');
       const source = LIST_SHARE_SOURCES_[this.dataset.source];
       if (!item || !source) return;
-      const text = source.text();
+      const text = source.text(listShareTrigger_);
       if (!text) { closeListShareMenu_(); return; }
       if (item.dataset.listAction === 'copy') {
         copyListText_(item, text);
