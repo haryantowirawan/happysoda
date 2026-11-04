@@ -4156,7 +4156,10 @@
       const known = new Set((DATA.allPlayers || []).map(function (p) { return p.name.trim().toLowerCase(); }));
       return entries.map(function (entry, i) {
         const linkable = known.has(entry.name.trim().toLowerCase());
-        const amountHtml = entry.fee !== null
+        // free: a "Free" weekly slot (counts as attendance, see isFree_ in Main.js).
+        const amountHtml = entry.free
+          ? '<span class="balance-amount amount-credit">Free</span>'
+          : entry.fee !== null
           ? '<span class="balance-amount amount-credit">' + formatIDR(entry.fee) + '</span>'
           : '<span class="balance-amount amount-owed">Not Paid</span>';
         return '' +
