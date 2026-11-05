@@ -4381,19 +4381,9 @@
       return sorted.slice(0, 2).reduce(function (a, b) { return a + b; }, 0);
     }
 
-    // How far a split is from spreading `pred`'s players evenly. With at
-    // least one per team available, every team needs one (extras may
-    // stack); with fewer, no team gets a second while another has none.
-    function coverageViolations_(teams, pred) {
-      const counts = teams.map(function (team) { return team.filter(pred).length; });
-      const total = counts.reduce(function (a, b) { return a + b; }, 0);
-      if (total >= teams.length) {
-        return counts.reduce(function (s, c) { return s + (c === 0 ? 1 : 0); }, 0);
-      }
-      return counts.reduce(function (s, c) { return s + Math.max(0, c - 1); }, 0);
-    }
-    // Stricter: the counts may differ by at most one between any two teams
-    // (so with N teams and N or fewer such players, at most one each).
+    // How far a split is from spreading `pred`'s players evenly: the counts
+    // may differ by at most one between any two teams (so with N teams and
+    // N or fewer such players, at most one each).
     function evenSpreadViolations_(teams, pred) {
       const counts = teams.map(function (team) { return team.filter(pred).length; });
       const total = counts.reduce(function (a, b) { return a + b; }, 0);
@@ -4402,17 +4392,41 @@
       return counts.reduce(function (s, c) { return s + Math.max(0, c - cap, floor - c); }, 0);
     }
 
+    function hasPosition_(pos) {
+      return function (p) { return p.position === pos; };
+    }
+    const isPG_ = hasPosition_('PG');
+    const isPositionC_ = hasPosition_('C');
+
     // The hard rules. A split that breaks any of these is only ever chosen
-    // when no split that keeps them exists (e.g. 2 Centers for 3 teams).
-    //   - every team gets a Center and a Playmaker, when there are enough;
-    //   - high-rated Centers / Playmakers are spread one per team;
-    //   - Selfish players are spread one per team (admin drafts only).
+    // when no split that keeps them exists. Each one is "spread evenly":
+    // counts per team differ by at most one, so every team gets one when
+    // there are enough, and none gets a second while another has none.
+    //   - Centers and Playmakers (by role, see isCenter / isPlaymaker);
+    //   - PGs and Cs by listed position. Roles alone weren't enough: a
+    //     4-team draft on 2026-11-05 gave one team 3 PGs and two teams none,
+    //     because a Playmaker-role SF counted as that team's playmaker;
+    //   - high-rated Centers / Playmakers;
+    //   - Selfish players (admin drafts only).
+    // Until 2026-11-05 Centers/Playmakers only needed "at least one per
+    // team", so extras could stack on one team.
     function draftViolations(teams) {
-      return coverageViolations_(teams, isCenter) +
-        coverageViolations_(teams, isPlaymaker) +
+      return evenSpreadViolations_(teams, isCenter) +
+        evenSpreadViolations_(teams, isPlaymaker) +
+        evenSpreadViolations_(teams, isPG_) +
+        evenSpreadViolations_(teams, isPositionC_) +
         evenSpreadViolations_(teams, isHighCenter) +
         evenSpreadViolations_(teams, isHighPlaymaker) +
         evenSpreadViolations_(teams, isSelfish);
+    }
+
+    // SG / SF / PF are spread too, but as a soft preference (part of
+    // draftImbalance), since wings and forwards are more interchangeable
+    // and making them hard rules too would leave little room for balance.
+    function wingSpreadPenalty_(teams) {
+      return ['SG', 'SF', 'PF'].reduce(function (s, pos) {
+        return s + evenSpreadViolations_(teams, hasPosition_(pos));
+      }, 0);
     }
 
     // How uneven the teams are; lower is fairer. Team averages (not sums)
@@ -4424,7 +4438,8 @@
     //   - each team's best Center and best Playmaker, so the anchors are
     //     matched, and so a team without a real Center still gets its best
     //     interior player weighed against the others' Centers;
-    //   - average height, lightly.
+    //   - average height, lightly;
+    //   - SG / SF / PF counts per team (wingSpreadPenalty_), lightly.
     function draftImbalance(teams) {
       const avg = function (fn) { return teams.map(function (t) { return teamAvg_(t, fn); }); };
       return spread_(avg(offensePower)) * 4 +
@@ -4435,7 +4450,8 @@
         spread_(teams.map(topTalentStrength)) * 0.5 +
         spread_(teams.map(function (t) { return bestOf_(t, centerScore); })) * 1.5 +
         spread_(teams.map(function (t) { return bestOf_(t, playmakerScore); })) * 1.5 +
-        spread_(avg(function (p) { return p.heightCm || 172; })) / 10;
+        spread_(avg(function (p) { return p.heightCm || 172; })) / 10 +
+        wingSpreadPenalty_(teams) * 0.5;
     }
 
     // Violations dwarf any possible imbalance, so the search always fixes
