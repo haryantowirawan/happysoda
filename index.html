@@ -5996,9 +5996,23 @@
       exportImageFromElement('ilExportCapture', String(league.name).replace(/[^A-Za-z0-9]+/g, '-'), btn);
     }
 
+    // Team cards list players grouped by position, bigs first. Stable, so
+    // players sharing a position keep their sheet order; anyone without a
+    // known position goes last.
+    const IL_POSITION_ORDER_ = ['C', 'PF', 'SF', 'PG', 'SG'];
+    function sortByPosition_(players) {
+      const rank = function (p) {
+        const i = IL_POSITION_ORDER_.indexOf(String(p.position || '').toUpperCase());
+        return i === -1 ? IL_POSITION_ORDER_.length : i;
+      };
+      return players.map(function (p, i) { return { p: p, i: i }; })
+        .sort(function (a, b) { return (rank(a.p) - rank(b.p)) || (a.i - b.i); })
+        .map(function (x) { return x.p; });
+    }
+
     function renderLeagueDetail_(league, editable, forImage) {
       const teamsHtml = '<div class="il-teams-grid">' + league.teams.map(function (t, i) {
-        const players = nameChips_(t.players, function (p) { return p.position || ''; });
+        const players = nameChips_(sortByPosition_(t.players), function (p) { return p.position || ''; });
         return '' +
           '<div class="il-team-card tone-' + ((i % 4) + 1) + '">' +
             teamJersey_((i % 4) + 1, teamJerseyLabel_(t.teamName, i)) +
