@@ -5217,10 +5217,32 @@
     // renders (so it never delays first paint), and again after any league
     // write instead of a full loadData() (a league write never touches
     // dashboard/tier/outstanding data).
+    // A league's Teams rows store each player's position as it was when
+    // they were added, and the sheet is never updated after that. Show the
+    // current Player Profiles position instead wherever there is one, so a
+    // roster change (e.g. PG -> SG) shows up in every league view: team
+    // cards and their sort, share text, Manage Players, scoresheets. The
+    // stored value is kept for anyone not on the roster.
+    function applyCurrentPositions_(leagues) {
+      const byName = {};
+      (DATA.playerProfiles || []).forEach(function (p) {
+        if (p.position) byName[String(p.name).toLowerCase()] = p.position;
+      });
+      ((leagues && leagues.list) || []).forEach(function (league) {
+        (league.teams || []).forEach(function (t) {
+          (t.players || []).forEach(function (pl) {
+            const cur = byName[String(pl.name || '').toLowerCase()];
+            if (cur) pl.position = cur;
+          });
+        });
+      });
+    }
+
     function fetchLeagues_() {
       return fetchJsonWithRetry_(APPS_SCRIPT_URL + (APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&') + 'format=json&part=leagues')
         .then(function (json) {
           DATA.leagues = json.leagues;
+          applyCurrentPositions_(DATA.leagues);
           DATA.warnings = (DATA.warnings || []).concat(json.warnings || []);
           document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
           setLoadingOverlay_(false);
