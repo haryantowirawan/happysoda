@@ -1169,18 +1169,80 @@
       font-size: 11px;
       color: var(--muted);
     }
+    /* Fields take the solid panel colour, not --panel-2: that's the Games
+       table header's colour (and the Add Game / Manage Players box's), so
+       fields in it read as more header rather than as things to fill in. */
     .il-form-grid input, .il-form-grid select {
       font-size: 13px;
       padding: 5px 6px;
       border-radius: 6px;
       border: 1px solid var(--border);
-      background: var(--panel-2);
+      background: var(--panel-solid);
       color: var(--text);
     }
-    .il-checkbox {
-      flex-direction: row !important;
+    .il-form-grid input:focus, .il-form-grid select:focus, .il-rename-wrap input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
+    }
+    /* The game being edited sits in the same box as Add Game, so the white
+       fields have a plate behind them instead of the table's own rows. */
+    .il-edit-row > td {
+      background: var(--panel-2);
+      box-shadow: inset 3px 0 0 var(--accent);
+      white-space: normal;
+      padding: 8px 10px;
+    }
+    /* Played: an on/off switch. Still a real checkbox underneath (visually
+       hidden, role="switch"), so the save handler reads .checked as before. */
+    .il-form-grid label.il-switch {
+      position: relative;   /* contains the hidden checkbox, or it escapes the table's scroll clip and widens the page */
+      flex-direction: row;
       align-items: center;
-      gap: 6px !important;
+      align-self: end;
+      gap: 8px;
+      min-height: 30px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+    .il-form-grid .il-switch input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      opacity: 0;
+    }
+    .il-switch-track {
+      position: relative;
+      flex: none;
+      width: 38px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel-solid);
+      transition: background-color 0.18s, border-color 0.18s;
+    }
+    .il-switch-track::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: transform 0.18s, background-color 0.18s;
+    }
+    .il-switch input:checked + .il-switch-track { background: var(--accent); border-color: var(--accent); }
+    .il-switch input:checked + .il-switch-track::after { transform: translateX(16px); background: var(--accent-ink); }
+    .il-switch input:focus-visible + .il-switch-track { box-shadow: 0 0 0 2px var(--accent-soft); border-color: var(--accent); }
+    @media (prefers-reduced-motion: reduce) {
+      .il-switch-track, .il-switch-track::after { transition: none; }
     }
     .il-add-game-box {
       background: var(--panel-2);
@@ -1256,7 +1318,7 @@
       padding: 4px 6px;
       border-radius: 6px;
       border: 1px solid var(--border);
-      background: var(--panel-2);
+      background: var(--panel-solid);
       color: var(--text);
     }
     .il-rename-wrap .export-btn {
@@ -2159,7 +2221,7 @@
        popover in there would be clipped by the table wrapper. Fixed takes it
        out of that clipping context entirely; ilPositionPicker_ places it. */
     .il-field { position: relative; display: flex; align-items: center; }
-    .il-field input { flex: 1; min-width: 0; padding-right: 30px; }
+    .il-field input { flex: 1; min-width: 0; padding-right: 30px; cursor: pointer; }
     .il-field-btn {
       position: absolute;
       right: 4px;
@@ -2235,8 +2297,23 @@
     .il-picker-times {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .il-picker-col-head {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .il-picker-col {
+      position: relative;
+      display: flex;
+      flex-direction: column;
       gap: 4px;
-      max-height: 232px;
+      max-height: 216px;
       overflow-y: auto;
     }
     .il-picker-foot {
@@ -3555,6 +3632,7 @@
       link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
       whatsapp: '<path fill="currentColor" stroke="none" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>',
       history: '<path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><path d="M3 3v5h5"/>',
+      clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
       refresh: '<path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/>',
     };
     function icon_(name) {
@@ -5564,21 +5642,50 @@
         '</div>';
     }
 
+    // Hour and minute are picked separately: any hour, minutes in 5-minute
+    // steps (it used to be a fixed list of 06:00-22:30 every 30 minutes).
+    // Picking both closes the picker; changing just one of an existing time
+    // updates the field and leaves it open until Done or a click outside.
+    var ilPickerHour_ = null, ilPickerMinute_ = null;
+    var ilPickerTouched_ = { h: false, m: false };
+
     function ilRenderTimePicker_() {
       const el = ilPickerEl_();
-      const cur = String(ilPickerInput_.value || '').trim();
-      let slots = '';
-      // 06:00–22:30 in 30-minute steps covers every realistic tip-off; a rare
-      // odd time can still be typed straight into the field.
-      for (let mins = 6 * 60; mins <= 22 * 60 + 30; mins += 30) {
-        const t = padTwo_(Math.floor(mins / 60)) + ':' + padTwo_(mins % 60);
-        slots += '<button type="button" class="il-picker-cell' + (t === cur ? ' selected' : '') +
-          '" data-time="' + t + '">' + t + '</button>';
+      let hours = '', minutes = '';
+      for (let h = 0; h <= 23; h++) {
+        hours += '<button type="button" class="il-picker-cell' + (h === ilPickerHour_ ? ' selected' : '') +
+          '" data-hour="' + h + '">' + padTwo_(h) + '</button>';
+      }
+      for (let m = 0; m < 60; m += 5) {
+        minutes += '<button type="button" class="il-picker-cell' + (m === ilPickerMinute_ ? ' selected' : '') +
+          '" data-minute="' + m + '">' + padTwo_(m) + '</button>';
       }
       el.innerHTML =
         '<div class="il-picker-nav"><span class="il-picker-label">Tip-off time</span></div>' +
-        '<div class="il-picker-times">' + slots + '</div>' +
-        '<div class="il-picker-foot"><button type="button" data-clear="1">Clear</button></div>';
+        '<div class="il-picker-times">' +
+          '<div><div class="il-picker-col-head">Hour</div><div class="il-picker-col" data-col="h">' + hours + '</div></div>' +
+          '<div><div class="il-picker-col-head">Minute</div><div class="il-picker-col" data-col="m">' + minutes + '</div></div>' +
+        '</div>' +
+        '<div class="il-picker-foot"><button type="button" data-clear="1">Clear</button><button type="button" data-done="1">Done</button></div>';
+    }
+
+    // Scrolls each column to its selected value (or 18:00 when the field is
+    // empty, the usual tip-off). Sets scrollTop on the column itself rather
+    // than scrollIntoView, so nothing outside the popover can move.
+    function ilScrollTimeColumns_() {
+      const el = ilPickerEl_();
+      [['h', ilPickerHour_ != null ? ilPickerHour_ : 18], ['m', ilPickerMinute_]].forEach(function (p) {
+        const col = el.querySelector('[data-col="' + p[0] + '"]');
+        if (!col || p[1] == null) return;
+        const cell = col.querySelector('[data-' + (p[0] === 'h' ? 'hour' : 'minute') + '="' + p[1] + '"]');
+        if (cell) col.scrollTop = Math.max(0, cell.offsetTop - (col.clientHeight - cell.offsetHeight) / 2);
+      });
+    }
+
+    function ilWriteTimeValue_() {
+      if (ilPickerHour_ == null) return;
+      ilPickerInput_.value = padTwo_(ilPickerHour_) + ':' + padTwo_(ilPickerMinute_ != null ? ilPickerMinute_ : 0);
+      ilPickerInput_.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
     function ilPositionPicker_(anchor) {
@@ -5612,16 +5719,15 @@
         ilPickerMonth_ = cur.m;
         ilRenderDatePicker_();
       } else {
+        const t = String(input.value || '').trim();
+        const hm = isValidHM_(t) ? t.split(':') : null;
+        ilPickerHour_ = hm ? parseInt(hm[0], 10) : null;
+        ilPickerMinute_ = hm ? parseInt(hm[1], 10) : null;
+        ilPickerTouched_ = { h: false, m: false };
         ilRenderTimePicker_();
       }
       ilPositionPicker_(input.closest('.il-field') || input);
-      if (kind === 'time') {
-        const sel = ilPickerEl_().querySelector('.il-picker-cell.selected');
-        // 'nearest' so this only ever scrolls the slot list itself — 'center'
-        // also asks ancestors (and the window) to scroll, which is pointless
-        // for a position:fixed popover.
-        if (sel) sel.scrollIntoView({ block: 'nearest' });
-      }
+      if (kind === 'time') ilScrollTimeColumns_();
     }
 
     function ilClosePicker_() {
@@ -5637,14 +5743,36 @@
       ilClosePicker_();
     }
 
+    // The whole field opens the picker, not just its icon. The inputs are
+    // inputmode="none", so a phone shows the picker rather than a keyboard
+    // that would cover it; on a desktop the field can still be typed into.
+    function ilFieldOf_(node) {
+      const field = node && node.closest ? node.closest('.il-field') : null;
+      return field && field.querySelector('.il-field-btn') ? field : null;
+    }
+
+    document.addEventListener('focusin', function (e) {
+      const field = ilFieldOf_(e.target);
+      if (field && e.target.tagName === 'INPUT') {
+        const input = field.querySelector('input');
+        if (ilPickerInput_ !== input) ilOpenPicker_(input, field.querySelector('.il-field-btn').dataset.picker);
+        return;
+      }
+      // Tabbing on to another control closes it.
+      if (ilPickerInput_ && !(e.target.closest && e.target.closest('#ilPicker')) &&
+          field !== ilPickerInput_.closest('.il-field')) ilClosePicker_();
+    });
+
     document.addEventListener('click', function (e) {
-      const trigger = e.target.closest('.il-field-btn');
-      if (trigger) {
-        const input = trigger.closest('.il-field').querySelector('input');
-        const kind = trigger.dataset.picker;
-        // A second click on the same field's button closes it again.
-        if (ilPickerInput_ === input && ilPickerKind_ === kind) ilClosePicker_();
-        else ilOpenPicker_(input, kind);
+      const field = ilFieldOf_(e.target);
+      if (field) {
+        const input = field.querySelector('input');
+        const kind = field.querySelector('.il-field-btn').dataset.picker;
+        const isOpen = ilPickerInput_ === input && ilPickerKind_ === kind;
+        // A second click on the icon closes it again; a click in the text
+        // keeps it open (it may be to place the cursor and type).
+        if (isOpen && e.target.closest('.il-field-btn')) ilClosePicker_();
+        else if (!isOpen) ilOpenPicker_(input, kind);
         return;
       }
       const el = document.getElementById('ilPicker');
@@ -5670,8 +5798,19 @@
         ilSetPickerValue_(padTwo_(+day.dataset.day) + '/' + padTwo_(ilPickerMonth_) + '/' + ilPickerYear_);
         return;
       }
-      const time = e.target.closest('[data-time]');
-      if (time) ilSetPickerValue_(time.dataset.time);
+      if (e.target.closest('[data-done]')) { ilClosePicker_(); return; }
+      const hour = e.target.closest('[data-hour]');
+      const minute = e.target.closest('[data-minute]');
+      if (hour || minute) {
+        if (hour) { ilPickerHour_ = +hour.dataset.hour; ilPickerTouched_.h = true; }
+        else { ilPickerMinute_ = +minute.dataset.minute; ilPickerTouched_.m = true; }
+        ilWriteTimeValue_();
+        if (ilPickerTouched_.h && ilPickerTouched_.m) { ilClosePicker_(); return; }
+        const cols = Array.prototype.map.call(ilPickerEl_().querySelectorAll('.il-picker-col'), function (c) { return c.scrollTop; });
+        ilRenderTimePicker_();
+        // Re-rendering resets the columns' scroll, so put them back.
+        ilPickerEl_().querySelectorAll('.il-picker-col').forEach(function (c, i) { c.scrollTop = cols[i]; });
+      }
     });
 
     document.addEventListener('keydown', function (e) {
@@ -5702,8 +5841,8 @@
           '<td colspan="8">' +
             '<div class="il-form-grid">' +
               '<label>Stage<input type="text" class="il-f-stage" value="' + esc(game.stage || '') + '"></label>' +
-              '<label>Date<span class="il-field"><input type="text" class="il-f-date" placeholder="dd/mm/yyyy" value="' + esc(game.date || '') + '"><button type="button" class="il-field-btn" data-picker="date" aria-label="Pick a date">' + icon_('calendar') + '</button></span></label>' +
-              '<label>Time<span class="il-field"><input type="text" class="il-f-time" placeholder="hh:mm" value="' + esc(game.time || '') + '"><button type="button" class="il-field-btn" data-picker="time" aria-label="Pick a time">' + icon_('history') + '</button></span></label>' +
+              '<label>Date<span class="il-field"><input type="text" class="il-f-date" inputmode="none" autocomplete="off" placeholder="dd/mm/yyyy" value="' + esc(game.date || '') + '"><button type="button" class="il-field-btn" data-picker="date" aria-label="Pick a date">' + icon_('calendar') + '</button></span></label>' +
+              '<label>Time<span class="il-field"><input type="text" class="il-f-time" inputmode="none" autocomplete="off" placeholder="hh:mm" value="' + esc(game.time || '') + '"><button type="button" class="il-field-btn" data-picker="time" aria-label="Pick a time">' + icon_('clock') + '</button></span></label>' +
               '<label>Home<select class="il-f-home">' + teamOptions_(teamNames, game.homeTeam) + '</select></label>' +
               '<label>Away<select class="il-f-away">' + teamOptions_(teamNames, game.awayTeam) + '</select></label>' +
               '<label>Home score<input type="number" class="il-f-homescore" value="' + esc(game.homeScore != null ? game.homeScore : '') + '"></label>' +
@@ -5711,7 +5850,7 @@
               '<label>Winner<select class="il-f-winner">' + winnerOptions + '</select></label>' +
               '<label>Referee<input type="text" class="il-f-referee" value="' + esc(game.referee || '') + '"></label>' +
               '<label>Game admin<input type="text" class="il-f-gameadmin" value="' + esc(game.gameAdmin || '') + '"></label>' +
-              '<label class="il-checkbox"><input type="checkbox" class="il-f-played"' + (game.played === true || game.played === 'TRUE' ? ' checked' : '') + '> Played</label>' +
+              '<label class="il-switch"><input type="checkbox" role="switch" class="il-f-played"' + (game.played === true || game.played === 'TRUE' ? ' checked' : '') + '><span class="il-switch-track" aria-hidden="true"></span>Played</label>' +
             '</div>' +
             '<div class="records-actions">' +
               '<button class="export-btn il-save-game-btn" type="button">Save</button>' +
@@ -5802,8 +5941,8 @@
       return '' +
         '<div class="il-form-grid" data-league="' + esc(league.leagueId) + '">' +
           '<label>Stage<input type="text" class="il-f-stage" placeholder="e.g. Semifinal"></label>' +
-          '<label>Date<span class="il-field"><input type="text" class="il-f-date" placeholder="dd/mm/yyyy"><button type="button" class="il-field-btn" data-picker="date" aria-label="Pick a date">' + icon_('calendar') + '</button></span></label>' +
-          '<label>Time<span class="il-field"><input type="text" class="il-f-time" placeholder="hh:mm"><button type="button" class="il-field-btn" data-picker="time" aria-label="Pick a time">' + icon_('history') + '</button></span></label>' +
+          '<label>Date<span class="il-field"><input type="text" class="il-f-date" inputmode="none" autocomplete="off" placeholder="dd/mm/yyyy"><button type="button" class="il-field-btn" data-picker="date" aria-label="Pick a date">' + icon_('calendar') + '</button></span></label>' +
+          '<label>Time<span class="il-field"><input type="text" class="il-f-time" inputmode="none" autocomplete="off" placeholder="hh:mm"><button type="button" class="il-field-btn" data-picker="time" aria-label="Pick a time">' + icon_('clock') + '</button></span></label>' +
           '<label>Home<select class="il-f-home">' + teamOptions_(teamNames) + '</select></label>' +
           '<label>Away<select class="il-f-away">' + teamOptions_(teamNames) + '</select></label>' +
           '<label>Referee<input type="text" class="il-f-referee"></label>' +
