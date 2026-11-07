@@ -2565,7 +2565,20 @@
        .il-team-card-main) that resolves to 1-2 columns either way, so the
        extra width costs it nothing and keeps the positions readable. */
     .il-team-card-players .name-grid {
-      grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    }
+    /* Jersey number in front of the name (IL team cards). */
+    .name-chip-num {
+      display: inline-block;
+      min-width: 1.6em;
+      margin-right: 1px;
+      padding: 0 3px;
+      border-radius: 4px;
+      background: var(--panel-solid);
+      color: var(--chip-sub-ink);
+      font-size: 0.85em;
+      font-weight: 800;
+      text-align: center;
     }
     /* The card itself is --panel-solid, and so was the default chip — the
        same colour, so these chips had no plate at all and only their 1px
@@ -6172,8 +6185,16 @@
     }
 
     function renderLeagueDetail_(league, editable, forImage) {
+      // Jersey numbers come from the current Player Profiles (like positions,
+      // see applyCurrentPositions_); the Teams rows don't store them.
+      const jerseyNums = {};
+      (DATA.playerProfiles || []).forEach(function (p) {
+        if (p.jerseyNumber !== undefined && p.jerseyNumber !== '') jerseyNums[String(p.name).trim().toLowerCase()] = String(p.jerseyNumber);
+      });
       const teamsHtml = '<div class="il-teams-grid">' + league.teams.map(function (t, i) {
-        const players = nameChips_(sortByPosition_(t.players), function (p) { return p.position || ''; });
+        const players = nameChips_(sortByPosition_(t.players),
+          function (p) { return p.position || ''; },
+          function (p) { return jerseyNums[String(p.name || '').trim().toLowerCase()] || ''; });
         return '' +
           '<div class="il-team-card tone-' + ((i % 4) + 1) + '">' +
             teamJersey_((i % 4) + 1, teamJerseyLabel_(t.teamName, i)) +
@@ -6651,13 +6672,16 @@
     // .name-grid CSS). Shared by the Dashboard's delta boxes, League Draft's
     // loaded-roster box and Internal Leagues' team cards, which all used to
     // join their names into one comma-separated string. `sub` optionally
-    // pulls a muted suffix (e.g. a position) off each entry.
-    function nameChips_(names, sub) {
+    // pulls a muted suffix (e.g. a position) off each entry, and `pre` a
+    // small prefix badge (e.g. a jersey number).
+    function nameChips_(names, sub, pre) {
       if (!names || !names.length) return '';
       return '<div class="name-grid">' + names.map(function (n) {
         const suffix = sub ? sub(n) : '';
+        const prefix = pre ? pre(n) : '';
         const label = String(n && n.name !== undefined ? n.name : n);
-        return '<span class="name-chip" title="' + esc(label + (suffix ? ' (' + suffix + ')' : '')) + '">' +
+        return '<span class="name-chip" title="' + esc((prefix ? '#' + prefix + ' ' : '') + label + (suffix ? ' (' + suffix + ')' : '')) + '">' +
+          (prefix ? '<span class="name-chip-num">' + esc(prefix) + '</span> ' : '') +
           esc(label) +
           (suffix ? ' <span class="name-chip-sub">' + esc(suffix) + '</span>' : '') +
           '</span>';
