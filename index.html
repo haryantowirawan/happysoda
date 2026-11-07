@@ -2567,12 +2567,14 @@
     .il-team-card-players .name-grid {
       grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
     }
-    /* Jersey number in front of the name (IL team cards). */
+    /* Jersey number in front of the name (IL team cards). Fixed width, so
+       1- and 2-digit numbers and blank badges all line the names up. */
     .name-chip-num {
       display: inline-block;
-      min-width: 1.6em;
+      box-sizing: border-box;
+      width: 2.4em;
       margin-right: 1px;
-      padding: 0 3px;
+      padding: 0;
       border-radius: 4px;
       background: var(--panel-solid);
       color: var(--chip-sub-ink);
@@ -6681,7 +6683,9 @@
         const prefix = pre ? pre(n) : '';
         const label = String(n && n.name !== undefined ? n.name : n);
         return '<span class="name-chip" title="' + esc((prefix ? '#' + prefix + ' ' : '') + label + (suffix ? ' (' + suffix + ')' : '')) + '">' +
-          (prefix ? '<span class="name-chip-num">' + esc(prefix) + '</span> ' : '') +
+          // With `pre` given, every chip gets the badge (blank when there's no
+          // value) so the names line up.
+          (pre ? '<span class="name-chip-num">' + (prefix ? esc(prefix) : '&nbsp;') + '</span> ' : '') +
           esc(label) +
           (suffix ? ' <span class="name-chip-sub">' + esc(suffix) + '</span>' : '') +
           '</span>';
