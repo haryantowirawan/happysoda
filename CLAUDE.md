@@ -143,6 +143,9 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-11-12** — Scoring Leaders header `#` → **Rank**; ranks no longer skip after a tie
+  (computed by the backend, see `app-script-backend/CLAUDE.md`).
+
 - **2026-11-12** — Internal Leagues: **player points**. A Scoring Leaders table (total points,
   GP, PPG), a top scorer on each team card, a Box score per game, top 3 scorers in the share
   text, and an admin Points editor on every played game, archived leagues included, with a
