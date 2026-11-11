@@ -143,6 +143,14 @@ was deployed over newer live fixes and had to be rolled back (see the changelog)
 
 _Most recent first. Add one entry per change (or logical group of changes), dated._
 
+- **2026-11-12** — Internal Leagues: **player points**. A Scoring Leaders table (total points,
+  GP, PPG), a top scorer on each team card, a Box score per game, top 3 scorers in the share
+  text, and an admin Points editor on every played game, archived leagues included, with a
+  paste box for scoresheet notes. Needs the backend's new `setGamePoints` action and
+  `scoring` field, so **deploy `app-script-backend` first**. Without it the page still loads
+  (no scoring shown), but saving points fails. Full notes in `app-script-backend/CLAUDE.md`'s
+  changelog, same date.
+
 - **2026-11-02** — Internal Leagues: public **Champion** button under Standings (Export menu:
   Copy or WhatsApp) with the ranking rules and the numbers behind the top team. Ranking gained
   head-to-head and total points tiebreaks on the backend. Full notes in

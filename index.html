@@ -2993,6 +2993,132 @@
     .il-diff-neg { color: var(--red); font-weight: 800; }
     .il-matchup { font-weight: 700; }
     .il-score-win { color: var(--green); font-weight: 800; }
+
+    /* ---- Player points ---- */
+    .il-top-scorer { margin-top: 8px; font-size: 12.5px; color: var(--text); }
+    .il-top-scorer-label { font-weight: 800; color: var(--muted); }
+    .il-top-scorer-pts { font-weight: 800; color: var(--action, var(--accent)); white-space: nowrap; }
+    .il-leaders-table .il-scorer-name { font-weight: 700; white-space: nowrap; }
+    .il-leaders-table .il-pts { font-weight: 800; }
+    .il-leaders-table th:nth-child(n+4), .il-leaders-table td:nth-child(n+4) { text-align: right; }
+    .il-more-scorers { margin-top: 4px; }
+    .il-more-scorers summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--accent); padding: 6px 0; }
+    .il-boxscore-btn {
+      display: block;
+      margin-top: 4px;
+      padding: 0;
+      border: 0;
+      background: none;
+      font: inherit;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--accent);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .il-boxscore, .il-pts-teams {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .il-box-team, .il-pts-team {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--panel-solid);
+      padding: 10px 12px;
+      min-width: 0;
+    }
+    .il-box-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .il-box-team ul { list-style: none; margin: 0; padding: 0; }
+    .il-box-team li {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+    }
+    .il-box-team li.il-box-top { font-weight: 800; }
+    .il-box-pts { font-weight: 700; }
+    .il-box-none { color: var(--muted); }
+    .il-box-warn { margin-top: 6px; font-size: 12px; color: var(--red); }
+    .il-points-editor { padding: 0; }
+    .il-game-panel {
+      margin: 0 0 14px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--panel-2);
+    }
+    .il-game-panel-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 4px 10px;
+      margin-bottom: 10px;
+    }
+    .il-game-panel-head > span:first-child {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .il-game-panel-title { font-size: 14px; font-weight: 800; }
+    .il-game-panel-close { margin: 0 0 0 auto; }
+    .il-table tbody tr.il-row-open { background: var(--accent-soft); }
+    .il-points-hint { font-size: 12.5px; color: var(--muted); margin: 4px 0 10px; }
+    .il-points-paste { margin-bottom: 12px; }
+    .il-points-paste summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--accent); padding: 4px 0; }
+    .il-points-paste textarea {
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      margin-top: 6px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--panel-solid);
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+    }
+    .il-points-paste-msg { font-size: 12.5px; }
+    .il-pts-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .il-pts-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    .il-pts-input {
+      width: 64px;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--panel-solid);
+      color: var(--text);
+      font: inherit;
+      font-size: 15px;
+      text-align: right;
+    }
+    .il-pts-total { font-variant-numeric: tabular-nums; }
+    .il-pts-total.off { color: var(--red); }
+    #ilExportCapture .il-top-scorer { font-size: 15px; }
+    @media (max-width: 720px) {
+      .il-boxscore, .il-pts-teams { grid-template-columns: 1fr; }
+    }
     .il-league-foot {
       display: flex;
       align-items: center;
@@ -5899,7 +6025,9 @@
       });
     }
 
-    function renderGameRow_(league, game, editable) {
+    // pointsAdmin: the admin may enter player points here (any league,
+    // closed ones included, but never in the exported image).
+    function renderGameRow_(league, game, editable, pointsAdmin) {
       if (editable && ilEditingGameId === game.gameId) {
         return renderGameEditForm_(league, game);
       }
@@ -5914,18 +6042,31 @@
         ? '<span class="' + (homeWon ? 'il-score-win' : '') + '">' + esc(String(game.homeScore)) + '</span> - ' +
           '<span class="' + (awayWon ? 'il-score-win' : '') + '">' + esc(String(game.awayScore)) + '</span>'
         : '—';
+      const hasPoints = gamePointRows_(league, game).length > 0;
+      const boxBtn = hasPoints && !(pointsAdmin && ilPointsGameId === game.gameId)
+        ? '<button class="il-boxscore-btn" data-game="' + esc(game.gameId) + '" type="button">' +
+            (ilBoxScoreGameId === game.gameId ? 'Hide box score' : 'Box score') + '</button>'
+        : '';
+      const showActions = editable || pointsAdmin;
+      const pointsBtn = pointsAdmin && played
+        ? '<button class="export-btn il-points-btn" data-game="' + esc(game.gameId) + '" type="button">Points</button>'
+        : '';
+      const isOpen = ilBoxScoreGameId === game.gameId || (pointsAdmin && ilPointsGameId === game.gameId);
       return '' +
-        '<tr>' +
+        '<tr' + (isOpen ? ' class="il-row-open"' : '') + '>' +
           '<td>' + (game.stage ? '<span class="il-stage-chip">' + esc(game.stage) + '</span>' : '') + '</td>' +
           '<td>' + esc(when || '—') + '</td>' +
-          '<td class="il-matchup">' + esc(game.homeTeam) + ' <span class="il-vs">vs</span> ' + esc(game.awayTeam) + '</td>' +
+          '<td class="il-matchup">' + esc(game.homeTeam) + ' <span class="il-vs">vs</span> ' + esc(game.awayTeam) + boxBtn + '</td>' +
           '<td>' + score + '</td>' +
           '<td>' + esc(displayWinner) + '</td>' +
           '<td>' + esc(game.referee || '') + '</td>' +
           '<td>' + esc(game.gameAdmin || '') + '</td>' +
-          (editable ? '<td><div class="il-game-actions">' +
-            '<button class="export-btn il-scoresheet-btn" data-league="' + esc(league.leagueId) + '" data-game="' + esc(game.gameId) + '" type="button">Scoresheet</button>' +
-            '<button class="export-btn il-edit-game-btn" data-league="' + esc(league.leagueId) + '" data-game="' + esc(game.gameId) + '" type="button">Edit</button>' +
+          (showActions ? '<td><div class="il-game-actions">' +
+            (editable
+              ? '<button class="export-btn il-scoresheet-btn" data-league="' + esc(league.leagueId) + '" data-game="' + esc(game.gameId) + '" type="button">Scoresheet</button>' +
+                '<button class="export-btn il-edit-game-btn" data-league="' + esc(league.leagueId) + '" data-game="' + esc(game.gameId) + '" type="button">Edit</button>'
+              : '') +
+            pointsBtn +
           '</div></td>' : '') +
         '</tr>';
     }
@@ -6028,6 +6169,15 @@
         league.standings.forEach(function (s, i) {
           lines.push((i + 1) + '. ' + s.team + ' — ' + s.wins + 'W ' + s.losses + 'L (' +
             (s.diff > 0 ? '+' : '') + s.diff + ')');
+        });
+      }
+
+      const scorers = leagueScoring_(league).leaders.slice(0, 3);
+      if (scorers.length) {
+        lines.push('', '*Top Scorers*');
+        scorers.forEach(function (p) {
+          lines.push(p.rank + '. ' + p.player + ' (' + p.team + ') — ' + p.points + ' pts · ' +
+            Number(p.ppg).toFixed(1) + ' PPG');
         });
       }
 
@@ -6186,6 +6336,282 @@
         .map(function (x) { return x.p; });
     }
 
+    // ---- Player points: scoring leaders, box scores and points entry ----
+    // The numbers come from the server (computeScoring_ in Main.js), one
+    // PlayerPoints row per player per game. Entering points is admin-only
+    // and works on closed leagues too: points don't change any result, and
+    // last year's league is filled in after the fact.
+    let ilPointsGameId = null;    // game whose points editor is open
+    let ilBoxScoreGameId = null;  // game whose box score is expanded
+
+    function leagueScoring_(league) {
+      return league.scoring || { leaders: [], teamTop: {}, byGame: {} };
+    }
+    function gamePointRows_(league, game) {
+      return leagueScoring_(league).byGame[game.gameId] || [];
+    }
+    function ilNameKey_(name) { return String(name || '').trim().toLowerCase(); }
+    function ilJerseyNums_() {
+      const nums = {};
+      (DATA.playerProfiles || []).forEach(function (p) {
+        if (p.jerseyNumber !== undefined && p.jerseyNumber !== '') nums[ilNameKey_(p.name)] = String(p.jerseyNumber);
+      });
+      return nums;
+    }
+    // Keeps an archived league's <details> open across the re-render that
+    // opening its box score or points editor causes.
+    function ilLeagueHasOpenPanel_(league) {
+      return league.games.some(function (g) { return g.gameId === ilPointsGameId || g.gameId === ilBoxScoreGameId; });
+    }
+
+    function renderTeamTopScorer_(league, teamName) {
+      const top = leagueScoring_(league).teamTop[teamName];
+      if (!top || !top.length || !top[0].points) return '';
+      return '<div class="il-top-scorer"><span class="il-top-scorer-label">🔥 Top scorer</span> ' +
+        esc(top.map(function (t) { return t.player; }).join(' & ')) +
+        ' <span class="il-top-scorer-pts">' + top[0].points + ' pts</span></div>';
+    }
+
+    // Ranked by total points, with games played and points per game beside
+    // it. Top 10 on show, the rest behind "All scorers".
+    function renderScoringLeaders_(league, forImage) {
+      const leaders = leagueScoring_(league).leaders;
+      if (!leaders.length) return '';
+      const tones = leagueTeamTones_(league);
+      const teamIndex = {};
+      league.teams.forEach(function (t, i) { teamIndex[t.teamName] = i; });
+      const row = function (p) {
+        const i = teamIndex[p.team];
+        const badge = i === undefined ? esc(p.team) :
+          '<span class="il-team-cell" title="' + esc(p.team) + '">' + teamJersey_(tones[p.team], teamJerseyLabel_(p.team, i), true) + '</span>';
+        return '<tr' + (p.rank === 1 ? ' class="il-leader"' : '') + '>' +
+          '<td>' + p.rank + '</td>' +
+          '<td class="il-scorer-name">' + (p.rank === 1 ? '👑 ' : '') + esc(p.player) + '</td>' +
+          '<td>' + badge + '</td>' +
+          '<td>' + p.games + '</td>' +
+          '<td class="il-pts">' + p.points + '</td>' +
+          '<td>' + Number(p.ppg).toFixed(1) + '</td>' +
+        '</tr>';
+      };
+      const head = '<thead><tr><th>#</th><th>Player</th><th>Team</th><th>GP</th><th>PTS</th><th>PPG</th></tr></thead>';
+      const top = leaders.slice(0, 10);
+      const rest = forImage ? [] : leaders.slice(10);
+      return '' +
+        '<div class="il-section">' +
+          '<div class="il-section-head">' +
+            '<span class="il-section-icon">' + icon_('trophy') + '</span>' +
+            '<div class="il-section-title">Scoring Leaders</div>' +
+            '<div class="il-section-note">By total points</div>' +
+          '</div>' +
+          '<div class="il-table-wrap"><table class="il-table il-leaders-table">' + head +
+            '<tbody>' + top.map(row).join('') + '</tbody></table></div>' +
+          (rest.length
+            ? '<details class="il-more-scorers"><summary>All scorers (' + leaders.length + ')</summary>' +
+                '<div class="il-table-wrap"><table class="il-table il-leaders-table">' + head +
+                '<tbody>' + rest.map(row).join('') + '</tbody></table></div></details>'
+            : '') +
+        '</div>';
+    }
+
+    function renderBoxScore_(league, game) {
+      const rows = gamePointRows_(league, game);
+      const side = function (team, score) {
+        const list = rows.filter(function (r) { return r.team === team; });
+        const sum = list.reduce(function (a, r) { return a + r.points; }, 0);
+        const max = list.length ? list[0].points : 0;
+        const items = list.map(function (r) {
+          const isTop = max > 0 && r.points === max;
+          return '<li' + (isTop ? ' class="il-box-top"' : '') + '><span>' + (isTop ? '🔥 ' : '') + esc(r.player) + '</span>' +
+            '<span class="il-box-pts">' + r.points + '</span></li>';
+        }).join('');
+        // Only the admin needs to know a box score doesn't add up.
+        const warn = isAdmin() && isGamePlayed_(game) && String(score) !== '' && Number(score) !== sum
+          ? '<div class="il-box-warn">Players add up to ' + sum + '; the game score says ' + esc(String(score)) + '.</div>'
+          : '';
+        return '<div class="il-box-team"><div class="il-box-head"><span>' + esc(team) + '</span><span>' + sum + ' pts</span></div>' +
+          '<ul>' + (items || '<li class="il-box-none">No points recorded</li>') + '</ul>' + warn + '</div>';
+      };
+      return '<div class="il-boxscore">' + side(game.homeTeam, game.homeScore) + side(game.awayTeam, game.awayScore) + '</div>';
+    }
+
+    function renderPointsEditor_(league, game) {
+      const existing = {};
+      gamePointRows_(league, game).forEach(function (r) { existing[ilNameKey_(r.player) + '|' + r.team] = r.points; });
+      const jerseys = ilJerseyNums_();
+      const side = function (team, score) {
+        const t = league.teams.filter(function (x) { return x.teamName === team; })[0];
+        const names = t ? sortByPosition_(t.players).map(function (p) { return p.name; }) : [];
+        // Someone who scored for this team in this game and has since moved
+        // or left still needs their row.
+        gamePointRows_(league, game).forEach(function (r) {
+          if (r.team === team && !names.some(function (n) { return ilNameKey_(n) === ilNameKey_(r.player); })) names.push(r.player);
+        });
+        let sum = 0;
+        const inputs = names.map(function (name) {
+          const v = existing[ilNameKey_(name) + '|' + team];
+          if (v !== undefined) sum += v;
+          const num = jerseys[ilNameKey_(name)] || '';
+          return '<label class="il-pts-row">' +
+            '<span class="name-chip-num">' + (num ? esc(num) : '&nbsp;') + '</span>' +
+            '<span class="il-pts-name">' + esc(name) + '</span>' +
+            '<input type="number" inputmode="numeric" min="0" max="200" step="1" class="il-pts-input" ' +
+              'data-player="' + esc(name) + '" data-team="' + esc(team) + '" data-num="' + esc(num) + '" ' +
+              'value="' + (v !== undefined ? v : '') + '">' +
+          '</label>';
+        }).join('');
+        const target = String(score) === '' ? '' : Number(score);
+        return '<div class="il-pts-team">' +
+          '<div class="il-box-head"><span>' + esc(team) + '</span>' +
+            '<span class="il-pts-total' + (target !== '' && sum !== target ? ' off' : '') + '" data-team="' + esc(team) + '" data-target="' + esc(String(target)) + '">' +
+              sum + (target !== '' ? ' / ' + target : '') + '</span></div>' +
+          inputs + '</div>';
+      };
+      return '' +
+        '<div class="il-points-editor" data-league="' + esc(league.leagueId) + '" data-game="' + esc(game.gameId) + '">' +
+          '<div class="il-points-hint">Leave a player blank if they didn\'t play. Enter 0 if they played but didn\'t score, so the game counts towards their PPG.</div>' +
+          '<details class="il-points-paste"><summary>Paste from scoresheet notes</summary>' +
+            '<textarea class="il-f-points-paste" rows="5" placeholder="One per line: name or jersey number, then points&#10;Cumith 12&#10;#7 8"></textarea>' +
+            '<div class="records-actions"><button class="export-btn il-points-paste-btn" type="button">Fill In</button></div>' +
+            '<div class="il-points-paste-msg"></div>' +
+          '</details>' +
+          '<div class="il-pts-teams">' + side(game.homeTeam, game.homeScore) + side(game.awayTeam, game.awayScore) + '</div>' +
+          '<div class="records-actions">' +
+            '<button class="export-btn il-save-points-btn" type="button">Save Points</button>' +
+            '<button class="export-btn il-cancel-points-btn" type="button">Cancel</button>' +
+          '</div>' +
+        '</div>';
+    }
+
+    // The box score or points editor for the open game, shown under the
+    // Games table rather than as a row inside it: on a phone that table
+    // scrolls sideways, and a row inside it would be cut off at the edge.
+    function renderGamePanel_(league, pointsAdmin) {
+      const editing = pointsAdmin ? league.games.filter(function (g) { return g.gameId === ilPointsGameId; })[0] : null;
+      const game = editing || league.games.filter(function (g) {
+        return g.gameId === ilBoxScoreGameId && gamePointRows_(league, g).length;
+      })[0];
+      if (!game) return '';
+      const title = [game.stage, game.homeTeam + ' vs ' + game.awayTeam,
+        isGamePlayed_(game) ? game.homeScore + ' - ' + game.awayScore : ''].filter(Boolean).join(' · ');
+      return '<div class="il-game-panel">' +
+        '<div class="il-game-panel-head"><span>' + (editing ? 'Player points' : 'Box score') + '</span>' +
+          '<span class="il-game-panel-title">' + esc(title) + '</span>' +
+          (editing ? '' : '<button class="il-boxscore-btn il-game-panel-close" data-game="' + esc(game.gameId) + '" type="button">Close</button>') +
+        '</div>' +
+        (editing ? renderPointsEditor_(league, game) : renderBoxScore_(league, game)) +
+      '</div>';
+    }
+
+    function ilUpdatePointsTotals_(editor) {
+      editor.querySelectorAll('.il-pts-total').forEach(function (el) {
+        let sum = 0;
+        editor.querySelectorAll('.il-pts-input').forEach(function (inp) {
+          if (inp.dataset.team === el.dataset.team && inp.value.trim() !== '') sum += Number(inp.value) || 0;
+        });
+        const target = el.dataset.target;
+        el.textContent = sum + (target !== '' ? ' / ' + target : '');
+        el.classList.toggle('off', target !== '' && sum !== Number(target));
+      });
+    }
+
+    // Lines like "Cumith 12", "Cumith: 12", "#7 12" or "7 - 12 pts", one per
+    // line (commas and semicolons also separate). A number on the left is a
+    // jersey number; a name matches exactly, or as the start of exactly one
+    // player's name.
+    function ilFillPointsFromPaste_(editor) {
+      const inputs = Array.prototype.slice.call(editor.querySelectorAll('.il-pts-input'));
+      const text = editor.querySelector('.il-f-points-paste').value;
+      const problems = [];
+      let filled = 0;
+      text.split(/[\n,;]+/).map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (line) {
+        const m = /^(.*?)[\s:=\-–]+(\d{1,3})\s*(?:pts?|points?)?\.?$/i.exec(line);
+        if (!m || !m[1].trim()) { problems.push(line + ' (no points found)'); return; }
+        const who = m[1].trim().replace(/^#\s*/, '');
+        let matches;
+        if (/^\d+$/.test(who)) {
+          matches = inputs.filter(function (i) { return i.dataset.num === String(Number(who)) || i.dataset.num === who; });
+        } else {
+          const k = ilNameKey_(who);
+          matches = inputs.filter(function (i) { return ilNameKey_(i.dataset.player) === k; });
+          if (!matches.length) matches = inputs.filter(function (i) { return ilNameKey_(i.dataset.player).indexOf(k) === 0; });
+        }
+        if (matches.length !== 1) {
+          problems.push(line + (matches.length ? ' (matches more than one player)' : ' (no such player in this game)'));
+          return;
+        }
+        matches[0].value = String(Number(m[2]));
+        filled++;
+      });
+      ilUpdatePointsTotals_(editor);
+      editor.querySelector('.il-points-paste-msg').innerHTML =
+        '<div>' + filled + ' filled in.</div>' +
+        (problems.length ? '<div class="il-box-warn">Not used: ' + problems.map(esc).join(' · ') + '</div>' : '');
+    }
+
+    function ilSavePoints_(editor) {
+      const league = ((DATA.leagues && DATA.leagues.list) || []).filter(function (l) { return l.leagueId === editor.dataset.league; })[0];
+      const game = league && league.games.filter(function (g) { return g.gameId === editor.dataset.game; })[0];
+      if (!game) return;
+      const points = [];
+      const bad = [];
+      editor.querySelectorAll('.il-pts-input').forEach(function (inp) {
+        const v = inp.value.trim();
+        if (v === '') return;
+        const n = Number(v);
+        if (!isFinite(n) || n < 0 || n > 200 || Math.floor(n) !== n) { bad.push(inp.dataset.player); return; }
+        points.push({ playerName: inp.dataset.player, teamName: inp.dataset.team, points: n });
+      });
+      if (bad.length) { alert('Points must be whole numbers from 0 to 200: ' + bad.join(', ')); return; }
+      if (!points.length && !gamePointRows_(league, game).length) { alert('Enter at least one player\'s points.'); return; }
+      if (!points.length && !confirm('Clear all player points for this game?')) return;
+      const mismatches = [[game.homeTeam, game.homeScore], [game.awayTeam, game.awayScore]].filter(function (s) {
+        if (String(s[1]) === '' || !isGamePlayed_(game)) return false;
+        const sum = points.filter(function (p) { return p.teamName === s[0]; }).reduce(function (a, p) { return a + p.points; }, 0);
+        s.push(sum);
+        return sum !== Number(s[1]);
+      });
+      if (points.length && mismatches.length && !confirm(mismatches.map(function (s) {
+        return s[0] + ': players add up to ' + s[2] + ' but the game score is ' + s[1] + '.';
+      }).join('\n') + '\n\nSave anyway?')) return;
+      callLeagueApi_('setGamePoints', { leagueId: league.leagueId, gameId: game.gameId, points: points })
+        .then(function () {
+          ilPointsGameId = null;
+          ilBoxScoreGameId = game.gameId;
+          return fetchLeagues_();
+        })
+        .catch(function (err) { alert('Could not save points: ' + err.message); });
+    }
+
+    document.addEventListener('click', function (e) {
+      const rerender = function () {
+        document.getElementById('internalLeaguesContent').innerHTML = renderInternalLeaguesPage();
+        const panel = document.querySelector('#internalLeaguesContent .il-game-panel');
+        if (panel) panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      };
+      const openBtn = e.target.closest('.il-points-btn');
+      if (openBtn) {
+        ilPointsGameId = openBtn.dataset.game;
+        ilEditingGameId = null;
+        rerender();
+        return;
+      }
+      if (e.target.closest('.il-cancel-points-btn')) { ilPointsGameId = null; rerender(); return; }
+      const boxBtn = e.target.closest('.il-boxscore-btn');
+      if (boxBtn) {
+        ilBoxScoreGameId = ilBoxScoreGameId === boxBtn.dataset.game ? null : boxBtn.dataset.game;
+        rerender();
+        return;
+      }
+      const editor = e.target.closest('.il-points-editor');
+      if (!editor) return;
+      if (e.target.closest('.il-points-paste-btn')) ilFillPointsFromPaste_(editor);
+      else if (e.target.closest('.il-save-points-btn')) ilSavePoints_(editor);
+    });
+    document.addEventListener('input', function (e) {
+      if (!e.target.classList || !e.target.classList.contains('il-pts-input')) return;
+      ilUpdatePointsTotals_(e.target.closest('.il-points-editor'));
+    });
+
     function renderLeagueDetail_(league, editable, forImage) {
       // Jersey numbers come from the current Player Profiles (like positions,
       // see applyCurrentPositions_); the Teams rows don't store them.
@@ -6203,6 +6629,7 @@
             '<div class="il-team-card-main">' +
               '<div class="il-team-card-name">' + esc(t.teamName) + '</div>' +
               '<div class="il-team-card-players">' + players + '</div>' +
+              renderTeamTopScorer_(league, t.teamName) +
             '</div>' +
           '</div>';
       }).join('') + '</div>';
@@ -6213,8 +6640,9 @@
           : '<button class="export-btn il-open-roster-btn" data-league="' + esc(league.leagueId) + '" type="button">Manage Players</button>')
         : '';
 
-      const gamesRows = league.games.map(function (g) { return renderGameRow_(league, g, editable); }).join('');
-      const gamesHeader = '<th>Stage</th><th>When</th><th>Home vs Away</th><th>Score</th><th>Winner</th><th>Referee</th><th>Game Admin</th>' + (editable ? '<th></th>' : '');
+      const pointsAdmin = isAdmin() && !forImage;
+      const gamesRows = league.games.map(function (g) { return renderGameRow_(league, g, editable, pointsAdmin); }).join('');
+      const gamesHeader = '<th>Stage</th><th>When</th><th>Home vs Away</th><th>Score</th><th>Winner</th><th>Referee</th><th>Game Admin</th>' + (editable || pointsAdmin ? '<th></th>' : '');
 
       const addGameHtml = editable
         ? (ilAddingGameForLeague === league.leagueId
@@ -6300,6 +6728,7 @@
             renderStandingsTable_(league.standings, league) +
             (forImage ? '' : renderChampionMessageButton_(league)) +
           '</div>' +
+          renderScoringLeaders_(league, forImage) +
           '<div class="il-section">' +
             '<div class="il-section-head">' +
               '<span class="il-section-icon">' + icon_('calendar') + '</span>' +
@@ -6307,6 +6736,7 @@
               '<div class="il-section-note">' + computeLeagueGameCounts_(league.games) + '</div>' +
             '</div>' +
             '<div class="il-table-wrap"><table class="il-table il-games-table"><thead><tr>' + gamesHeader + '</tr></thead><tbody>' + gamesRows + '</tbody></table></div>' +
+            (forImage ? '' : renderGamePanel_(league, pointsAdmin)) +
             (editable && league.games.length
               ? '<button class="export-btn il-scoresheet-btn il-scoresheet-all-btn" data-league="' + esc(league.leagueId) + '" type="button">All Scoresheets (' + league.games.length + ')</button>'
               : '') +
@@ -6349,7 +6779,7 @@
       const years = Object.keys(byYear).sort(function (a, b) { return b - a; });
       const archiveHtml = years.map(function (y) {
         const items = byYear[y].map(function (l) {
-          return '<details class="il-archive-item"><summary>' + esc(l.name) + (l.winnerTeam ? ' — 🏆 ' + esc(l.winnerTeam) : '') + '</summary>' + renderLeagueDetail_(l, false) + '</details>';
+          return '<details class="il-archive-item"' + (ilLeagueHasOpenPanel_(l) ? ' open' : '') + '><summary>' + esc(l.name) + (l.winnerTeam ? ' — 🏆 ' + esc(l.winnerTeam) : '') + '</summary>' + renderLeagueDetail_(l, false) + '</details>';
         }).join('');
         return '<div class="il-archive-year"><div class="il-section-title">' + y + '</div>' + items + '</div>';
       }).join('');
