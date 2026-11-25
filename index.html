@@ -5196,15 +5196,13 @@
         // In standings order, so the team ahead on point difference now comes first.
         const leaders = league.standings.map(function (s) { return s.team; })
           .filter(function (t) { return wins[t] === top; });
-        const record = top + ' win' + (top === 1 ? '' : 's');
         let text;
         if (leaders.length === 1) {
-          text = leaders[0] + ' is champion with ' + record + '.';
+          text = leaders[0];
         } else if (leaders.length === 2) {
-          text = tallyTwoWayText_(league, leaders[0], leaders[1], remaining, winners, record, base);
+          text = tallyTwoWayText_(league, leaders[0], leaders[1], remaining, winners, base);
         } else {
-          text = leaders.join(', ') + ' all finish on ' + record + '. The best final point difference is ' +
-            'champion; if that is level, head-to-head between the level teams, then total points scored.';
+          text = 'Best final diff of ' + leaders.join(', ');
         }
         const results = remaining.map(function (g, i) {
           return winners[i] + ' beats ' + (winners[i] === g.homeTeam ? g.awayTeam : g.homeTeam);
@@ -5217,8 +5215,7 @@
     // a is ahead of b on point difference now (or level). When each of them
     // has exactly one game left and wins it, the title comes down to the two
     // winning margins, so say exactly how big the gap has to be.
-    function tallyTwoWayText_(league, a, b, remaining, winners, record, base) {
-      const head = a + ' and ' + b + ' both finish on ' + record + '. ';
+    function tallyTwoWayText_(league, a, b, remaining, winners, base) {
       const gamesOf = function (t) {
         return remaining.filter(function (g) { return g.homeTeam === t || g.awayTeam === t; });
       };
@@ -5226,25 +5223,13 @@
       const simple = ga.length === 1 && gb.length === 1 && ga[0] !== gb[0] &&
         winners[remaining.indexOf(ga[0])] === a && winners[remaining.indexOf(gb[0])] === b;
       const h2h = tallyHeadToHead_(league, a, b);
-      const meeting = h2h > 0 ? tallyMeetingNote_(league, a, b) : h2h < 0 ? tallyMeetingNote_(league, b, a) : '';
-      if (!simple) {
-        return head + 'The better final point difference is champion. If that is level: ' +
-          (h2h ? (h2h > 0 ? a : b) + ' (' + meeting + ')' : 'the most total points scored') + '.';
-      }
+      if (!simple) return 'Best final diff of ' + a + ', ' + b;
       const gap = base[a].diff - base[b].diff;
-      if (gap === 0) {
-        return head + 'Their point difference is level (' + signedDiff_(base[a].diff) + '), so the bigger winning ' +
-          'margin tonight is champion. Same margin: ' +
-          (h2h ? (h2h > 0 ? a : b) + ' (' + meeting + ')' : 'the most total points scored') + '.';
-      }
+      if (gap === 0) return 'Bigger winning margin of ' + a + ', ' + b;
       // b needs a margin this much bigger than a's to take the title.
       const need = h2h < 0 ? gap : gap + 1;
-      const example = 5;
-      return head + b + ' is champion only if its winning margin is ' + need +
-        ' or more points bigger than ' + a + '\'s (e.g. ' + a + ' wins by ' + example + ', ' + b + ' needs ' +
-        (example + need) + '+); otherwise ' + a + '. ' +
-        (h2h ? 'A level difference (exactly ' + gap + ' bigger) goes to ' + (h2h > 0 ? a : b) + ': ' + meeting + '.'
-          : 'Exactly ' + gap + ' bigger leaves them level: the most total points scored wins it.');
+      return b + ' if its margin is ' + need + '+ bigger than ' + a + '\'s, else ' + a +
+        (h2h ? '' : ' (exactly ' + gap + ': most points scored)');
     }
 
     function drawTallySheetPage_(doc, league) {
@@ -5345,49 +5330,55 @@
       y += 12;
       sectionTitle('3. Final tally', y);
       y += 2;
-      const tw = [24, 14, 14, 14, 16, 16, 16, 16, 16, 16, 14, 14];
+      const tw = [40, 20, 20, 20, 24, 24, 24, 18];
       const groups = [
         { w: tw[0], text: 'Team' }, { w: tw[1] + tw[2] + tw[3], text: 'Wins' },
-        { w: tw[4] + tw[5] + tw[6], text: 'Points scored' }, { w: tw[7] + tw[8] + tw[9], text: 'Points conceded' },
-        { w: tw[10], text: 'Final' }, { w: tw[11], text: 'Final' }
+        { w: tw[4] + tw[5] + tw[6], text: 'Point difference' }, { w: tw[7], text: 'Final' }
       ];
       row(groups, y, 6.5, HEADER_FILL, 9.5, 'bold');
       y += 6.5;
-      const sub = ['', 'Before', '+ Tonight', '= Final', 'Before', '+ Tonight', '= Final', 'Before', '+ Tonight', '= Final', 'Diff', 'Rank'];
+      const sub = ['', 'Before', '+ Tonight', '= Final', 'Before', '± Tonight', '= Final', 'Rank'];
       row(sub.map(function (t, i) { return { w: tw[i], text: t }; }), y, 6.5, INFO_FILL, 8.5, 'bold');
       y += 6.5;
       league.standings.forEach(function (s) {
         row([
           { w: tw[0], text: s.team, left: true, style: 'bold' },
           { w: tw[1], text: String(s.wins) }, { w: tw[2] }, { w: tw[3] },
-          { w: tw[4], text: String(s.pointsFor) }, { w: tw[5] }, { w: tw[6] },
-          { w: tw[7], text: String(s.pointsAgainst) }, { w: tw[8] }, { w: tw[9] },
-          { w: tw[10] }, { w: tw[11] }
+          { w: tw[4], text: signedDiff_(s.diff) }, { w: tw[5] }, { w: tw[6] },
+          { w: tw[7] }
         ], y, 10, null, 10);
         y += 10;
       });
       font(8);
-      doc.text('Final diff = final points scored minus final points conceded.', LEFT, y + 4);
+      doc.text('Tonight: +1 win for a win. Diff: + the margin for a win, - the margin for a loss.', LEFT, y + 4);
 
       // 4. What each set of results means, worked out now.
       y += 12;
       sectionTitle('4. Who is champion', y);
       y += 6;
       const scenarios = tallyScenarios_(league);
-      const textWidth = WIDTH - 4;
       if (scenarios) {
-        const LINE = 4;
+        const cw = [86, 104];
+        y -= 4;
+        row([{ w: cw[0], text: 'If tonight goes', left: true }, { w: cw[1], text: 'Champion', left: true }],
+          y, 6.5, HEADER_FILL, 9.5, 'bold');
+        y += 6.5;
         scenarios.forEach(function (sc) {
           font(9);
-          const lines = doc.splitTextToSize(sc.text, textWidth - 4);
+          const left = doc.splitTextToSize(sc.results.join(', '), cw[0] - 4);
+          const right = doc.splitTextToSize(sc.text, cw[1] - 4);
+          const h = Math.max(7, 4 * Math.max(left.length, right.length) + 3);
           // More combinations than fit (3+ games left) carry on overleaf.
-          if (y + LINE * lines.length > 263) { doc.addPage('a4', 'portrait'); y = 20; }
-          font(9, 'bold');
-          doc.text('If ' + sc.results.join(' and ') + ':', LEFT + 2, y);
+          if (y + h > 263) { doc.addPage('a4', 'portrait'); y = 20; }
+          cell(LEFT, y, cw[0], h);
+          cell(LEFT + cw[0], y, cw[1], h);
           font(9);
-          doc.text(lines, LEFT + 6, y + LINE);
-          y += LINE * (lines.length + 1) + 1.8;
+          doc.text(left, LEFT + 2, y + 4.6);
+          font(9, 'bold');
+          doc.text(right, LEFT + cw[0] + 2, y + 4.6);
+          y += h;
         });
+        y += 6;
       } else {
         font(9.5);
         doc.text('Too many games left to list every combination; use the final tally above.', LEFT + 2, y);
