@@ -5145,6 +5145,283 @@
       const number = league.games.indexOf(games[0]) + 1;
       return 'HS-Scoresheet-Game-' + number + '-' + safe(games[0].homeTeam) + '-vs-' + safe(games[0].awayTeam) + '.pdf';
     }
+
+    // ---- Tally sheet: one page to work out the final standings at the
+    // court, before anything is entered in the app. It prints the standings
+    // as they are now, boxes for the remaining games' scores, a table to add
+    // tonight's numbers onto the current ones, and, worked out in advance,
+    // what each combination of results means for the title.
+
+    // Head-to-head wins between two teams in played games: 1 if a won more
+    // of their meetings, -1 if b did, 0 if level or they haven't met.
+    function tallyHeadToHead_(league, a, b) {
+      let net = 0;
+      league.games.forEach(function (g) {
+        if (!isGamePlayed_(g)) return;
+        const pair = (g.homeTeam === a && g.awayTeam === b) || (g.homeTeam === b && g.awayTeam === a);
+        if (!pair) return;
+        const w = gameWinner_(g);
+        if (w === a) net += 1;
+        else if (w === b) net -= 1;
+      });
+      return net > 0 ? 1 : net < 0 ? -1 : 0;
+    }
+
+    function tallyMeetingNote_(league, winner, loser) {
+      const meeting = league.games.filter(function (g) {
+        return isGamePlayed_(g) && gameWinner_(g) === winner &&
+          (g.homeTeam === loser || g.awayTeam === loser);
+      })[0];
+      return winner + ' beat ' + loser + (meeting && meeting.stage ? ' in ' + meeting.stage : '');
+    }
+
+    // One entry per combination of results in the unplayed games (draws
+    // don't happen in basketball): who wins each game, and in plain words
+    // who is champion. A tie on wins is settled by final point difference,
+    // which depends on tonight's margins, so the sentence states the margin
+    // needed. Returns null past 6 remaining games (64 combinations is no
+    // longer a readable page).
+    function tallyScenarios_(league) {
+      const remaining = league.games.filter(function (g) { return !isGamePlayed_(g); });
+      if (!remaining.length || remaining.length > 6) return null;
+      const base = {};
+      league.standings.forEach(function (s) { base[s.team] = s; });
+      const out = [];
+      for (let mask = 0; mask < (1 << remaining.length); mask++) {
+        const winners = remaining.map(function (g, i) { return (mask >> i) & 1 ? g.awayTeam : g.homeTeam; });
+        const wins = {};
+        league.standings.forEach(function (s) { wins[s.team] = s.wins; });
+        winners.forEach(function (w) { wins[w] = (wins[w] || 0) + 1; });
+        const top = Math.max.apply(null, Object.keys(wins).map(function (t) { return wins[t]; }));
+        // In standings order, so the team ahead on point difference now comes first.
+        const leaders = league.standings.map(function (s) { return s.team; })
+          .filter(function (t) { return wins[t] === top; });
+        const record = top + ' win' + (top === 1 ? '' : 's');
+        let text;
+        if (leaders.length === 1) {
+          text = leaders[0] + ' is champion with ' + record + '.';
+        } else if (leaders.length === 2) {
+          text = tallyTwoWayText_(league, leaders[0], leaders[1], remaining, winners, record, base);
+        } else {
+          text = leaders.join(', ') + ' all finish on ' + record + '. The best final point difference is ' +
+            'champion; if that is level, head-to-head between the level teams, then total points scored.';
+        }
+        const results = remaining.map(function (g, i) {
+          return winners[i] + ' beats ' + (winners[i] === g.homeTeam ? g.awayTeam : g.homeTeam);
+        });
+        out.push({ winners: winners, results: results, text: text });
+      }
+      return out;
+    }
+
+    // a is ahead of b on point difference now (or level). When each of them
+    // has exactly one game left and wins it, the title comes down to the two
+    // winning margins, so say exactly how big the gap has to be.
+    function tallyTwoWayText_(league, a, b, remaining, winners, record, base) {
+      const head = a + ' and ' + b + ' both finish on ' + record + '. ';
+      const gamesOf = function (t) {
+        return remaining.filter(function (g) { return g.homeTeam === t || g.awayTeam === t; });
+      };
+      const ga = gamesOf(a), gb = gamesOf(b);
+      const simple = ga.length === 1 && gb.length === 1 && ga[0] !== gb[0] &&
+        winners[remaining.indexOf(ga[0])] === a && winners[remaining.indexOf(gb[0])] === b;
+      const h2h = tallyHeadToHead_(league, a, b);
+      const meeting = h2h > 0 ? tallyMeetingNote_(league, a, b) : h2h < 0 ? tallyMeetingNote_(league, b, a) : '';
+      if (!simple) {
+        return head + 'The better final point difference is champion. If that is level: ' +
+          (h2h ? (h2h > 0 ? a : b) + ' (' + meeting + ')' : 'the most total points scored') + '.';
+      }
+      const gap = base[a].diff - base[b].diff;
+      if (gap === 0) {
+        return head + 'Their point difference is level (' + signedDiff_(base[a].diff) + '), so the bigger winning ' +
+          'margin tonight is champion. Same margin: ' +
+          (h2h ? (h2h > 0 ? a : b) + ' (' + meeting + ')' : 'the most total points scored') + '.';
+      }
+      // b needs a margin this much bigger than a's to take the title.
+      const need = h2h < 0 ? gap : gap + 1;
+      const example = 5;
+      return head + b + ' is champion only if its winning margin is ' + need +
+        ' or more points bigger than ' + a + '\'s (e.g. ' + a + ' wins by ' + example + ', ' + b + ' needs ' +
+        (example + need) + '+); otherwise ' + a + '. ' +
+        (h2h ? 'A level difference (exactly ' + gap + ' bigger) goes to ' + (h2h > 0 ? a : b) + ': ' + meeting + '.'
+          : 'Exactly ' + gap + ' bigger leaves them level: the most total points scored wins it.');
+    }
+
+    function drawTallySheetPage_(doc, league) {
+      const LEFT = 10, WIDTH = 190;
+      const HEADER_FILL = 205, INFO_FILL = 243;
+      function font(size, style) {
+        doc.setFont('helvetica', style || 'normal');
+        doc.setFontSize(size);
+      }
+      function fitText(text, x, y, maxWidth, size, style, align) {
+        let s = size;
+        text = String(text);
+        font(s, style);
+        while (s > 6 && doc.getTextWidth(text) > maxWidth) { s -= 0.5; font(s, style); }
+        doc.text(text, x, y, align ? { align: align } : undefined);
+      }
+      function cell(x, y, w, h, fill) {
+        if (fill != null) { doc.setFillColor(fill); doc.rect(x, y, w, h, 'FD'); }
+        else doc.rect(x, y, w, h);
+      }
+      function centered(text, x, y, w, h, size, style) {
+        fitText(text, x + w / 2, y + h / 2 + size * 0.125, w - 2, size, style, 'center');
+      }
+      function leftText(text, x, y, w, h, size, style) {
+        fitText(text, x + 2, y + h / 2 + size * 0.125, w - 4, size, style);
+      }
+      function sectionTitle(text, y) {
+        font(11, 'bold');
+        doc.text(text, LEFT, y);
+      }
+      function row(cols, y, h, fill, size, style) {
+        let x = LEFT;
+        cols.forEach(function (c) {
+          cell(x, y, c.w, h, c.fill !== undefined ? c.fill : fill);
+          if (c.text !== undefined && c.text !== '') {
+            (c.left ? leftText : centered)(c.text, x, y, c.w, h, size, c.style || style);
+          }
+          x += c.w;
+        });
+      }
+
+      doc.setDrawColor(90);
+      doc.setLineWidth(0.25);
+      doc.setTextColor(0);
+
+      const remaining = league.games.filter(function (g) { return !isGamePlayed_(g); });
+      const stages = [];
+      remaining.forEach(function (g) { if (g.stage && stages.indexOf(g.stage) < 0) stages.push(g.stage); });
+      const dates = [];
+      remaining.forEach(function (g) { if (g.date && dates.indexOf(g.date) < 0) dates.push(g.date); });
+
+      fitText('Happy Soda Final Tally Sheet', 105, 16, WIDTH, 16, 'bold', 'center');
+      const sheetTitle = String(league.name).replace(/^HS League\b/, 'HS Internal League');
+      fitText([sheetTitle].concat(stages, dates, [SCORESHEET_VENUE_]).join('  ·  '), 105, 22, WIDTH, 10, 'normal', 'center');
+
+      // 1. Standings now.
+      let y = 32;
+      sectionTitle('1. Standings before tonight', y);
+      y += 2;
+      const sw = [14, 60, 20, 18, 18, 20, 20, 20];
+      const standingsHead = ['Pos', 'Team', 'Played', 'W', 'L', 'Scored', 'Conceded', 'Diff'];
+      row(standingsHead.map(function (t, i) { return { w: sw[i], text: t }; }), y, 7, HEADER_FILL, 9.5, 'bold');
+      y += 7;
+      league.standings.forEach(function (s, i) {
+        row([
+          { w: sw[0], text: String(i + 1) }, { w: sw[1], text: s.team, left: true, style: 'bold' },
+          { w: sw[2], text: String(s.gamesPlayed) }, { w: sw[3], text: String(s.wins) },
+          { w: sw[4], text: String(s.losses) }, { w: sw[5], text: String(s.pointsFor) },
+          { w: sw[6], text: String(s.pointsAgainst) }, { w: sw[7], text: signedDiff_(s.diff), style: 'bold' }
+        ], y, 7, null, 10);
+        y += 7;
+      });
+
+      // 2. Tonight's games: write the final score and the margin.
+      y += 8;
+      sectionTitle('2. Tonight\'s results', y);
+      y += 2;
+      const gw = [24, 50, 20, 8, 20, 50, 18];
+      row(['Game', 'Home', 'Score', '', 'Score', 'Away', 'Margin'].map(function (t, i) {
+        return { w: gw[i], text: t };
+      }), y, 7, HEADER_FILL, 9.5, 'bold');
+      y += 7;
+      remaining.forEach(function (g) {
+        const number = league.games.indexOf(g) + 1;
+        row([
+          { w: gw[0], text: 'Game ' + number + (g.time ? ' · ' + g.time : '') },
+          { w: gw[1], text: g.homeTeam, left: true, style: 'bold' },
+          { w: gw[2] }, { w: gw[3], text: 'vs' }, { w: gw[4] },
+          { w: gw[5], text: g.awayTeam, left: true, style: 'bold' },
+          { w: gw[6] }
+        ], y, 11, null, 10);
+        y += 11;
+      });
+      font(8);
+      doc.text('Margin = winner\'s score minus loser\'s score. Circle the winning team.', LEFT, y + 4);
+
+      // 3. Adding up: before + tonight = final, per team.
+      y += 12;
+      sectionTitle('3. Final tally', y);
+      y += 2;
+      const tw = [24, 14, 14, 14, 16, 16, 16, 16, 16, 16, 14, 14];
+      const groups = [
+        { w: tw[0], text: 'Team' }, { w: tw[1] + tw[2] + tw[3], text: 'Wins' },
+        { w: tw[4] + tw[5] + tw[6], text: 'Points scored' }, { w: tw[7] + tw[8] + tw[9], text: 'Points conceded' },
+        { w: tw[10], text: 'Final' }, { w: tw[11], text: 'Final' }
+      ];
+      row(groups, y, 6.5, HEADER_FILL, 9.5, 'bold');
+      y += 6.5;
+      const sub = ['', 'Before', '+ Tonight', '= Final', 'Before', '+ Tonight', '= Final', 'Before', '+ Tonight', '= Final', 'Diff', 'Rank'];
+      row(sub.map(function (t, i) { return { w: tw[i], text: t }; }), y, 6.5, INFO_FILL, 8.5, 'bold');
+      y += 6.5;
+      league.standings.forEach(function (s) {
+        row([
+          { w: tw[0], text: s.team, left: true, style: 'bold' },
+          { w: tw[1], text: String(s.wins) }, { w: tw[2] }, { w: tw[3] },
+          { w: tw[4], text: String(s.pointsFor) }, { w: tw[5] }, { w: tw[6] },
+          { w: tw[7], text: String(s.pointsAgainst) }, { w: tw[8] }, { w: tw[9] },
+          { w: tw[10] }, { w: tw[11] }
+        ], y, 10, null, 10);
+        y += 10;
+      });
+      font(8);
+      doc.text('Final diff = final points scored minus final points conceded.', LEFT, y + 4);
+
+      // 4. What each set of results means, worked out now.
+      y += 12;
+      sectionTitle('4. Who is champion', y);
+      y += 6;
+      const scenarios = tallyScenarios_(league);
+      const textWidth = WIDTH - 4;
+      if (scenarios) {
+        const LINE = 4;
+        scenarios.forEach(function (sc) {
+          font(9);
+          const lines = doc.splitTextToSize(sc.text, textWidth - 4);
+          // More combinations than fit (3+ games left) carry on overleaf.
+          if (y + LINE * lines.length > 263) { doc.addPage('a4', 'portrait'); y = 20; }
+          font(9, 'bold');
+          doc.text('If ' + sc.results.join(' and ') + ':', LEFT + 2, y);
+          font(9);
+          doc.text(lines, LEFT + 6, y + LINE);
+          y += LINE * (lines.length + 1) + 1.8;
+        });
+      } else {
+        font(9.5);
+        doc.text('Too many games left to list every combination; use the final tally above.', LEFT + 2, y);
+        y += 6;
+      }
+
+      // 5. The rules, for anyone checking, then the result, both pinned to
+      // the bottom edge.
+      // y is where a next block would start, ~6mm under the last line of text.
+      if (y > 269) doc.addPage('a4', 'portrait');
+      y = 268;
+      font(8.5, 'bold');
+      doc.text('Ranking rules, in order:', LEFT, y);
+      const rulesX = LEFT + doc.getTextWidth('Ranking rules, in order:') + 2;
+      font(8.5);
+      doc.text('1. Most wins   2. Point difference   3. Head-to-head between the tied teams   4. Total points scored   5. Team name',
+        rulesX, y);
+      y += 5;
+      cell(LEFT, y, WIDTH, 14, INFO_FILL);
+      font(12, 'bold');
+      doc.text('Champion:', LEFT + 3, y + 9);
+      font(10);
+      doc.text('Checked by:', LEFT + 125, y + 9);
+    }
+
+    function buildTallySheetPdf_(JsPdf, league) {
+      const doc = new JsPdf({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+      drawTallySheetPage_(doc, league);
+      return doc;
+    }
+
+    function tallySheetFilename_(league) {
+      return 'HS-Tally-Sheet-' + String(league.name).replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.pdf';
+    }
     // SHARED-LOGIC:scoresheet-pdf:END
 
     // SHARED-LOGIC:league-round-text:START (generated from shared/draft-logic.js — do not edit here; run node scripts/sync-shared.js)
@@ -6025,6 +6302,26 @@
       });
     }
 
+    // One printable page for the last match day: standings now, boxes for
+    // the remaining scores, and what each set of results means for the title.
+    function generateTallySheet_(btn) {
+      const league = ((DATA.leagues && DATA.leagues.list) || []).filter(function (l) {
+        return l.leagueId === btn.dataset.league;
+      })[0];
+      if (!league) return;
+      const original = btnLabel_(btn);
+      btn.disabled = true;
+      setBtnLabel_(btn, { main: 'Generating…', sub: null });
+      loadJsPdf_().then(function (JsPdf) {
+        buildTallySheetPdf_(JsPdf, league).save(tallySheetFilename_(league));
+      }).catch(function (err) {
+        alert('Could not generate tally sheet: ' + err.message);
+      }).then(function () {
+        setBtnLabel_(btn, original);
+        btn.disabled = false;
+      });
+    }
+
     // pointsAdmin: the admin may enter player points here (any league,
     // closed ones included, but never in the exported image).
     function renderGameRow_(league, game, editable, pointsAdmin) {
@@ -6740,6 +7037,9 @@
             (editable && league.games.length
               ? '<button class="export-btn il-scoresheet-btn il-scoresheet-all-btn" data-league="' + esc(league.leagueId) + '" type="button">All Scoresheets (' + league.games.length + ')</button>'
               : '') +
+            (editable && league.games.some(function (g) { return !isGamePlayed_(g); })
+              ? '<button class="export-btn il-tally-btn" data-league="' + esc(league.leagueId) + '" type="button">Final Tally Sheet</button>'
+              : '') +
             (editable ? renderRoundMessageButtons_(league) : '') +
             (editable && homeAwayUneven_(league)
               ? '<button class="export-btn il-balance-btn" data-league="' + esc(league.leagueId) + '" type="button">Balance Home/Away</button>'
@@ -6978,6 +7278,8 @@
 
       const scoresheetBtn = e.target.closest('.il-scoresheet-btn');
       if (scoresheetBtn) generateScoresheets_(scoresheetBtn);
+      const tallyBtn = e.target.closest('.il-tally-btn');
+      if (tallyBtn) generateTallySheet_(tallyBtn);
 
       const shareLeagueBtn = e.target.closest('.il-share-btn');
       if (shareLeagueBtn) shareLeague_(shareLeagueBtn.dataset.league, shareLeagueBtn);
