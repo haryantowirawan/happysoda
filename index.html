@@ -5952,9 +5952,11 @@
       return tones;
     }
 
-    // A rank number in a small round badge; 1-3 get gold, silver and bronze.
-    function ilRankBadge_(n) {
-      return '<span class="il-rank-badge' + (n >= 1 && n <= 3 ? ' il-rank-' + n : '') + '">' + esc(String(n)) + '</span>';
+    // A rank number in a small round badge. Ranks up to `medals` (default 3)
+    // get gold, silver and bronze; Standings passes 1, so only first is coloured.
+    function ilRankBadge_(n, medals) {
+      const top = medals === undefined ? 3 : medals;
+      return '<span class="il-rank-badge' + (n >= 1 && n <= top ? ' il-rank-' + n : '') + '">' + esc(String(n)) + '</span>';
     }
 
     function renderStandingsTable_(standings, league) {
@@ -5964,7 +5966,7 @@
         const diffClass = s.diff > 0 ? 'il-diff-pos' : (s.diff < 0 ? 'il-diff-neg' : '');
         return '' +
           '<tr' + (i === 0 ? ' class="il-leader"' : '') + '>' +
-            '<td>' + ilRankBadge_(i + 1) + '</td>' +
+            '<td>' + ilRankBadge_(i + 1, 1) + '</td>' +
             '<td><span class="il-team-cell">' + teamJersey_(tone, teamJerseyLabel_(s.team, i), true) + esc(s.team) + '</span></td>' +
             '<td>' + s.wins + '</td>' +
             '<td>' + s.losses + '</td>' +
