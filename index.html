@@ -2998,9 +2998,19 @@
     .il-top-scorer { margin-top: 8px; font-size: 12.5px; color: var(--text); }
     .il-top-scorer-label { font-weight: 800; color: var(--muted); }
     .il-top-scorer-pts { font-weight: 800; color: var(--action, var(--accent)); white-space: nowrap; }
-    .il-leaders-table .il-scorer-name { font-weight: 700; white-space: nowrap; }
-    .il-leaders-table .il-pts { font-weight: 800; }
-    .il-leaders-table th:nth-child(n+4), .il-leaders-table td:nth-child(n+4) { text-align: right; }
+    .il-leaders-table td { vertical-align: top; }
+    .il-leaders-table .il-rank { width: 1%; white-space: nowrap; }
+    .il-leaders-table .il-pts { font-weight: 800; width: 1%; white-space: nowrap; }
+    .il-leaders-table th:nth-child(3), .il-leaders-table td:nth-child(3) { text-align: right; }
+    .il-scorer { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; min-height: 26px; }
+    .il-scorer + .il-scorer { margin-top: 6px; }
+    .il-scorer-team { display: inline-flex; flex-shrink: 0; }
+    .il-scorer-name { font-weight: 700; }
+    .il-scorer-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .il-leaders-table .il-rank, .il-leaders-table .il-pts { line-height: 26px; }
+    #ilExportCapture .il-scorer-meta { font-size: 14px; }
+    #ilExportCapture .il-scorer + .il-scorer { margin-top: 8px; }
+    #ilExportCapture .il-boxscore-btn { display: none; }
     .il-more-scorers { margin-top: 4px; }
     .il-more-scorers summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--accent); padding: 6px 0; }
     .il-boxscore-btn {
@@ -6660,30 +6670,40 @@
         ' <span class="il-top-scorer-pts">' + top[0].points + ' pts</span></div>';
     }
 
-    // Ranked by total points, with games played and points per game beside
-    // it. Top 10 on show, the rest behind "All scorers".
+    // Ranked by total points. Players on the same total share a rank and one
+    // row, each listed with their team, games played and points per game.
+    // The top 10 ranks are on show, the rest behind "All scorers".
     function renderScoringLeaders_(league, forImage) {
       const leaders = leagueScoring_(league).leaders;
       if (!leaders.length) return '';
       const tones = leagueTeamTones_(league);
       const teamIndex = {};
       league.teams.forEach(function (t, i) { teamIndex[t.teamName] = i; });
-      const row = function (p) {
+      const groups = [];
+      leaders.forEach(function (p) {
+        const last = groups[groups.length - 1];
+        if (last && last.rank === p.rank) last.players.push(p);
+        else groups.push({ rank: p.rank, points: p.points, players: [p] });
+      });
+      const player = function (p) {
         const i = teamIndex[p.team];
-        const badge = i === undefined ? esc(p.team) :
-          '<span class="il-team-cell" title="' + esc(p.team) + '">' + teamJersey_(tones[p.team], teamJerseyLabel_(p.team, i), true) + '</span>';
-        return '<tr' + (p.rank === 1 ? ' class="il-leader"' : '') + '>' +
-          '<td>' + p.rank + '</td>' +
-          '<td class="il-scorer-name">' + (p.rank === 1 ? '👑 ' : '') + esc(p.player) + '</td>' +
-          '<td>' + badge + '</td>' +
-          '<td>' + p.games + '</td>' +
-          '<td class="il-pts">' + p.points + '</td>' +
-          '<td>' + Number(p.ppg).toFixed(1) + '</td>' +
+        const badge = i === undefined ? '' :
+          '<span class="il-scorer-team" title="' + esc(p.team) + '">' + teamJersey_(tones[p.team], teamJerseyLabel_(p.team, i), true) + '</span>';
+        return '<div class="il-scorer">' + badge +
+          '<span class="il-scorer-name">' + (p.rank === 1 ? '👑 ' : '') + esc(p.player) + '</span>' +
+          '<span class="il-scorer-meta">' + p.games + ' GP · ' + Number(p.ppg).toFixed(1) + ' PPG</span>' +
+        '</div>';
+      };
+      const row = function (g) {
+        return '<tr' + (g.rank === 1 ? ' class="il-leader"' : '') + '>' +
+          '<td class="il-rank">' + g.rank + '</td>' +
+          '<td>' + g.players.map(player).join('') + '</td>' +
+          '<td class="il-pts">' + g.points + '</td>' +
         '</tr>';
       };
-      const head = '<thead><tr><th>Rank</th><th>Player</th><th>Team</th><th>GP</th><th>PTS</th><th>PPG</th></tr></thead>';
-      const top = leaders.slice(0, 10);
-      const rest = forImage ? [] : leaders.slice(10);
+      const head = '<thead><tr><th>Rank</th><th>Player</th><th>PTS</th></tr></thead>';
+      const top = groups.slice(0, 10);
+      const rest = forImage ? [] : groups.slice(10);
       return '' +
         '<div class="il-section">' +
           '<div class="il-section-head">' +
@@ -8472,7 +8492,13 @@
       setTimeout(function () {
         // A league image should look the same from any device, so it always
         // gets the wide layout rather than this phone's media queries.
-        const captureOptions = elementId === 'ilExportCapture' ? { scale: 2, windowWidth: 1100 } : { scale: 2 };
+        // It is also rendered at 3x rather than 2x: a whole league is a tall
+        // image, and chat apps shrink a tall image hard, so it needs the
+        // extra pixels to stay sharp. Capped at ~16M pixels, which is the
+        // largest canvas iOS Safari will draw; past that it gets less.
+        const captureOptions = elementId === 'ilExportCapture'
+          ? { scale: Math.max(1, Math.min(3, Math.sqrt(16e6 / (target.offsetWidth * target.offsetHeight)))), windowWidth: 1100 }
+          : { scale: 2 };
         html2canvas(target, captureOptions).then(function (canvas) {
           document.body.classList.remove('exporting-records');
           if (needsForceShow) target.style.display = 'none';
