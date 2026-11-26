@@ -6719,8 +6719,8 @@
         '<div class="il-section">' +
           '<div class="il-section-head">' +
             '<span class="il-section-icon">' + icon_('trophy') + '</span>' +
-            '<div class="il-section-title">Scoring Leaders</div>' +
-            '<div class="il-section-note">By total points</div>' +
+            '<div class="il-section-title">' + (allRows ? 'Scoring Table' : 'Scoring Leaders') + '</div>' +
+            '<div class="il-section-note">' + (allRows ? leaders.length + ' scorers · by total points' : 'By total points') + '</div>' +
           '</div>' +
           '<div class="il-table-wrap"><table class="il-table il-leaders-table">' + head +
             '<tbody>' + rows(top) + '</tbody></table></div>' +
@@ -6734,12 +6734,12 @@
               '<button class="export-btn il-leaders-image-btn" data-league="' + esc(league.leagueId) + '" type="button">' +
                 '<span class="btn-icon">' + icon_('download') + '</span>' +
                 '<span class="btn-label"><span class="btn-label-main">Export</span>' +
-                '<span class="btn-label-sub">Leaderboard image</span></span></button></div>') +
+                '<span class="btn-label-sub">Scoring table</span></span></button></div>') +
         '</div>';
     }
 
-    // Public, like the league image: every scorer (not just the top 10
-    // ranks), under the league's name, through the same off-screen capture
+    // The Scoring Table image. Public, like the league image: every scorer
+    // (not just the top 10 ranks), under the league's name, through the same off-screen capture
     // and export path, so it gets the same sizing and 3x rendering.
     function exportLeaderboardImage_(btn) {
       const league = ((DATA.leagues && DATA.leagues.list) || []).filter(function (l) {
@@ -6752,13 +6752,12 @@
         capture.id = 'ilExportCapture';
         document.body.appendChild(capture);
       }
-      const leaders = leagueScoring_(league).leaders;
       const range = computeLeagueDateRange_(league.games);
       capture.innerHTML = '' +
         '<div class="il-league-block">' +
           '<div class="il-league-top"><div class="il-league-header">' +
             '<h3>' + esc(league.name) + ' <span class="il-status-badge il-status-' + esc(league.status) + '">' + esc(league.status) + '</span></h3>' +
-            '<div class="il-league-meta">' + leaders.length + ' scorers · ' + computeLeagueGameCounts_(league.games) +
+            '<div class="il-league-meta">' + computeLeagueGameCounts_(league.games) +
               (range ? ' · ' + esc(range) : '') + '</div>' +
           '</div></div>' +
           renderScoringLeaders_(league, true, true) +
@@ -6767,7 +6766,7 @@
             '<span class="il-foot-meta">' + esc(league.name) + ' | Play · Compete · Respect</span>' +
           '</div>' +
         '</div>';
-      exportImageFromElement('ilExportCapture', String(league.name).replace(/[^A-Za-z0-9]+/g, '-') + '-Scoring-Leaders', btn);
+      exportImageFromElement('ilExportCapture', String(league.name).replace(/[^A-Za-z0-9]+/g, '-') + '-Scoring-Table', btn);
     }
 
     function renderBoxScore_(league, game) {
