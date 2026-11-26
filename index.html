@@ -6667,7 +6667,8 @@
     // of their rows only, and the line between those rows is dropped, so a
     // tie reads as one block. The top 10 ranks are on show (more than 10
     // players when there are ties), the rest behind "All scorers".
-    function renderScoringLeaders_(league, forImage) {
+    // allRows: every scorer in one table, for the leaderboard image.
+    function renderScoringLeaders_(league, forImage, allRows) {
       const leaders = leagueScoring_(league).leaders;
       if (!leaders.length) return '';
       const tones = leagueTeamTones_(league);
@@ -6695,8 +6696,8 @@
       };
       const head = '<thead><tr><th>Rank</th><th>Player</th><th>Team</th><th>GP</th><th>PTS</th><th>PPG</th></tr></thead>';
       // Ranks are dense (1, 2, 2, 3), so the top 10 ranks are rank <= 10.
-      const top = leaders.filter(function (p) { return p.rank <= 10; });
-      const rest = forImage ? [] : leaders.filter(function (p) { return p.rank > 10; });
+      const top = allRows ? leaders : leaders.filter(function (p) { return p.rank <= 10; });
+      const rest = (forImage || allRows) ? [] : leaders.filter(function (p) { return p.rank > 10; });
       return '' +
         '<div class="il-section">' +
           '<div class="il-section-head">' +
@@ -6711,7 +6712,45 @@
                 '<div class="il-table-wrap"><table class="il-table il-leaders-table">' + head +
                 '<tbody>' + rows(rest) + '</tbody></table></div></details>'
             : '') +
+          (forImage ? '' :
+            '<div class="il-round-messages">' +
+              '<button class="export-btn il-leaders-image-btn" data-league="' + esc(league.leagueId) + '" type="button">' +
+                '<span class="btn-icon">' + icon_('download') + '</span>' +
+                '<span class="btn-label"><span class="btn-label-main">Export</span>' +
+                '<span class="btn-label-sub">Leaderboard image</span></span></button></div>') +
         '</div>';
+    }
+
+    // Public, like the league image: every scorer (not just the top 10
+    // ranks), under the league's name, through the same off-screen capture
+    // and export path, so it gets the same sizing and 3x rendering.
+    function exportLeaderboardImage_(btn) {
+      const league = ((DATA.leagues && DATA.leagues.list) || []).filter(function (l) {
+        return l.leagueId === btn.dataset.league;
+      })[0];
+      if (!league) return;
+      let capture = document.getElementById('ilExportCapture');
+      if (!capture) {
+        capture = document.createElement('div');
+        capture.id = 'ilExportCapture';
+        document.body.appendChild(capture);
+      }
+      const leaders = leagueScoring_(league).leaders;
+      const range = computeLeagueDateRange_(league.games);
+      capture.innerHTML = '' +
+        '<div class="il-league-block">' +
+          '<div class="il-league-top"><div class="il-league-header">' +
+            '<h3>' + esc(league.name) + ' <span class="il-status-badge il-status-' + esc(league.status) + '">' + esc(league.status) + '</span></h3>' +
+            '<div class="il-league-meta">' + leaders.length + ' scorers · ' + computeLeagueGameCounts_(league.games) +
+              (range ? ' · ' + esc(range) : '') + '</div>' +
+          '</div></div>' +
+          renderScoringLeaders_(league, true, true) +
+          '<div class="il-league-foot">' +
+            '<span class="il-foot-script">Same People. Better Basketball.</span>' +
+            '<span class="il-foot-meta">' + esc(league.name) + ' | Play · Compete · Respect</span>' +
+          '</div>' +
+        '</div>';
+      exportImageFromElement('ilExportCapture', String(league.name).replace(/[^A-Za-z0-9]+/g, '-') + '-Scoring-Leaders', btn);
     }
 
     function renderBoxScore_(league, game) {
@@ -7269,6 +7308,8 @@
 
       const imageBtn = e.target.closest('.il-image-btn');
       if (imageBtn) exportLeagueImage_(imageBtn);
+      const leadersImageBtn = e.target.closest('.il-leaders-image-btn');
+      if (leadersImageBtn) exportLeaderboardImage_(leadersImageBtn);
 
       const balanceBtn = e.target.closest('.il-balance-btn');
       if (balanceBtn) {
